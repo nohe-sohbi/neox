@@ -16,7 +16,7 @@ export function SearchBar({ category }: SearchBarProps) {
 
     // La recherche doit target l'url https://www.extrem-down.diy/?p=films&s=QUERY
     try {
-      const response = await fetch(`https://www.extrem-down.diy/?p=${category}&s=${query}`);
+      const response = await fetch(`http://localhost:3001/search/?p=${category}&s=${query}`);
       const data = await response.json();
       console.log(data);
       setResults(data);

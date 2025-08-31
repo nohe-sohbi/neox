@@ -13,7 +13,7 @@ app.get('/search', async (req, res) => {
     if(!p || !s) return res.status(400).send('Bad request')
 
     try {
-        const response = await fetch(`https://www.extrem-down.diy/?p=${p}&s=${s}`);
+        const response = await fetch(`https://www.extrem-down.diy/?p=${p}&search=${s}`);
 
         if(p === "films") {
             const searchData = parseMoviesSearchResults(await response.text());

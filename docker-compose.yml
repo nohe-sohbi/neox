@@ -1,0 +1,29 @@
+version: '3.8'
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend:/usr/src/app
+    working_dir: /usr/src/app
+    command: node server.js
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./project
+      dockerfile: Dockerfile
+    volumes:
+      - ./project:/usr/src/app
+    working_dir: /usr/src/app
+    command: npm run dev
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://backend:3001
+    depends_on:
+      - backend
+    restart: unless-stopped

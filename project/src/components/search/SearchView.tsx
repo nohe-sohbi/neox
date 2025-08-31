@@ -1,4 +1,3 @@
-import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Category } from '../../App';
 import { SearchBar } from './SearchBar';

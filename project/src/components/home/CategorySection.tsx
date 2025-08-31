@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface CategorySectionProps {
   title: string;
   imageUrl: string;

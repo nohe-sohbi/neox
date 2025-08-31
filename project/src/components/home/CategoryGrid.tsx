@@ -1,4 +1,3 @@
-import React from 'react';
 import { Category } from '../../App';
 import { CategorySection } from './CategorySection';
 

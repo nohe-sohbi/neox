@@ -8,6 +8,23 @@ interface SearchBarProps {
 
 export function SearchBar({ category }: SearchBarProps) {
   const [query, setQuery] = useState('');
+  const [results, setResults] = useState<string[]>([]);
+
+  const makeSearchRequest = async (query: string) => {
+    // Mettre à jour l'état de la recherche
+    setQuery(query);
+
+    // La recherche doit target l'url https://www.extrem-down.diy/?p=films&s=QUERY
+    try {
+      const response = await fetch(`https://www.extrem-down.diy/?p=${category}&s=${query}`);
+      const data = await response.json();
+      console.log(data);
+      setResults(data);
+    }
+    catch (error) {
+      console.error(error);
+    }
+  };
 
   const getPlaceholder = () => {
     switch (category) {
@@ -25,7 +42,7 @@ export function SearchBar({ category }: SearchBarProps) {
         <input
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => makeSearchRequest(e.target.value)}
           placeholder={getPlaceholder()}
           className="w-full bg-white/10 border border-white/20 rounded-full py-3 px-6 pr-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent backdrop-blur-sm"
         />
@@ -34,7 +51,7 @@ export function SearchBar({ category }: SearchBarProps) {
         </button>
       </div>
       
-      {query && (
+      {results && (
         <div className="absolute top-full left-0 right-0 mt-4 bg-black/80 backdrop-blur-md rounded-2xl overflow-hidden border border-white/10">
           <div className="p-4 hover:bg-white/5 transition-colors">
             <div className="flex items-center space-x-4">

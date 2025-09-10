@@ -1,6 +1,34 @@
 import {useState} from 'react';
 import { Movie } from '../interface/Movie';
 
+// Tab Component
+interface TabProps {
+    label: string;
+    isActive: boolean;
+    onClick: () => void;
+    count: number;
+}
+
+function Tab({ label, isActive, onClick, count }: TabProps) {
+    return (
+        <button
+            onClick={onClick}
+            className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
+                isActive
+                    ? 'bg-gradient-to-r from-cyan-600 to-violet-600 text-white shadow-lg'
+                    : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 hover:text-white'
+            }`}
+        >
+            {label}
+            <span className={`px-2 py-1 rounded-full text-xs ${
+                isActive ? 'bg-white/20' : 'bg-gray-600/50'
+            }`}>
+                {count}
+            </span>
+        </button>
+    );
+}
+
 // Link Card Component
 interface LinkCardProps {
     link: LinkData;
@@ -142,6 +170,7 @@ export function SearchResults({results}: SearchResultsProps) {
     const [movieLinks, setMovieLinks] = useState<MovieLinksData | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'download' | 'streaming'>('download');
 
     const searchMovieLinks = async (url: string) => {
         setLoading(true);
@@ -232,6 +261,7 @@ export function SearchResults({results}: SearchResultsProps) {
         setSelected(movie);
         setMovieLinks(null);
         setError(null);
+        setActiveTab('download'); // Reset to download tab when selecting a new movie
         if (!movie.url) {
             setError("Ce film n'a pas de lien disponible.");
             return;
@@ -316,51 +346,66 @@ export function SearchResults({results}: SearchResultsProps) {
                                 )}
 
                                 {!loading && !error && movieLinks && (
-                                    <div className="space-y-8">
-                                        {/* Download Links */}
-                                        <div>
-                                            <h3 className="text-white text-xl font-semibold mb-4 flex items-center">
-                                                <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
-                                                Liens de téléchargement
-                                                <span className="ml-2 text-sm text-gray-400">({movieLinks.downloadLinks.length})</span>
-                                            </h3>
-                                            {movieLinks.downloadLinks.length > 0 ? (
-                                                <div className="grid gap-4">
-                                                    {movieLinks.downloadLinks.map((link, i) => (
-                                                        <LinkCard
-                                                            key={i}
-                                                            link={link}
-                                                            onResolve={() => resolveWithProvider(i, false)}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="text-center py-8 text-gray-400">
-                                                    <p>Aucun lien de téléchargement trouvé.</p>
-                                                </div>
-                                            )}
+                                    <div className="space-y-6">
+                                        {/* Tab Navigation */}
+                                        <div className="flex gap-4 border-b border-white/10 pb-4">
+                                            <Tab
+                                                label="Téléchargement"
+                                                isActive={activeTab === 'download'}
+                                                onClick={() => setActiveTab('download')}
+                                                count={movieLinks.downloadLinks.length}
+                                            />
+                                            <Tab
+                                                label="Streaming"
+                                                isActive={activeTab === 'streaming'}
+                                                onClick={() => setActiveTab('streaming')}
+                                                count={movieLinks.streamingLinks.length}
+                                            />
                                         </div>
 
-                                        {/* Streaming Links */}
-                                        <div>
-                                            <h3 className="text-white text-xl font-semibold mb-4 flex items-center">
-                                                <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
-                                                Liens de streaming
-                                                <span className="ml-2 text-sm text-gray-400">({movieLinks.streamingLinks.length})</span>
-                                            </h3>
-                                            {movieLinks.streamingLinks.length > 0 ? (
-                                                <div className="grid gap-4">
-                                                    {movieLinks.streamingLinks.map((link, i) => (
-                                                        <LinkCard
-                                                            key={i}
-                                                            link={link}
-                                                            onResolve={() => resolveWithProvider(i, true)}
-                                                        />
-                                                    ))}
+                                        {/* Tab Content */}
+                                        <div className="min-h-[400px]">
+                                            {activeTab === 'download' && (
+                                                <div>
+                                                    {movieLinks.downloadLinks.length > 0 ? (
+                                                        <div className="grid gap-4">
+                                                            {movieLinks.downloadLinks.map((link, i) => (
+                                                                <LinkCard
+                                                                    key={i}
+                                                                    link={link}
+                                                                    onResolve={() => resolveWithProvider(i, false)}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-center py-16 text-gray-400">
+                                                            <div className="text-6xl mb-4">📥</div>
+                                                            <h3 className="text-xl font-medium mb-2">Aucun lien de téléchargement</h3>
+                                                            <p>Aucun lien de téléchargement n'a été trouvé pour ce contenu.</p>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            ) : (
-                                                <div className="text-center py-8 text-gray-400">
-                                                    <p>Aucun lien de streaming trouvé.</p>
+                                            )}
+
+                                            {activeTab === 'streaming' && (
+                                                <div>
+                                                    {movieLinks.streamingLinks.length > 0 ? (
+                                                        <div className="grid gap-4">
+                                                            {movieLinks.streamingLinks.map((link, i) => (
+                                                                <LinkCard
+                                                                    key={i}
+                                                                    link={link}
+                                                                    onResolve={() => resolveWithProvider(i, true)}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-center py-16 text-gray-400">
+                                                            <div className="text-6xl mb-4">🎬</div>
+                                                            <h3 className="text-xl font-medium mb-2">Aucun lien de streaming</h3>
+                                                            <p>Aucun lien de streaming n'a été trouvé pour ce contenu.</p>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

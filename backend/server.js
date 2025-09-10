@@ -132,6 +132,18 @@ function parseMovieLinkPage(htmlString) {
             const url = $(link).attr('href');
             const host = $(link).find('strong.hebergeur').text().trim();
             if (url && host) {
+                // Filter out advertisement links
+                if (isAdvertisementLink(url)) {
+                    console.log('Filtered out advertisement link:', url);
+                    return; // Skip this link
+                }
+
+                // For protected-link.example, only include legitimate protected links
+                if (url.includes('protected-link.example') && !isLegitimateProtectedLink(url)) {
+                    console.log('Filtered out invalid protected-link.example:', url);
+                    return; // Skip this link
+                }
+
                 const linkInfo = analyzeLinkForResolver(url, host);
                 downloadLinks.push({
                     host,
@@ -150,6 +162,18 @@ function parseMovieLinkPage(htmlString) {
             const url = $(link).attr('href');
             const host = $(link).find('strong.hebergeur').text().trim();
             if (url && host) {
+                // Filter out advertisement links
+                if (isAdvertisementLink(url)) {
+                    console.log('Filtered out advertisement link:', url);
+                    return; // Skip this link
+                }
+
+                // For protected-link.example, only include legitimate protected links
+                if (url.includes('protected-link.example') && !isLegitimateProtectedLink(url)) {
+                    console.log('Filtered out invalid protected-link.example:', url);
+                    return; // Skip this link
+                }
+
                 const linkInfo = analyzeLinkForResolver(url, host);
                 streamingLinks.push({
                     host,
@@ -163,13 +187,33 @@ function parseMovieLinkPage(htmlString) {
     console.log('Parsed movie links:', {
         downloadLinks: downloadLinks.length,
         streamingLinks: streamingLinks.length,
-        resolverLinks: [...downloadLinks, ...streamingLinks].filter(l => l.needsResolver).length
+        resolverLinks: [...downloadLinks, ...streamingLinks].filter(l => l.needsResolver).length,
+        totalValidLinks: downloadLinks.length + streamingLinks.length
     });
 
     return {
         downloadLinks,
         streamingLinks,
     };
+}
+
+// Filter out advertisement links that should be excluded
+function isAdvertisementLink(url) {
+    // Exclude protected-link.example advertisement patterns
+    // BAD: https://protected-link.example/rqts-url?fn=*
+    if (url.includes('protected-link.example/rqts-url?fn=')) {
+        return true;
+    }
+
+    // Add other advertisement patterns here if needed
+    return false;
+}
+
+// Check if a protected-link.example is a legitimate protected link
+function isLegitimateProtectedLink(url) {
+    // GOOD: https://protected-link.example/[alphanumeric-id]?fn=*&rl=*
+    const legitimatePattern = /^https:\/\/protected-link\.link\/[a-zA-Z0-9]+\?fn=.*&rl=.*$/;
+    return legitimatePattern.test(url);
 }
 
 // Analyze if a link needs resolution

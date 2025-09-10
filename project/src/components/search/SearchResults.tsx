@@ -5,9 +5,23 @@ interface SearchResultsProps {
   results: Movie[];
 }
 
+interface LinkData {
+    host: string;
+    url: string;
+    isProtectedLink?: boolean;
+    needsResolver?: boolean;
+    resolvedUrl?: string;
+    resolving?: boolean;
+}
+
+interface MovieLinksData {
+    downloadLinks: LinkData[];
+    streamingLinks: LinkData[];
+}
+
 export function SearchResults({results}: SearchResultsProps) {
     const [selected, setSelected] = useState<Movie | null>(null);
-    const [movieLinks, setMovieLinks] = useState<{downloadLinks: string[], streamingLinks: string[]} | null>(null);
+    const [movieLinks, setMovieLinks] = useState<MovieLinksData | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +45,63 @@ export function SearchResults({results}: SearchResultsProps) {
             setMovieLinks(null);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const resolveWithProvider = async (linkIndex: number, isStreaming: boolean) => {
+        if (!movieLinks) return;
+
+        const links = isStreaming ? movieLinks.streamingLinks : movieLinks.downloadLinks;
+        const link = links[linkIndex];
+
+        if (!link || !link.needsResolver) return;
+
+        // Mark this link as resolving
+        const updatedLinks = [...links];
+        updatedLinks[linkIndex] = { ...link, resolving: true };
+
+        setMovieLinks({
+            ...movieLinks,
+            [isStreaming ? 'streamingLinks' : 'downloadLinks']: updatedLinks
+        });
+
+        try {
+            const response = await fetch('http://localhost:3001/resolve', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url: link.url })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Erreur lors de la résolution');
+            }
+
+            // Update the link with resolved URL
+            updatedLinks[linkIndex] = {
+                ...link,
+                resolving: false,
+                resolvedUrl: data.resolvedUrl
+            };
+
+            setMovieLinks({
+                ...movieLinks,
+                [isStreaming ? 'streamingLinks' : 'downloadLinks']: updatedLinks
+            });
+
+        } catch (err) {
+            // Reset resolving state on error
+            updatedLinks[linkIndex] = { ...link, resolving: false };
+            setMovieLinks({
+                ...movieLinks,
+                [isStreaming ? 'streamingLinks' : 'downloadLinks']: updatedLinks
+            });
+
+            const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
+            setError(`Erreur de résolution: ${errorMessage}`);
         }
     };
 
@@ -94,27 +165,71 @@ export function SearchResults({results}: SearchResultsProps) {
                                 <div className="mt-4 w-full">
                                     <h4 className="text-white font-semibold mb-2">Liens de téléchargement :</h4>
                                     {movieLinks.downloadLinks.length > 0 ? (
-                                        <ul className="list-disc pl-5 mb-4">
+                                        <div className="mb-4">
                                             {movieLinks.downloadLinks.map((link, i) => (
-                                                <li key={i}>
-                                                    <span className="text-gray-300 mr-2">{link.host} :</span>
-                                                    <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">{link.url}</a>
-                                                </li>
+                                                <div key={i} className="mb-3 p-3 bg-gray-800 rounded-lg">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-gray-300 font-medium">{link.host}</span>
+                                                        {link.needsResolver && (
+                                                            <button
+                                                                onClick={() => resolveWithProvider(i, false)}
+                                                                disabled={link.resolving}
+                                                                className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
+                                                            >
+                                                                {link.resolving ? 'Résolution...' : 'Résoudre le lien'}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    {link.resolvedUrl ? (
+                                                        <a href={link.resolvedUrl} target="_blank" rel="noopener noreferrer" className="text-green-400 underline break-all">
+                                                            {link.resolvedUrl}
+                                                        </a>
+                                                    ) : (
+                                                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline break-all">
+                                                            {link.url}
+                                                        </a>
+                                                    )}
+                                                    {link.needsResolver && !link.resolvedUrl && (
+                                                        <p className="text-yellow-400 text-xs mt-1">⚠️ Ce lien doit être résolu</p>
+                                                    )}
+                                                </div>
                                             ))}
-                                        </ul>
+                                        </div>
                                     ) : (
                                         <p className="text-gray-400">Aucun lien de téléchargement trouvé.</p>
                                     )}
                                     <h4 className="text-white font-semibold mb-2">Liens de streaming :</h4>
                                     {movieLinks.streamingLinks.length > 0 ? (
-                                        <ul className="list-disc pl-5">
+                                        <div>
                                             {movieLinks.streamingLinks.map((link, i) => (
-                                                <li key={i}>
-                                                    <span className="text-gray-300 mr-2">{link.host} :</span>
-                                                    <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">{link.url}</a>
-                                                </li>
+                                                <div key={i} className="mb-3 p-3 bg-gray-800 rounded-lg">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-gray-300 font-medium">{link.host}</span>
+                                                        {link.needsResolver && (
+                                                            <button
+                                                                onClick={() => resolveWithProvider(i, true)}
+                                                                disabled={link.resolving}
+                                                                className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
+                                                            >
+                                                                {link.resolving ? 'Résolution...' : 'Résoudre le lien'}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    {link.resolvedUrl ? (
+                                                        <a href={link.resolvedUrl} target="_blank" rel="noopener noreferrer" className="text-green-400 underline break-all">
+                                                            {link.resolvedUrl}
+                                                        </a>
+                                                    ) : (
+                                                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline break-all">
+                                                            {link.url}
+                                                        </a>
+                                                    )}
+                                                    {link.needsResolver && !link.resolvedUrl && (
+                                                        <p className="text-yellow-400 text-xs mt-1">⚠️ Ce lien doit être résolu</p>
+                                                    )}
+                                                </div>
                                             ))}
-                                        </ul>
+                                        </div>
                                     ) : (
                                         <p className="text-gray-400">Aucun lien de streaming trouvé.</p>
                                     )}

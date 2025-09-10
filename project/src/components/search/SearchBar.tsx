@@ -25,6 +25,15 @@ export function SearchBar({ category }: SearchBarProps) {
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (query.trim()) {
+        makeSearchRequest(query.trim());
+      }
+    }
+  };
+
   const getPlaceholder = () => {
     switch (category) {
       case 'films': return 'Rechercher un film...';
@@ -42,6 +51,7 @@ export function SearchBar({ category }: SearchBarProps) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyPress={handleKeyPress}
           placeholder={getPlaceholder()}
           className="w-full bg-white/10 border border-white/20 rounded-full py-3 px-6 pr-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent backdrop-blur-sm"
         />

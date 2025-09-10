@@ -54,15 +54,42 @@ app.post('/resolve', async (req, res) => {
         return res.status(500).json({ error: 'resolver API key not configured' });
     }
 
+    console.log('resolve request for URL:', url);
+
     try {
         const resolvedUrl = await resolveLinkUrl(url);
+        console.log('resolution successful:', { originalUrl: url, resolvedUrl });
         res.json({ originalUrl: url, resolvedUrl });
     } catch (error) {
+        console.error('resolution failed:', { url, error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
 
-app.listen(3001);
+// Get supported hosts
+app.get('/hosts', async (req, res) => {
+    if (!process.env.RESOLVER_API_KEY) {
+        return res.status(500).json({ error: 'resolver API key not configured' });
+    }
+
+    try {
+        const response = await fetch(`https://api.provider.example/v4/hosts?agent=neox&apikey=${process.env.RESOLVER_API_KEY}`);
+        const data = await response.json();
+
+        if (!response.ok || data.status !== 'success') {
+            throw new Error(data.error?.message || 'Failed to get supported hosts');
+        }
+
+        res.json({ hosts: data.data.hosts });
+    } catch (error) {
+        console.error('resolver hosts API error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.listen(3001, () => {
+    console.log('Server running on port 3001');
+});
 
 function parseMoviesSearchResults(htmlString) {
     const $ = cheerio.load(htmlString);
@@ -105,13 +132,11 @@ function parseMovieLinkPage(htmlString) {
             const url = $(link).attr('href');
             const host = $(link).find('strong.hebergeur').text().trim();
             if (url && host) {
-                // Check if this is a protected-link.example URL that can be resolved by the resolver
-                const isProtectedLink = url.includes('protected-link.example');
+                const linkInfo = analyzeLinkForResolver(url, host);
                 downloadLinks.push({
                     host,
                     url,
-                    isProtectedLink,
-                    needsResolver: isProtectedLink
+                    ...linkInfo
                 });
             }
         });
@@ -125,21 +150,63 @@ function parseMovieLinkPage(htmlString) {
             const url = $(link).attr('href');
             const host = $(link).find('strong.hebergeur').text().trim();
             if (url && host) {
-                // Check if this is a protected-link.example URL that can be resolved by the resolver
-                const isProtectedLink = url.includes('protected-link.example');
+                const linkInfo = analyzeLinkForResolver(url, host);
                 streamingLinks.push({
                     host,
                     url,
-                    isProtectedLink,
-                    needsResolver: isProtectedLink
+                    ...linkInfo
                 });
             }
         });
     }
 
+    console.log('Parsed movie links:', {
+        downloadLinks: downloadLinks.length,
+        streamingLinks: streamingLinks.length,
+        resolverLinks: [...downloadLinks, ...streamingLinks].filter(l => l.needsResolver).length
+    });
+
     return {
         downloadLinks,
         streamingLinks,
+    };
+}
+
+// Analyze if a link needs resolution
+function analyzeLinkForResolver(url, host) {
+    // Common protected link patterns
+    const protectedPatterns = [
+        'protected-link.example',
+        'protect-link.com',
+        'short-link.fr',
+        'linkprotect.xz',
+        'protect-url.com'
+    ];
+
+    // Common file hosting services that the resolver supports
+    const resolverHosts = [
+        'rapidgator',
+        'uploaded',
+        'nitroflare',
+        'turbobit',
+        'katfile',
+        'ddownload',
+        'mega.nz',
+        'mediafire',
+        '1fichier',
+        'uptobox'
+    ];
+
+    const isProtectedLink = protectedPatterns.some(pattern => url.includes(pattern));
+    const isResolverHost = resolverHosts.some(hostPattern =>
+        host.toLowerCase().includes(hostPattern) || url.toLowerCase().includes(hostPattern)
+    );
+
+    return {
+        isProtectedLink,
+        isResolverHost,
+        needsResolver: isProtectedLink || isResolverHost,
+        linkType: isProtectedLink ? 'protected' : isResolverHost ? 'premium' : 'direct'
     };
 }
 
@@ -151,25 +218,62 @@ async function resolveLinkUrl(url) {
         throw new Error('resolver API key not configured');
     }
 
+    console.log('Attempting to resolve URL with the resolver:', url);
+
     try {
         // First, add the link to the resolver
+        const requestBody = `agent=neox&apikey=${apiKey}&link=${encodeURIComponent(url)}`;
+        console.log('resolver API request body:', requestBody.replace(apiKey, '[REDACTED]'));
+
         const addResponse = await fetch('https://api.provider.example/v4/link/unlock', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: `agent=neox&apikey=${apiKey}&link=${encodeURIComponent(url)}`
+            body: requestBody
         });
 
         const addData = await addResponse.json();
+        console.log('resolver API response:', {
+            status: addResponse.status,
+            ok: addResponse.ok,
+            data: addData
+        });
 
-        if (!addResponse.ok || addData.status !== 'success') {
-            throw new Error(addData.error?.message || 'Failed to resolve URL with the resolver');
+        if (!addResponse.ok) {
+            const errorMsg = addData.error?.message || addData.error || `HTTP ${addResponse.status}`;
+            throw new Error(`resolver API HTTP error: ${errorMsg}`);
         }
 
+        if (addData.status !== 'success') {
+            const errorMsg = addData.error?.message || addData.error || 'Unknown error';
+            throw new Error(`resolver API error: ${errorMsg}`);
+        }
+
+        if (!addData.data || !addData.data.link) {
+            throw new Error('resolver API returned no download link');
+        }
+
+        console.log('resolution successful, resolved URL:', addData.data.link);
         return addData.data.link;
     } catch (error) {
-        console.error('resolver API error:', error);
+        console.error('resolver API error details:', {
+            originalUrl: url,
+            errorMessage: error.message,
+            errorStack: error.stack
+        });
+
+        // Provide more specific error messages based on common issues
+        if (error.message.includes('This host or link is not supported')) {
+            throw new Error('This host or link is not supported by the resolver');
+        } else if (error.message.includes('Invalid link')) {
+            throw new Error('The provided link is invalid or malformed');
+        } else if (error.message.includes('Unauthorized')) {
+            throw new Error('resolver API key is invalid or expired');
+        } else if (error.message.includes('Quota exceeded')) {
+            throw new Error('link resolver quota exceeded for this account');
+        }
+
         throw new Error(`resolution failed: ${error.message}`);
     }
 }

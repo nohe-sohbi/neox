@@ -1,6 +1,121 @@
 import {useState} from 'react';
 import { Movie } from '../interface/Movie';
 
+// Link Card Component
+interface LinkCardProps {
+    link: LinkData;
+    onResolve: () => void;
+}
+
+function LinkCard({ link, onResolve }: LinkCardProps) {
+    const getLinkTypeIcon = (linkType?: string) => {
+        switch (linkType) {
+            case 'protected': return '🔒';
+            case 'premium': return '⭐';
+            case 'direct': return '🔗';
+            default: return '🔗';
+        }
+    };
+
+    const getLinkTypeColor = (linkType?: string) => {
+        switch (linkType) {
+            case 'protected': return 'text-yellow-400 bg-yellow-900/20 border-yellow-500/30';
+            case 'premium': return 'text-purple-400 bg-purple-900/20 border-purple-500/30';
+            case 'direct': return 'text-green-400 bg-green-900/20 border-green-500/30';
+            default: return 'text-gray-400 bg-gray-900/20 border-gray-500/30';
+        }
+    };
+
+    return (
+        <div className="bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-xl border border-white/10 p-5 hover:border-white/20 transition-all">
+            <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                    <span className="text-2xl">{getLinkTypeIcon(link.linkType)}</span>
+                    <div>
+                        <h4 className="text-white font-semibold text-lg">{link.host}</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className={`px-2 py-1 text-xs rounded-full border ${getLinkTypeColor(link.linkType)}`}>
+                                {link.linkType === 'protected' ? 'Lien protégé' :
+                                 link.linkType === 'premium' ? 'Hébergeur premium' :
+                                 'Lien direct'}
+                            </span>
+                            {link.needsResolver && (
+                                <span className="px-2 py-1 text-xs rounded-full border border-orange-500/30 bg-orange-900/20 text-orange-400">
+                                    Résolution requise
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {link.needsResolver && !link.resolvedUrl && (
+                    <button
+                        onClick={onResolve}
+                        disabled={link.resolving}
+                        className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-600 disabled:to-gray-700 text-white text-sm rounded-lg transition-all transform hover:scale-105 disabled:scale-100 shadow-lg"
+                    >
+                        {link.resolving ? (
+                            <span className="flex items-center gap-2">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                Résolution...
+                            </span>
+                        ) : (
+                            'Résoudre le lien'
+                        )}
+                    </button>
+                )}
+            </div>
+
+            {/* Link URL */}
+            <div className="space-y-3">
+                {link.resolvedUrl ? (
+                    <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-3">
+                        <p className="text-green-300 text-sm mb-2 font-medium">✅ Lien résolu:</p>
+                        <a
+                            href={link.resolvedUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-400 hover:text-green-300 underline break-all text-sm transition-colors"
+                        >
+                            {link.resolvedUrl}
+                        </a>
+                    </div>
+                ) : (
+                    <div className="bg-gray-900/30 border border-gray-600/30 rounded-lg p-3">
+                        <p className="text-gray-400 text-sm mb-2">Lien original:</p>
+                        <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 underline break-all text-sm transition-colors"
+                        >
+                            {link.url}
+                        </a>
+                    </div>
+                )}
+
+                {/* Error display */}
+                {link.error && (
+                    <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3">
+                        <p className="text-red-300 text-sm">
+                            <span className="font-medium">❌ Erreur:</span> {link.error}
+                        </p>
+                    </div>
+                )}
+
+                {/* Warning for link resolver links */}
+                {link.needsResolver && !link.resolvedUrl && !link.error && (
+                    <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-3">
+                        <p className="text-yellow-300 text-sm">
+                            <span className="font-medium">⚠️ Information:</span> Ce lien doit être résolu avant téléchargement.
+                        </p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 interface SearchResultsProps {
   results: Movie[];
 }
@@ -9,9 +124,12 @@ interface LinkData {
     host: string;
     url: string;
     isProtectedLink?: boolean;
+    isResolverHost?: boolean;
     needsResolver?: boolean;
+    linkType?: 'protected' | 'premium' | 'direct';
     resolvedUrl?: string;
     resolving?: boolean;
+    error?: string;
 }
 
 interface MovieLinksData {
@@ -93,15 +211,20 @@ export function SearchResults({results}: SearchResultsProps) {
             });
 
         } catch (err) {
-            // Reset resolving state on error
-            updatedLinks[linkIndex] = { ...link, resolving: false };
+            // Reset resolving state and add error to the specific link
+            const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
+            updatedLinks[linkIndex] = {
+                ...link,
+                resolving: false,
+                error: errorMessage
+            };
             setMovieLinks({
                 ...movieLinks,
                 [isStreaming ? 'streamingLinks' : 'downloadLinks']: updatedLinks
             });
 
-            const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
-            setError(`Erreur de résolution: ${errorMessage}`);
+            // Don't set global error, let individual link errors be displayed
+            console.error('resolution failed for link:', link.url, errorMessage);
         }
     };
 
@@ -142,102 +265,114 @@ export function SearchResults({results}: SearchResultsProps) {
                 ))}
             </div>
             {selected && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="bg-black rounded-2xl p-8 border border-white/10 max-w-md w-full relative">
-                        <button
-                            className="absolute top-2 right-2 text-white text-xl"
-                            onClick={() => { setSelected(null); setMovieLinks(null); setError(null); }}
-                            aria-label="Fermer"
-                        >
-                            ×
-                        </button>
-                        <div className="flex flex-col items-center">
-                            <img
-                                src={selected.image || ''}
-                                alt={selected.title}
-                                className="w-32 h-32 rounded object-cover mb-4"
-                            />
-                            <h2 className="text-white text-2xl font-bold mb-2">{selected.title}</h2>
-                            <p className="text-gray-400 mb-2">{selected.year} • {selected.type} • {selected.quality}</p>
-                            {loading && <p className="text-white">Chargement des liens...</p>}
-                            {error && <p className="text-red-500">{error}</p>}
-                            {!loading && !error && movieLinks && (
-                                <div className="mt-4 w-full">
-                                    <h4 className="text-white font-semibold mb-2">Liens de téléchargement :</h4>
-                                    {movieLinks.downloadLinks.length > 0 ? (
-                                        <div className="mb-4">
-                                            {movieLinks.downloadLinks.map((link, i) => (
-                                                <div key={i} className="mb-3 p-3 bg-gray-800 rounded-lg">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <span className="text-gray-300 font-medium">{link.host}</span>
-                                                        {link.needsResolver && (
-                                                            <button
-                                                                onClick={() => resolveWithProvider(i, false)}
-                                                                disabled={link.resolving}
-                                                                className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
-                                                            >
-                                                                {link.resolving ? 'Résolution...' : 'Résoudre le lien'}
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                    {link.resolvedUrl ? (
-                                                        <a href={link.resolvedUrl} target="_blank" rel="noopener noreferrer" className="text-green-400 underline break-all">
-                                                            {link.resolvedUrl}
-                                                        </a>
-                                                    ) : (
-                                                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline break-all">
-                                                            {link.url}
-                                                        </a>
-                                                    )}
-                                                    {link.needsResolver && !link.resolvedUrl && (
-                                                        <p className="text-yellow-400 text-xs mt-1">⚠️ Ce lien doit être résolu</p>
-                                                    )}
-                                                </div>
-                                            ))}
+                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm overflow-y-auto">
+                    <div className="min-h-screen flex items-start justify-center p-4">
+                        <div className="bg-gradient-to-br from-gray-900 to-black rounded-3xl border border-white/10 w-full max-w-4xl relative shadow-2xl">
+                            {/* Header */}
+                            <div className="sticky top-0 bg-gradient-to-r from-gray-900/95 to-black/95 backdrop-blur-sm rounded-t-3xl border-b border-white/10 p-6">
+                                <button
+                                    className="absolute top-4 right-4 text-white/70 hover:text-white text-2xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-all"
+                                    onClick={() => { setSelected(null); setMovieLinks(null); setError(null); }}
+                                    aria-label="Fermer"
+                                >
+                                    ×
+                                </button>
+                                <div className="flex items-start gap-6">
+                                    <img
+                                        src={selected.image || ''}
+                                        alt={selected.title}
+                                        className="w-24 h-36 rounded-xl object-cover shadow-lg"
+                                    />
+                                    <div className="flex-1">
+                                        <h2 className="text-white text-3xl font-bold mb-2">{selected.title}</h2>
+                                        <div className="flex flex-wrap gap-3 text-sm">
+                                            <span className="px-3 py-1 bg-blue-600/20 text-blue-300 rounded-full border border-blue-500/30">
+                                                {selected.year}
+                                            </span>
+                                            <span className="px-3 py-1 bg-purple-600/20 text-purple-300 rounded-full border border-purple-500/30">
+                                                {selected.type}
+                                            </span>
+                                            <span className="px-3 py-1 bg-green-600/20 text-green-300 rounded-full border border-green-500/30">
+                                                {selected.quality}
+                                            </span>
                                         </div>
-                                    ) : (
-                                        <p className="text-gray-400">Aucun lien de téléchargement trouvé.</p>
-                                    )}
-                                    <h4 className="text-white font-semibold mb-2">Liens de streaming :</h4>
-                                    {movieLinks.streamingLinks.length > 0 ? (
-                                        <div>
-                                            {movieLinks.streamingLinks.map((link, i) => (
-                                                <div key={i} className="mb-3 p-3 bg-gray-800 rounded-lg">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <span className="text-gray-300 font-medium">{link.host}</span>
-                                                        {link.needsResolver && (
-                                                            <button
-                                                                onClick={() => resolveWithProvider(i, true)}
-                                                                disabled={link.resolving}
-                                                                className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
-                                                            >
-                                                                {link.resolving ? 'Résolution...' : 'Résoudre le lien'}
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                    {link.resolvedUrl ? (
-                                                        <a href={link.resolvedUrl} target="_blank" rel="noopener noreferrer" className="text-green-400 underline break-all">
-                                                            {link.resolvedUrl}
-                                                        </a>
-                                                    ) : (
-                                                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline break-all">
-                                                            {link.url}
-                                                        </a>
-                                                    )}
-                                                    {link.needsResolver && !link.resolvedUrl && (
-                                                        <p className="text-yellow-400 text-xs mt-1">⚠️ Ce lien doit être résolu</p>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <p className="text-gray-400">Aucun lien de streaming trouvé.</p>
-                                    )}
+                                    </div>
                                 </div>
-                            )}
-                            {!loading && !error && !movieLinks && (
-                                <p className="text-gray-400 mt-4">Aucun lien trouvé.</p>
-                            )}
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-6 space-y-8">
+                                {loading && (
+                                    <div className="flex items-center justify-center py-12">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                                        <span className="ml-3 text-white">Chargement des liens...</span>
+                                    </div>
+                                )}
+
+                                {error && (
+                                    <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4">
+                                        <p className="text-red-300">{error}</p>
+                                    </div>
+                                )}
+
+                                {!loading && !error && movieLinks && (
+                                    <div className="space-y-8">
+                                        {/* Download Links */}
+                                        <div>
+                                            <h3 className="text-white text-xl font-semibold mb-4 flex items-center">
+                                                <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                                                Liens de téléchargement
+                                                <span className="ml-2 text-sm text-gray-400">({movieLinks.downloadLinks.length})</span>
+                                            </h3>
+                                            {movieLinks.downloadLinks.length > 0 ? (
+                                                <div className="grid gap-4">
+                                                    {movieLinks.downloadLinks.map((link, i) => (
+                                                        <LinkCard
+                                                            key={i}
+                                                            link={link}
+                                                            onResolve={() => resolveWithProvider(i, false)}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-center py-8 text-gray-400">
+                                                    <p>Aucun lien de téléchargement trouvé.</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Streaming Links */}
+                                        <div>
+                                            <h3 className="text-white text-xl font-semibold mb-4 flex items-center">
+                                                <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+                                                Liens de streaming
+                                                <span className="ml-2 text-sm text-gray-400">({movieLinks.streamingLinks.length})</span>
+                                            </h3>
+                                            {movieLinks.streamingLinks.length > 0 ? (
+                                                <div className="grid gap-4">
+                                                    {movieLinks.streamingLinks.map((link, i) => (
+                                                        <LinkCard
+                                                            key={i}
+                                                            link={link}
+                                                            onResolve={() => resolveWithProvider(i, true)}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-center py-8 text-gray-400">
+                                                    <p>Aucun lien de streaming trouvé.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {!loading && !error && !movieLinks && (
+                                    <div className="text-center py-12 text-gray-400">
+                                        <p>Aucun lien trouvé.</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

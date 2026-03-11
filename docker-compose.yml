@@ -8,8 +8,6 @@ services:
       - /usr/src/app/node_modules
     working_dir: /usr/src/app
     command: node server.js
-    ports:
-      - "3001:3001"
     environment:
       - RESOLVER_API_KEY=${RESOLVER_API_KEY}
     restart: unless-stopped
@@ -23,8 +21,6 @@ services:
       - /usr/src/app/node_modules
     working_dir: /usr/src/app
     command: npm run dev -- --host
-    ports:
-      - "5173:5173"
     environment:
       - VITE_API_URL=http://backend:3001
     depends_on:

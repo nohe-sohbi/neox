@@ -1,323 +1,271 @@
+/**
+ * NEOX API — a thin, cached proxy in front of TMDB.
+ *
+ * The frontend never talks to TMDB directly: the key stays server-side, every
+ * response is normalized to a compact shape, and a shared cache keeps us fast
+ * and well under rate limits.
+ */
+require('dotenv').config();
+
 const express = require('express');
-const fetch = require('node-fetch');
 const cors = require('cors');
-const cheerio = require('cheerio');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
+const tmdb = require('./tmdb');
+const store = require('./store');
+const auth = require('./auth');
+const { sanitizeLibrary, mergeLibraries } = require('./library');
+
 const app = express();
+const PORT = process.env.PORT || 3001;
 
+app.set('trust proxy', 1); // honor X-Forwarded-* behind a reverse proxy
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(compression());
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '256kb' }));
 
+// Generous global limiter + a strict one for auth to blunt brute force.
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 600, standardHeaders: true, legacyHeaders: false });
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
+app.use('/api', apiLimiter);
+app.use('/api/auth', authLimiter);
 
-app.get('/search', async (req, res) => {
-    const { p, s } = req.query;
-
-    if(!p || !s) return res.status(400).send('Bad request')
-
-    try {
-        const response = await fetch(`https://www.extrem-down.diy/?p=${p}&search=${s}`);
-
-        if(p === "films") {
-            const searchData = parseMoviesSearchResults(await response.text());
-            res.send(searchData);
-        }
-        else {
-            res.send("incorrect type", 400);
-        }
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+// Tiny request logger — quiet but useful in dev.
+app.use((req, _res, next) => {
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`${req.method} ${req.originalUrl}`);
     }
+    next();
 });
 
-app.get('/searchMovieLinks', async (req, res) => {
-    const { url } = req.query;
+const MEDIA_TYPES = new Set(['movie', 'tv']);
 
-    if(!url) return res.status(400).send('Bad request')
+/** Wraps an async route so thrown errors hit the error middleware cleanly. */
+const route = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 
-    try {
-        const response = await fetch(url);
-        const searchData = parseMovieLinkPage(await response.text());
-        res.send(searchData);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+function assertMediaType(value) {
+    if (!MEDIA_TYPES.has(value)) {
+        const err = new Error(`Unsupported media type "${value}". Use "movie" or "tv".`);
+        err.status = 400;
+        throw err;
     }
-});
-
-// Link resolver integration
-app.post('/resolve', async (req, res) => {
-    const { url } = req.body;
-
-    if (!url) {
-        return res.status(400).json({ error: 'URL is required' });
-    }
-
-    if (!process.env.RESOLVER_API_KEY) {
-        return res.status(500).json({ error: 'resolver API key not configured' });
-    }
-
-    console.log('resolve request for URL:', url);
-
-    try {
-        const resolvedUrl = await resolveLinkUrl(url);
-        console.log('resolution successful:', { originalUrl: url, resolvedUrl });
-        res.json({ originalUrl: url, resolvedUrl });
-    } catch (error) {
-        console.error('resolution failed:', { url, error: error.message });
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Get supported hosts
-app.get('/hosts', async (req, res) => {
-    if (!process.env.RESOLVER_API_KEY) {
-        return res.status(500).json({ error: 'resolver API key not configured' });
-    }
-
-    try {
-        const response = await fetch(`https://api.provider.example/v4/hosts?agent=neox&apikey=${process.env.RESOLVER_API_KEY}`);
-        const data = await response.json();
-
-        if (!response.ok || data.status !== 'success') {
-            throw new Error(data.error?.message || 'Failed to get supported hosts');
-        }
-
-        res.json({ hosts: data.data.hosts });
-    } catch (error) {
-        console.error('resolver hosts API error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.listen(3001, () => {
-    console.log('Server running on port 3001');
-});
-
-function parseMoviesSearchResults(htmlString) {
-    const $ = cheerio.load(htmlString);
-    const results = [];
-
-    $('a.top-last.thumbnails').each((_, node) => {
-        const url = $(node).attr('href');
-        const image = $(node).find('img.img-post').attr('src');
-        const title = $(node).find('span.top-title').text().trim();
-        const quality = $(node).find('span.top-lasttitle').text().trim();
-        const type = $(node).find('span.top-genre').text().trim();
-        const year = $(node).find('span.top-imdb.top-year').text().trim();
-        if (title) {
-            results.push({
-                url: url ? `https://www.extrem-down.diy${url}` : null,
-                image: image ? `https://www.extrem-down.diy${image}` : null,
-                title,
-                quality,
-                type,
-                year,
-            });
-        }
-    });
-
-    return results;
+    return value;
 }
 
-
-function parseMovieLinkPage(htmlString) {
-    const $ = cheerio.load(htmlString);
-    const downloadLinks = [];
-    const streamingLinks = [];
-
-    // --- SECTION TÉLÉCHARGEMENT ---
-    const downloadHeading = $('.prez_2.fx:contains("Liens de téléchargement")');
-    if (downloadHeading.length) {
-        // On trouve le premier conteneur DIV qui le suit
-        const linkContainer = downloadHeading.nextAll('div').first();
-        linkContainer.find('a').each((_, link) => {
-            const url = $(link).attr('href');
-            const host = $(link).find('strong.hebergeur').text().trim();
-            if (url && host) {
-                // Filter out advertisement links
-                if (isAdvertisementLink(url)) {
-                    console.log('Filtered out advertisement link:', url);
-                    return; // Skip this link
-                }
-
-                // For protected-link.example, only include legitimate protected links
-                if (url.includes('protected-link.example') && !isLegitimateProtectedLink(url)) {
-                    console.log('Filtered out invalid protected-link.example:', url);
-                    return; // Skip this link
-                }
-
-                const linkInfo = analyzeLinkForResolver(url, host);
-                downloadLinks.push({
-                    host,
-                    url,
-                    ...linkInfo
-                });
-            }
-        });
-    }
-
-    // --- SECTION STREAMING ---
-    const streamingHeading = $('.prez_2:contains("Liens de streaming")');
-    if (streamingHeading.length) {
-        const linkContainer = streamingHeading.nextAll('div').first();
-        linkContainer.find('a').each((_, link) => {
-            const url = $(link).attr('href');
-            const host = $(link).find('strong.hebergeur').text().trim();
-            if (url && host) {
-                // Filter out advertisement links
-                if (isAdvertisementLink(url)) {
-                    console.log('Filtered out advertisement link:', url);
-                    return; // Skip this link
-                }
-
-                // For protected-link.example, only include legitimate protected links
-                if (url.includes('protected-link.example') && !isLegitimateProtectedLink(url)) {
-                    console.log('Filtered out invalid protected-link.example:', url);
-                    return; // Skip this link
-                }
-
-                const linkInfo = analyzeLinkForResolver(url, host);
-                streamingLinks.push({
-                    host,
-                    url,
-                    ...linkInfo
-                });
-            }
-        });
-    }
-
-    console.log('Parsed movie links:', {
-        downloadLinks: downloadLinks.length,
-        streamingLinks: streamingLinks.length,
-        resolverLinks: [...downloadLinks, ...streamingLinks].filter(l => l.needsResolver).length,
-        totalValidLinks: downloadLinks.length + streamingLinks.length
-    });
-
+// Pulls region + language overrides off any request.
+function localeFrom(req) {
     return {
-        downloadLinks,
-        streamingLinks,
+        region: req.query.region ? req.query.region.toString().toUpperCase() : undefined,
+        language: req.query.lang ? req.query.lang.toString() : undefined,
     };
 }
 
-// Filter out advertisement links that should be excluded
-function isAdvertisementLink(url) {
-    // Exclude protected-link.example advertisement patterns
-    // BAD: https://protected-link.example/rqts-url?fn=*
-    if (url.includes('protected-link.example/rqts-url?fn=')) {
-        return true;
-    }
+app.get('/api/health', (_req, res) => {
+    res.json({ status: 'ok', tmdb: tmdb.isConfigured() ? 'configured' : 'missing-key' });
+});
 
-    // Add other advertisement patterns here if needed
-    return false;
-}
+app.get(
+    '/api/home',
+    route(async (req, res) => {
+        const { region, language } = localeFrom(req);
+        res.json(await tmdb.home(region || tmdb.DEFAULT_REGION, { language }));
+    }),
+);
 
-// Check if a protected-link.example is a legitimate protected link
-function isLegitimateProtectedLink(url) {
-    // GOOD: https://protected-link.example/[alphanumeric-id]?fn=*&rl=*
-    const legitimatePattern = /^https:\/\/protected-link\.link\/[a-zA-Z0-9]+\?fn=.*&rl=.*$/;
-    return legitimatePattern.test(url);
-}
+app.get(
+    '/api/search',
+    route(async (req, res) => {
+        const q = (req.query.q || '').toString();
+        const page = Math.max(1, Number(req.query.page) || 1);
+        res.json(await tmdb.search(q, page, localeFrom(req)));
+    }),
+);
 
-// Analyze if a link needs resolution
-function analyzeLinkForResolver(url, host) {
-    // Common protected link patterns
-    const protectedPatterns = [
-        'protected-link.example',
-        'protect-link.com',
-        'short-link.fr',
-        'linkprotect.xz',
-        'protect-url.com'
-    ];
+app.get(
+    '/api/genres/:mediaType',
+    route(async (req, res) => {
+        const mediaType = assertMediaType(req.params.mediaType);
+        res.json({ genres: await tmdb.getGenres(mediaType, localeFrom(req)) });
+    }),
+);
 
-    // Common file hosting services that the resolver supports
-    const resolverHosts = [
-        'rapidgator',
-        'uploaded',
-        'nitroflare',
-        'turbobit',
-        'katfile',
-        'ddownload',
-        'mega.nz',
-        'mediafire',
-        '1fichier',
-        'uptobox'
-    ];
+app.get(
+    '/api/providers/:mediaType',
+    route(async (req, res) => {
+        const mediaType = assertMediaType(req.params.mediaType);
+        const region = (req.query.region || tmdb.DEFAULT_REGION).toString().toUpperCase();
+        res.json({ providers: await tmdb.getProviders(mediaType, region) });
+    }),
+);
 
-    const isProtectedLink = protectedPatterns.some(pattern => url.includes(pattern));
-    const isResolverHost = resolverHosts.some(hostPattern =>
-        host.toLowerCase().includes(hostPattern) || url.toLowerCase().includes(hostPattern)
-    );
+app.get(
+    '/api/discover/:mediaType',
+    route(async (req, res) => {
+        const mediaType = assertMediaType(req.params.mediaType);
+        const { genre, sort, providers, region } = req.query;
+        const page = Math.max(1, Number(req.query.page) || 1);
+        const providerIds = providers
+            ? providers
+                  .toString()
+                  .split(',')
+                  .map((id) => id.trim())
+                  .filter(Boolean)
+            : undefined;
+        res.json(
+            await tmdb.discover(mediaType, {
+                genre: genre ? Number(genre) : undefined,
+                sort: sort ? sort.toString() : undefined,
+                providers: providerIds,
+                region: region ? region.toString() : undefined,
+                language: req.query.lang ? req.query.lang.toString() : undefined,
+                page,
+            }),
+        );
+    }),
+);
 
-    return {
-        isProtectedLink,
-        isResolverHost,
-        needsResolver: isProtectedLink || isResolverHost,
-        linkType: isProtectedLink ? 'protected' : isResolverHost ? 'premium' : 'direct'
-    };
-}
+app.get(
+    '/api/trending/:mediaType',
+    route(async (req, res) => {
+        const mediaType = ['all', 'movie', 'tv'].includes(req.params.mediaType)
+            ? req.params.mediaType
+            : 'all';
+        const window = req.query.window === 'day' ? 'day' : 'week';
+        res.json(await tmdb.trending(mediaType, window, localeFrom(req)));
+    }),
+);
 
-// Link resolver functions
-async function resolveLinkUrl(url) {
-    const apiKey = process.env.RESOLVER_API_KEY;
+app.get(
+    '/api/person/:id',
+    route(async (req, res) => {
+        const id = Number(req.params.id);
+        if (!Number.isInteger(id) || id <= 0) {
+            const err = new Error('Invalid id.');
+            err.status = 400;
+            throw err;
+        }
+        res.json(await tmdb.getPerson(id, localeFrom(req)));
+    }),
+);
 
-    if (!apiKey) {
-        throw new Error('resolver API key not configured');
-    }
+app.post(
+    '/api/recommendations',
+    route(async (req, res) => {
+        const seeds = Array.isArray(req.body?.seeds) ? req.body.seeds : [];
+        res.json(await tmdb.recommend(seeds, localeFrom(req)));
+    }),
+);
 
-    console.log('Attempting to resolve URL with the resolver:', url);
+/* ------------------------------- auth --------------------------------- */
 
-    try {
-        // First, add the link to the resolver
-        const requestBody = `agent=neox&apikey=${apiKey}&link=${encodeURIComponent(url)}`;
-        console.log('resolver API request body:', requestBody.replace(apiKey, '[REDACTED]'));
+app.post(
+    '/api/auth/register',
+    route(async (req, res) => {
+        const { email, password } = req.body || {};
+        const validationError = auth.validateCredentials({ email, password });
+        if (validationError) return res.status(400).json({ error: validationError });
 
-        const addResponse = await fetch('https://api.provider.example/v4/link/unlock', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: requestBody
-        });
-
-        const addData = await addResponse.json();
-        console.log('resolver API response:', {
-            status: addResponse.status,
-            ok: addResponse.ok,
-            data: addData
-        });
-
-        if (!addResponse.ok) {
-            const errorMsg = addData.error?.message || addData.error || `HTTP ${addResponse.status}`;
-            throw new Error(`resolver API HTTP error: ${errorMsg}`);
+        if (store.findUserByEmail(email)) {
+            return res.status(409).json({ error: 'Un compte existe déjà avec cet e-mail.' });
         }
 
-        if (addData.status !== 'success') {
-            const errorMsg = addData.error?.message || addData.error || 'Unknown error';
-            throw new Error(`resolver API error: ${errorMsg}`);
+        const passwordHash = await auth.hashPassword(password);
+        const user = await store.createUser({ email, passwordHash });
+        res.status(201).json({ token: auth.signToken(user), user: store.publicUser(user) });
+    }),
+);
+
+app.post(
+    '/api/auth/login',
+    route(async (req, res) => {
+        const { email, password } = req.body || {};
+        if (!email || !password) {
+            return res.status(400).json({ error: 'E-mail et mot de passe requis.' });
         }
-
-        if (!addData.data || !addData.data.link) {
-            throw new Error('resolver API returned no download link');
+        const user = store.findUserByEmail(email);
+        const ok = user && (await auth.verifyPassword(password, user.passwordHash));
+        if (!ok) {
+            return res.status(401).json({ error: 'E-mail ou mot de passe incorrect.' });
         }
+        res.json({ token: auth.signToken(user), user: store.publicUser(user) });
+    }),
+);
 
-        console.log('resolution successful, resolved URL:', addData.data.link);
-        return addData.data.link;
-    } catch (error) {
-        console.error('resolver API error details:', {
-            originalUrl: url,
-            errorMessage: error.message,
-            errorStack: error.stack
-        });
+app.get('/api/auth/me', auth.requireAuth, (req, res) => {
+    const user = store.getUserById(req.userId);
+    if (!user) return res.status(404).json({ error: 'Compte introuvable.' });
+    res.json({ user: store.publicUser(user) });
+});
 
-        // Provide more specific error messages based on common issues
-        if (error.message.includes('This host or link is not supported')) {
-            throw new Error('This host or link is not supported by the resolver');
-        } else if (error.message.includes('Invalid link')) {
-            throw new Error('The provided link is invalid or malformed');
-        } else if (error.message.includes('Unauthorized')) {
-            throw new Error('resolver API key is invalid or expired');
-        } else if (error.message.includes('Quota exceeded')) {
-            throw new Error('link resolver quota exceeded for this account');
+/* ------------------------------ library ------------------------------- */
+
+app.get('/api/library', auth.requireAuth, (req, res) => {
+    res.json({ entries: store.getLibrary(req.userId) });
+});
+
+app.put(
+    '/api/library',
+    auth.requireAuth,
+    route(async (req, res) => {
+        const entries = sanitizeLibrary(req.body?.entries);
+        await store.setLibrary(req.userId, entries);
+        res.json({ entries });
+    }),
+);
+
+app.post(
+    '/api/library/merge',
+    auth.requireAuth,
+    route(async (req, res) => {
+        const incoming = sanitizeLibrary(req.body?.entries);
+        const merged = mergeLibraries(store.getLibrary(req.userId), incoming);
+        await store.setLibrary(req.userId, merged);
+        res.json({ entries: merged });
+    }),
+);
+
+app.get(
+    '/api/:mediaType/:id',
+    route(async (req, res) => {
+        const mediaType = assertMediaType(req.params.mediaType);
+        const id = Number(req.params.id);
+        if (!Number.isInteger(id) || id <= 0) {
+            const err = new Error('Invalid id.');
+            err.status = 400;
+            throw err;
         }
+        const { region, language } = localeFrom(req);
+        res.json(await tmdb.details(mediaType, id, region || tmdb.DEFAULT_REGION, { language }));
+    }),
+);
 
-        throw new Error(`resolution failed: ${error.message}`);
-    }
+// 404 for unknown API routes.
+app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));
+
+// Centralized error handler.
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, _next) => {
+    const status = err.status || 500;
+    if (status >= 500) console.error('API error:', err.message);
+    res.status(status).json({
+        error: err.message || 'Internal server error',
+        code: err.code,
+    });
+});
+
+// Only start listening when run directly — tests import `app` via supertest.
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`NEOX API running on port ${PORT}`);
+        if (!tmdb.isConfigured()) {
+            console.warn('⚠  TMDB_API_KEY is not set — TMDB requests will return 503 until configured.');
+        }
+        if (auth.usingDefaultSecret) {
+            console.warn('⚠  JWT_SECRET is not set — using an insecure default. Set it in production.');
+        }
+    });
 }
+
+module.exports = app;

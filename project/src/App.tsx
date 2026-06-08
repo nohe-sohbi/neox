@@ -1,37 +1,47 @@
-import { useState } from 'react';
-import { Logo } from './components/layout/Logo';
-import { CategoryGrid } from './components/home/CategoryGrid';
-import { SearchView } from './components/search/SearchView';
-
-export type Category = 'films' | 'series' | 'documentaires' | 'anime' | null;
+import { useEffect, useState } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navbar } from './components/layout/Navbar';
+import { Footer } from './components/layout/Footer';
+import { DetailModal } from './components/media/DetailModal';
+import { PersonModal } from './components/media/PersonModal';
+import { AuthModal } from './components/auth/AuthModal';
+import { HomeView } from './views/HomeView';
+import { DiscoverView } from './views/DiscoverView';
+import { SearchView } from './views/SearchView';
+import { LibraryView } from './views/LibraryView';
+import { initAnalytics } from './lib/analytics';
 
 function App() {
-  const [selectedCategory, setSelectedCategory] = useState<Category>(null);
+  const [authOpen, setAuthOpen] = useState(false);
+
+  useEffect(() => {
+    initAnalytics();
+  }, []);
 
   return (
-      <>
-          <div className="min-h-screen bg-[#0A0A0F] text-white">
-              <div
-                  className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-500/20 via-transparent to-transparent pointer-events-none"/>
+    <div className="flex min-h-screen flex-col bg-ink-950 text-white">
+      <div className="pointer-events-none fixed inset-0 bg-aurora" />
 
-              <header
-                  className="fixed top-0 w-full z-50 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-sm">
-                  <div className="container mx-auto px-6 py-4">
-                      <Logo/>
-                  </div>
-              </header>
+      <Navbar onOpenAuth={() => setAuthOpen(true)} />
 
-              <main className="pt-20">
-                  {selectedCategory ? (
-                      <SearchView
-                          category={selectedCategory}
-                          onBack={() => setSelectedCategory(null)}/>
-                  ) : (
-                      <CategoryGrid onSelectCategory={setSelectedCategory}/>
-                  )}
-              </main>
-          </div>
-      </>
+      <main className="relative flex-1">
+        <Routes>
+          <Route path="/" element={<HomeView />} />
+          <Route path="/movies" element={<DiscoverView mediaType="movie" />} />
+          <Route path="/tv" element={<DiscoverView mediaType="tv" />} />
+          <Route path="/search" element={<SearchView />} />
+          <Route path="/library" element={<LibraryView onOpenAuth={() => setAuthOpen(true)} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+
+      <Footer />
+
+      {/* Global overlays — deep-link driven detail, person, and auth */}
+      <DetailModal />
+      <PersonModal />
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+    </div>
   );
 }
 

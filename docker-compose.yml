@@ -3,26 +3,31 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    volumes:
-      - ./backend:/usr/src/app
-      - /usr/src/app/node_modules
     working_dir: /usr/src/app
-    command: node server.js
     environment:
-      - RESOLVER_API_KEY=${RESOLVER_API_KEY}
+      - NODE_ENV=production
+      - TMDB_API_KEY=${TMDB_API_KEY}
+      - TMDB_READ_TOKEN=${TMDB_READ_TOKEN:-}
+      - TMDB_REGION=${TMDB_REGION:-FR}
+      - TMDB_LANGUAGE=${TMDB_LANGUAGE:-fr-FR}
+    # For local dev, expose the API to the browser. Behind a reverse proxy
+    # (e.g. Dokploy), drop this block and route via the proxy instead.
+    ports:
+      - "3001:3001"
     restart: unless-stopped
 
   frontend:
     build:
       context: ./project
       dockerfile: Dockerfile
-    volumes:
-      - ./project:/usr/src/app
-      - /usr/src/app/node_modules
     working_dir: /usr/src/app
     command: npm run dev -- --host
     environment:
-      - VITE_API_URL=http://backend:3001
+      # The browser talks to the API directly, so this must be reachable
+      # from the user's machine (not the internal Docker hostname).
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:3001}
+    ports:
+      - "5173:5173"
     depends_on:
       - backend
     restart: unless-stopped

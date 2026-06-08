@@ -1,0 +1,287 @@
+import { useCallback, useEffect, useState } from 'react';
+import { Bookmark, Calendar, Clock, Play, Star, Tv, X } from 'lucide-react';
+import { api, ApiError } from '../../lib/api';
+import type { MediaDetails, MediaItem, MediaType } from '../../lib/types';
+import { ErrorState, FullSpinner } from '../ui/States';
+import { WatchProviders } from './WatchProviders';
+
+interface DetailModalProps {
+  target: { id: number; mediaType: MediaType } | null;
+  onClose: () => void;
+  onOpen: (item: MediaItem) => void;
+  isSaved: (item: Pick<MediaItem, 'id' | 'mediaType'>) => boolean;
+  onToggleSave: (item: MediaItem) => void;
+}
+
+function runtimeLabel(minutes: number | null): string | null {
+  if (!minutes) return null;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h > 0 ? `${h}h${m.toString().padStart(2, '0')}` : `${m} min`;
+}
+
+export function DetailModal({ target, onClose, onOpen, isSaved, onToggleSave }: DetailModalProps) {
+  const [details, setDetails] = useState<MediaDetails | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showTrailer, setShowTrailer] = useState(false);
+
+  const load = useCallback(
+    async (mediaType: MediaType, id: number) => {
+      setLoading(true);
+      setError(null);
+      try {
+        setDetails(await api.details(mediaType, id));
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!target) return;
+    setDetails(null);
+    setShowTrailer(false);
+    void load(target.mediaType, target.id);
+  }, [target, load]);
+
+  // Lock body scroll + Escape to close.
+  useEffect(() => {
+    if (!target) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [target, onClose]);
+
+  if (!target) return null;
+
+  const saved = details ? isSaved(details) : false;
+  const runtime = details ? runtimeLabel(details.runtime) : null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-0 backdrop-blur-sm sm:p-6"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-4xl animate-scale-in overflow-hidden bg-ink-900 shadow-2xl sm:rounded-3xl sm:border sm:border-white/10"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          aria-label="Fermer"
+          className="absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur-md transition-all hover:bg-black/80 hover:text-white"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        {loading && <FullSpinner label="On récupère les infos…" />}
+
+        {error && !loading && (
+          <div className="py-10">
+            <ErrorState message={error} onRetry={() => load(target.mediaType, target.id)} />
+          </div>
+        )}
+
+        {details && !loading && (
+          <>
+            {/* Backdrop header */}
+            <div className="relative h-56 sm:h-80">
+              {showTrailer && details.trailerKey ? (
+                <iframe
+                  title={`Bande-annonce de ${details.title}`}
+                  src={`https://www.youtube.com/embed/${details.trailerKey}?autoplay=1&rel=0`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="h-full w-full"
+                />
+              ) : (
+                <>
+                  {details.backdrop ? (
+                    <img
+                      src={details.backdrop}
+                      alt=""
+                      className="h-full w-full object-cover object-top"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-ink-700" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-ink-900 via-ink-900/40 to-transparent" />
+                  {details.trailerKey && (
+                    <button
+                      onClick={() => setShowTrailer(true)}
+                      className="group absolute inset-0 flex items-center justify-center"
+                      aria-label="Lire la bande-annonce"
+                    >
+                      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-gradient shadow-glow transition-transform group-hover:scale-110">
+                        <Play className="ml-1 h-7 w-7 fill-white text-white" />
+                      </span>
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Body */}
+            <div className="relative -mt-16 space-y-7 px-5 pb-8 sm:px-8">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
+                {details.poster && (
+                  <img
+                    src={details.poster}
+                    alt={details.title}
+                    className="hidden w-28 shrink-0 rounded-xl shadow-card ring-1 ring-white/10 sm:block"
+                  />
+                )}
+                <div className="flex-1">
+                  <h2 className="text-2xl font-extrabold leading-tight text-white sm:text-4xl">
+                    {details.title}
+                  </h2>
+                  {details.tagline && (
+                    <p className="mt-1 text-sm italic text-white/50">{details.tagline}</p>
+                  )}
+
+                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-white/70">
+                    {details.rating ? (
+                      <span className="inline-flex items-center gap-1 font-semibold text-white">
+                        <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                        {details.rating.toFixed(1)}
+                        <span className="font-normal text-white/40">
+                          ({details.voteCount.toLocaleString('fr-FR')})
+                        </span>
+                      </span>
+                    ) : null}
+                    {details.releaseDate && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Calendar className="h-4 w-4" />
+                        {new Date(details.releaseDate).getFullYear()}
+                      </span>
+                    )}
+                    {runtime && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Clock className="h-4 w-4" />
+                        {runtime}
+                      </span>
+                    )}
+                    {details.numberOfSeasons ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Tv className="h-4 w-4" />
+                        {details.numberOfSeasons} saison
+                        {details.numberOfSeasons > 1 ? 's' : ''}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {details.genres.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {details.genres.map((g) => (
+                        <span key={g} className="chip">
+                          {g}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                {details.trailerKey && !showTrailer && (
+                  <button onClick={() => setShowTrailer(true)} className="btn-primary">
+                    <Play className="h-5 w-5 fill-current" />
+                    Bande-annonce
+                  </button>
+                )}
+                <button onClick={() => onToggleSave(details)} className="btn-ghost">
+                  <Bookmark className={`h-5 w-5 ${saved ? 'fill-current' : ''}`} />
+                  {saved ? 'Dans ma liste' : 'Ajouter à ma liste'}
+                </button>
+              </div>
+
+              {details.overview && (
+                <div>
+                  <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-white/50">
+                    Synopsis
+                  </h3>
+                  <p className="leading-relaxed text-white/80">{details.overview}</p>
+                </div>
+              )}
+
+              <div>
+                <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-white/50">
+                  Où regarder (légalement)
+                </h3>
+                <WatchProviders providers={details.providers} />
+              </div>
+
+              {details.cast.length > 0 && (
+                <div>
+                  <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-white/50">
+                    Casting
+                  </h3>
+                  <div className="no-scrollbar flex gap-4 overflow-x-auto pb-2">
+                    {details.cast.map((member) => (
+                      <div key={member.id} className="w-20 shrink-0 text-center">
+                        {member.photo ? (
+                          <img
+                            src={member.photo}
+                            alt={member.name}
+                            loading="lazy"
+                            className="mb-1.5 h-20 w-20 rounded-full object-cover ring-1 ring-white/10"
+                          />
+                        ) : (
+                          <div className="mb-1.5 flex h-20 w-20 items-center justify-center rounded-full bg-ink-700 text-lg font-bold text-white/40">
+                            {member.name.slice(0, 1)}
+                          </div>
+                        )}
+                        <p className="truncate text-xs font-medium text-white/90">{member.name}</p>
+                        <p className="truncate text-[11px] text-white/40">{member.character}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {details.recommendations.length > 0 && (
+                <div>
+                  <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-white/50">
+                    Dans le même esprit
+                  </h3>
+                  <div className="no-scrollbar flex gap-4 overflow-x-auto pb-2">
+                    {details.recommendations.map((rec) => (
+                      <button
+                        key={`${rec.mediaType}-${rec.id}`}
+                        onClick={() => onOpen(rec)}
+                        className="group w-28 shrink-0 text-left"
+                      >
+                        <div className="aspect-[2/3] overflow-hidden rounded-lg bg-ink-700 ring-1 ring-white/5 transition-transform group-hover:scale-[1.03]">
+                          {rec.poster ? (
+                            <img
+                              src={rec.poster}
+                              alt={rec.title}
+                              loading="lazy"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : null}
+                        </div>
+                        <p className="mt-1.5 truncate text-xs font-medium text-white/80">
+                          {rec.title}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

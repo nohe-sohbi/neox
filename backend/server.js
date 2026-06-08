@@ -1,323 +1,132 @@
+/**
+ * NEOX API — a thin, cached proxy in front of TMDB.
+ *
+ * The frontend never talks to TMDB directly: the key stays server-side, every
+ * response is normalized to a compact shape, and a shared cache keeps us fast
+ * and well under rate limits.
+ */
+require('dotenv').config();
+
 const express = require('express');
-const fetch = require('node-fetch');
 const cors = require('cors');
-const cheerio = require('cheerio');
+const tmdb = require('./tmdb');
+
 const app = express();
+const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
 
+// Tiny request logger — quiet but useful in dev.
+app.use((req, _res, next) => {
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`${req.method} ${req.originalUrl}`);
+    }
+    next();
+});
 
-app.get('/search', async (req, res) => {
-    const { p, s } = req.query;
+const MEDIA_TYPES = new Set(['movie', 'tv']);
 
-    if(!p || !s) return res.status(400).send('Bad request')
+/** Wraps an async route so thrown errors hit the error middleware cleanly. */
+const route = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 
-    try {
-        const response = await fetch(`https://www.extrem-down.diy/?p=${p}&search=${s}`);
+function assertMediaType(value) {
+    if (!MEDIA_TYPES.has(value)) {
+        const err = new Error(`Unsupported media type "${value}". Use "movie" or "tv".`);
+        err.status = 400;
+        throw err;
+    }
+    return value;
+}
 
-        if(p === "films") {
-            const searchData = parseMoviesSearchResults(await response.text());
-            res.send(searchData);
+app.get('/api/health', (_req, res) => {
+    res.json({ status: 'ok', tmdb: tmdb.isConfigured() ? 'configured' : 'missing-key' });
+});
+
+app.get(
+    '/api/home',
+    route(async (req, res) => {
+        const region = (req.query.region || tmdb.DEFAULT_REGION).toString().toUpperCase();
+        res.json(await tmdb.home(region));
+    }),
+);
+
+app.get(
+    '/api/search',
+    route(async (req, res) => {
+        const q = (req.query.q || '').toString();
+        const page = Math.max(1, Number(req.query.page) || 1);
+        res.json(await tmdb.search(q, page));
+    }),
+);
+
+app.get(
+    '/api/genres/:mediaType',
+    route(async (req, res) => {
+        const mediaType = assertMediaType(req.params.mediaType);
+        res.json({ genres: await tmdb.getGenres(mediaType) });
+    }),
+);
+
+app.get(
+    '/api/discover/:mediaType',
+    route(async (req, res) => {
+        const mediaType = assertMediaType(req.params.mediaType);
+        const { genre, sort } = req.query;
+        const page = Math.max(1, Number(req.query.page) || 1);
+        res.json(
+            await tmdb.discover(mediaType, {
+                genre: genre ? Number(genre) : undefined,
+                sort: sort ? sort.toString() : undefined,
+                page,
+            }),
+        );
+    }),
+);
+
+app.get(
+    '/api/trending/:mediaType',
+    route(async (req, res) => {
+        const mediaType = ['all', 'movie', 'tv'].includes(req.params.mediaType)
+            ? req.params.mediaType
+            : 'all';
+        const window = req.query.window === 'day' ? 'day' : 'week';
+        res.json(await tmdb.trending(mediaType, window));
+    }),
+);
+
+app.get(
+    '/api/:mediaType/:id',
+    route(async (req, res) => {
+        const mediaType = assertMediaType(req.params.mediaType);
+        const id = Number(req.params.id);
+        if (!Number.isInteger(id) || id <= 0) {
+            const err = new Error('Invalid id.');
+            err.status = 400;
+            throw err;
         }
-        else {
-            res.send("incorrect type", 400);
-        }
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+        const region = (req.query.region || tmdb.DEFAULT_REGION).toString().toUpperCase();
+        res.json(await tmdb.details(mediaType, id, region));
+    }),
+);
 
-app.get('/searchMovieLinks', async (req, res) => {
-    const { url } = req.query;
+// 404 for unknown API routes.
+app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));
 
-    if(!url) return res.status(400).send('Bad request')
-
-    try {
-        const response = await fetch(url);
-        const searchData = parseMovieLinkPage(await response.text());
-        res.send(searchData);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Link resolver integration
-app.post('/resolve', async (req, res) => {
-    const { url } = req.body;
-
-    if (!url) {
-        return res.status(400).json({ error: 'URL is required' });
-    }
-
-    if (!process.env.RESOLVER_API_KEY) {
-        return res.status(500).json({ error: 'resolver API key not configured' });
-    }
-
-    console.log('resolve request for URL:', url);
-
-    try {
-        const resolvedUrl = await resolveLinkUrl(url);
-        console.log('resolution successful:', { originalUrl: url, resolvedUrl });
-        res.json({ originalUrl: url, resolvedUrl });
-    } catch (error) {
-        console.error('resolution failed:', { url, error: error.message });
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Get supported hosts
-app.get('/hosts', async (req, res) => {
-    if (!process.env.RESOLVER_API_KEY) {
-        return res.status(500).json({ error: 'resolver API key not configured' });
-    }
-
-    try {
-        const response = await fetch(`https://api.provider.example/v4/hosts?agent=neox&apikey=${process.env.RESOLVER_API_KEY}`);
-        const data = await response.json();
-
-        if (!response.ok || data.status !== 'success') {
-            throw new Error(data.error?.message || 'Failed to get supported hosts');
-        }
-
-        res.json({ hosts: data.data.hosts });
-    } catch (error) {
-        console.error('resolver hosts API error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.listen(3001, () => {
-    console.log('Server running on port 3001');
-});
-
-function parseMoviesSearchResults(htmlString) {
-    const $ = cheerio.load(htmlString);
-    const results = [];
-
-    $('a.top-last.thumbnails').each((_, node) => {
-        const url = $(node).attr('href');
-        const image = $(node).find('img.img-post').attr('src');
-        const title = $(node).find('span.top-title').text().trim();
-        const quality = $(node).find('span.top-lasttitle').text().trim();
-        const type = $(node).find('span.top-genre').text().trim();
-        const year = $(node).find('span.top-imdb.top-year').text().trim();
-        if (title) {
-            results.push({
-                url: url ? `https://www.extrem-down.diy${url}` : null,
-                image: image ? `https://www.extrem-down.diy${image}` : null,
-                title,
-                quality,
-                type,
-                year,
-            });
-        }
+// Centralized error handler.
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, _next) => {
+    const status = err.status || 500;
+    if (status >= 500) console.error('API error:', err.message);
+    res.status(status).json({
+        error: err.message || 'Internal server error',
+        code: err.code,
     });
+});
 
-    return results;
-}
-
-
-function parseMovieLinkPage(htmlString) {
-    const $ = cheerio.load(htmlString);
-    const downloadLinks = [];
-    const streamingLinks = [];
-
-    // --- SECTION TÉLÉCHARGEMENT ---
-    const downloadHeading = $('.prez_2.fx:contains("Liens de téléchargement")');
-    if (downloadHeading.length) {
-        // On trouve le premier conteneur DIV qui le suit
-        const linkContainer = downloadHeading.nextAll('div').first();
-        linkContainer.find('a').each((_, link) => {
-            const url = $(link).attr('href');
-            const host = $(link).find('strong.hebergeur').text().trim();
-            if (url && host) {
-                // Filter out advertisement links
-                if (isAdvertisementLink(url)) {
-                    console.log('Filtered out advertisement link:', url);
-                    return; // Skip this link
-                }
-
-                // For protected-link.example, only include legitimate protected links
-                if (url.includes('protected-link.example') && !isLegitimateProtectedLink(url)) {
-                    console.log('Filtered out invalid protected-link.example:', url);
-                    return; // Skip this link
-                }
-
-                const linkInfo = analyzeLinkForResolver(url, host);
-                downloadLinks.push({
-                    host,
-                    url,
-                    ...linkInfo
-                });
-            }
-        });
+app.listen(PORT, () => {
+    console.log(`NEOX API running on port ${PORT}`);
+    if (!tmdb.isConfigured()) {
+        console.warn('⚠  TMDB_API_KEY is not set — API requests will return 503 until configured.');
     }
-
-    // --- SECTION STREAMING ---
-    const streamingHeading = $('.prez_2:contains("Liens de streaming")');
-    if (streamingHeading.length) {
-        const linkContainer = streamingHeading.nextAll('div').first();
-        linkContainer.find('a').each((_, link) => {
-            const url = $(link).attr('href');
-            const host = $(link).find('strong.hebergeur').text().trim();
-            if (url && host) {
-                // Filter out advertisement links
-                if (isAdvertisementLink(url)) {
-                    console.log('Filtered out advertisement link:', url);
-                    return; // Skip this link
-                }
-
-                // For protected-link.example, only include legitimate protected links
-                if (url.includes('protected-link.example') && !isLegitimateProtectedLink(url)) {
-                    console.log('Filtered out invalid protected-link.example:', url);
-                    return; // Skip this link
-                }
-
-                const linkInfo = analyzeLinkForResolver(url, host);
-                streamingLinks.push({
-                    host,
-                    url,
-                    ...linkInfo
-                });
-            }
-        });
-    }
-
-    console.log('Parsed movie links:', {
-        downloadLinks: downloadLinks.length,
-        streamingLinks: streamingLinks.length,
-        resolverLinks: [...downloadLinks, ...streamingLinks].filter(l => l.needsResolver).length,
-        totalValidLinks: downloadLinks.length + streamingLinks.length
-    });
-
-    return {
-        downloadLinks,
-        streamingLinks,
-    };
-}
-
-// Filter out advertisement links that should be excluded
-function isAdvertisementLink(url) {
-    // Exclude protected-link.example advertisement patterns
-    // BAD: https://protected-link.example/rqts-url?fn=*
-    if (url.includes('protected-link.example/rqts-url?fn=')) {
-        return true;
-    }
-
-    // Add other advertisement patterns here if needed
-    return false;
-}
-
-// Check if a protected-link.example is a legitimate protected link
-function isLegitimateProtectedLink(url) {
-    // GOOD: https://protected-link.example/[alphanumeric-id]?fn=*&rl=*
-    const legitimatePattern = /^https:\/\/protected-link\.link\/[a-zA-Z0-9]+\?fn=.*&rl=.*$/;
-    return legitimatePattern.test(url);
-}
-
-// Analyze if a link needs resolution
-function analyzeLinkForResolver(url, host) {
-    // Common protected link patterns
-    const protectedPatterns = [
-        'protected-link.example',
-        'protect-link.com',
-        'short-link.fr',
-        'linkprotect.xz',
-        'protect-url.com'
-    ];
-
-    // Common file hosting services that the resolver supports
-    const resolverHosts = [
-        'rapidgator',
-        'uploaded',
-        'nitroflare',
-        'turbobit',
-        'katfile',
-        'ddownload',
-        'mega.nz',
-        'mediafire',
-        '1fichier',
-        'uptobox'
-    ];
-
-    const isProtectedLink = protectedPatterns.some(pattern => url.includes(pattern));
-    const isResolverHost = resolverHosts.some(hostPattern =>
-        host.toLowerCase().includes(hostPattern) || url.toLowerCase().includes(hostPattern)
-    );
-
-    return {
-        isProtectedLink,
-        isResolverHost,
-        needsResolver: isProtectedLink || isResolverHost,
-        linkType: isProtectedLink ? 'protected' : isResolverHost ? 'premium' : 'direct'
-    };
-}
-
-// Link resolver functions
-async function resolveLinkUrl(url) {
-    const apiKey = process.env.RESOLVER_API_KEY;
-
-    if (!apiKey) {
-        throw new Error('resolver API key not configured');
-    }
-
-    console.log('Attempting to resolve URL with the resolver:', url);
-
-    try {
-        // First, add the link to the resolver
-        const requestBody = `agent=neox&apikey=${apiKey}&link=${encodeURIComponent(url)}`;
-        console.log('resolver API request body:', requestBody.replace(apiKey, '[REDACTED]'));
-
-        const addResponse = await fetch('https://api.provider.example/v4/link/unlock', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: requestBody
-        });
-
-        const addData = await addResponse.json();
-        console.log('resolver API response:', {
-            status: addResponse.status,
-            ok: addResponse.ok,
-            data: addData
-        });
-
-        if (!addResponse.ok) {
-            const errorMsg = addData.error?.message || addData.error || `HTTP ${addResponse.status}`;
-            throw new Error(`resolver API HTTP error: ${errorMsg}`);
-        }
-
-        if (addData.status !== 'success') {
-            const errorMsg = addData.error?.message || addData.error || 'Unknown error';
-            throw new Error(`resolver API error: ${errorMsg}`);
-        }
-
-        if (!addData.data || !addData.data.link) {
-            throw new Error('resolver API returned no download link');
-        }
-
-        console.log('resolution successful, resolved URL:', addData.data.link);
-        return addData.data.link;
-    } catch (error) {
-        console.error('resolver API error details:', {
-            originalUrl: url,
-            errorMessage: error.message,
-            errorStack: error.stack
-        });
-
-        // Provide more specific error messages based on common issues
-        if (error.message.includes('This host or link is not supported')) {
-            throw new Error('This host or link is not supported by the resolver');
-        } else if (error.message.includes('Invalid link')) {
-            throw new Error('The provided link is invalid or malformed');
-        } else if (error.message.includes('Unauthorized')) {
-            throw new Error('resolver API key is invalid or expired');
-        } else if (error.message.includes('Quota exceeded')) {
-            throw new Error('link resolver quota exceeded for this account');
-        }
-
-        throw new Error(`resolution failed: ${error.message}`);
-    }
-}
+});

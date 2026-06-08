@@ -1,66 +1,108 @@
-# NEOX
+<div align="center">
 
-A movie search application with link resolver integration for resolving protected download links.
+# 🎬 NEOX
 
-## Features
+### Ton radar cinéma & séries.
 
-- Search movies from extrem-down.diy
-- Extract download and streaming links
-- link resolver integration for resolving protected-link.example URLs
-- User-triggered link resolution (no automatic processing)
+**Découvre les tendances. Regarde les bandes-annonces. Trouve où regarder — légalement.**
 
-## Setup
+React + TypeScript + Vite · Node + Express · TMDB API
 
-### Prerequisites
+</div>
 
-- Docker and Docker Compose
-- Provider subscription (for link resolution)
+---
 
-### Configuration
+## C'est quoi NEOX ?
 
-1. Copy the environment file:
-   ```bash
-   cp .env.example .env
-   ```
+NEOX est une app de **découverte de films et séries**. Tu cherches une pépite à regarder ce
+soir, NEOX te montre les tendances du moment, te lance la bande-annonce, et te dit
+**instantanément sur quelles plateformes légales** le titre est dispo (streaming, location,
+achat) dans ta région. Un clic sur le marque-page et c'est dans ta watchlist.
 
-2. Get your resolver API key:
-   - Go to your provider's dashboard
-   - Generate a new API key
-   - Copy the key to your `.env` file:
-     ```
-     RESOLVER_API_KEY=your_actual_api_key_here
-     ```
+Aucun contenu n'est hébergé ni stocké : NEOX agrège des **métadonnées publiques** (TMDB) et la
+**disponibilité légale** (JustWatch via TMDB).
 
-### Running the Application
+## ✨ Fonctionnalités
 
-1. Start the application:
-   ```bash
-   docker-compose up -d
-   ```
+- **Accueil éditorialisé** — hero rotatif + rails « À l'affiche », « Tendances séries »,
+  « Acclamés par la critique »…
+- **Recherche instantanée** (debounced, films + séries) avec états loading / vide / erreur soignés.
+- **Explorer** — filtres par genre, tri (populaires, mieux notés, récents, box-office) et
+  **scroll infini**.
+- **Fiche détaillée** — bande-annonce YouTube intégrée, synopsis, casting, genres, durée, et la
+  section **« Où regarder (légalement) »**.
+- **Ma liste** — watchlist persistante (localStorage), synchronisée entre onglets.
+- **Design system** Tailwind sur-mesure : thème sombre, dégradé de marque, micro-interactions,
+  skeletons, responsive mobile-first.
 
-2. Access the application:
-   - Frontend: http://localhost:5173
-   - Backend API: http://localhost:3001
+## 🏗️ Architecture
 
-## Link resolver integration
+```
+neox/
+├── backend/            API Node/Express — proxy TMDB caché et normalisé
+│   ├── server.js       routes + validation + gestion d'erreurs centralisée
+│   └── tmdb.js         client TMDB (cache TTL, retry/backoff, normalisation)
+└── project/            Frontend React + TypeScript + Vite + Tailwind
+    └── src/
+        ├── lib/        client API typé + types partagés
+        ├── hooks/      useDebounce, useWatchlist
+        ├── components/ layout · media · home · ui
+        └── views/      Home · Discover · Search · Watchlist
+```
 
-The application integrates with the provider to resolve protected download links:
+La clé TMDB **reste côté serveur** : le frontend ne parle qu'à l'API NEOX, qui met en cache et
+normalise chaque réponse pour rester rapide et sous les limites de débit.
 
-- **protected-link.example URLs** are automatically detected
-- Users must click "Résoudre le lien" button to resolve links
-- Resolved links are displayed in green
-- Original links remain accessible if resolution fails
+## 🚀 Démarrage
 
-### Supported Link Types
+### Prérequis
+- Docker + Docker Compose **ou** Node 20+
+- Une clé API TMDB (gratuite) : https://www.themoviedb.org/settings/api
 
-- Direct download links (displayed as-is)
-- protected-link.example URLs (requires resolution)
-- Streaming links (some may require link resolver)
+### 1. Configurer
+```bash
+cp .env.example .env
+# Renseigne TMDB_API_KEY dans .env
+```
 
-## Development
+### 2a. Lancer avec Docker (recommandé)
+```bash
+docker compose up --build
+```
+- Frontend : http://localhost:5173
+- API : http://localhost:3001
 
-The application consists of:
-- **Frontend**: React + TypeScript + Vite
-- **Backend**: Node.js + Express
-- **Scraping**: Cheerio for HTML parsing
-- **API Integration**: the provider API v4
+> Derrière un reverse proxy (Dokploy, Traefik…), retire le bloc `ports` du backend dans
+> `docker-compose.yml` et route via le proxy.
+
+### 2b. Lancer en local (sans Docker)
+```bash
+# Terminal 1 — API
+cd backend && npm install && npm run dev
+
+# Terminal 2 — Frontend
+cd project && npm install && npm run dev
+```
+
+## 🔌 API
+
+| Méthode | Route | Description |
+|---|---|---|
+| GET | `/api/health` | État du service + config TMDB |
+| GET | `/api/home` | Payload accueil (hero + rails) |
+| GET | `/api/search?q=&page=` | Recherche multi (films + séries) |
+| GET | `/api/trending/:type?window=week\|day` | Tendances (`all`/`movie`/`tv`) |
+| GET | `/api/discover/:type?genre=&sort=&page=` | Exploration filtrée |
+| GET | `/api/genres/:type` | Genres (`movie`/`tv`) |
+| GET | `/api/:type/:id` | Fiche complète + providers + casting + reco |
+
+## 🧰 Stack
+
+**Frontend** : React 18 · TypeScript · Vite · Tailwind CSS · lucide-react
+**Backend** : Node 20 · Express · node-fetch · cache en mémoire
+**Données** : [TMDB](https://www.themoviedb.org/) · disponibilité via JustWatch
+
+## 📄 Mentions
+
+Ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB.
+NEOX n'héberge, ne stocke et ne diffuse aucun contenu vidéo.

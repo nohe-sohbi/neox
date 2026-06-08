@@ -1,37 +1,96 @@
-import { useState } from 'react';
-import { Logo } from './components/layout/Logo';
-import { CategoryGrid } from './components/home/CategoryGrid';
-import { SearchView } from './components/search/SearchView';
-
-export type Category = 'films' | 'series' | 'documentaires' | 'anime' | null;
+import { useCallback, useState } from 'react';
+import { Navbar, type View } from './components/layout/Navbar';
+import { Footer } from './components/layout/Footer';
+import { DetailModal } from './components/media/DetailModal';
+import { HomeView } from './views/HomeView';
+import { DiscoverView } from './views/DiscoverView';
+import { SearchView } from './views/SearchView';
+import { WatchlistView } from './views/WatchlistView';
+import { useWatchlist } from './hooks/useWatchlist';
+import type { MediaItem, MediaType } from './lib/types';
 
 function App() {
-  const [selectedCategory, setSelectedCategory] = useState<Category>(null);
+  const [view, setView] = useState<View>('home');
+  const [query, setQuery] = useState('');
+  const [target, setTarget] = useState<{ id: number; mediaType: MediaType } | null>(null);
+
+  const watchlist = useWatchlist();
+  const searching = query.trim().length > 0;
+
+  const isSaved = useCallback(
+    (item: Pick<MediaItem, 'id' | 'mediaType'>) => watchlist.isSaved(item),
+    [watchlist],
+  );
+
+  const openDetail = useCallback((item: MediaItem) => {
+    setTarget({ id: item.id, mediaType: item.mediaType });
+  }, []);
+
+  const navigate = useCallback((next: View) => {
+    setQuery('');
+    setView(next);
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, []);
 
   return (
-      <>
-          <div className="min-h-screen bg-[#0A0A0F] text-white">
-              <div
-                  className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-500/20 via-transparent to-transparent pointer-events-none"/>
+    <div className="flex min-h-screen flex-col bg-ink-950 text-white">
+      <div className="pointer-events-none fixed inset-0 bg-aurora" />
 
-              <header
-                  className="fixed top-0 w-full z-50 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-sm">
-                  <div className="container mx-auto px-6 py-4">
-                      <Logo/>
-                  </div>
-              </header>
+      <Navbar
+        view={view}
+        searching={searching}
+        onNavigate={navigate}
+        query={query}
+        onQueryChange={setQuery}
+        watchlistCount={watchlist.count}
+      />
 
-              <main className="pt-20">
-                  {selectedCategory ? (
-                      <SearchView
-                          category={selectedCategory}
-                          onBack={() => setSelectedCategory(null)}/>
-                  ) : (
-                      <CategoryGrid onSelectCategory={setSelectedCategory}/>
-                  )}
-              </main>
-          </div>
-      </>
+      <main className="relative flex-1">
+        {searching ? (
+          <SearchView
+            query={query}
+            onOpen={openDetail}
+            isSaved={isSaved}
+            onToggleSave={watchlist.toggle}
+          />
+        ) : view === 'home' ? (
+          <HomeView onOpen={openDetail} isSaved={isSaved} onToggleSave={watchlist.toggle} />
+        ) : view === 'movies' ? (
+          <DiscoverView
+            mediaType="movie"
+            onOpen={openDetail}
+            isSaved={isSaved}
+            onToggleSave={watchlist.toggle}
+          />
+        ) : view === 'tv' ? (
+          <DiscoverView
+            mediaType="tv"
+            onOpen={openDetail}
+            isSaved={isSaved}
+            onToggleSave={watchlist.toggle}
+          />
+        ) : (
+          <WatchlistView
+            items={watchlist.items}
+            onOpen={openDetail}
+            isSaved={isSaved}
+            onToggleSave={watchlist.toggle}
+            onClear={watchlist.clear}
+            onBrowse={() => navigate('movies')}
+          />
+        )}
+      </main>
+
+      <Footer />
+
+      <DetailModal
+        target={target}
+        onClose={() => setTarget(null)}
+        onOpen={openDetail}
+        isSaved={isSaved}
+        onToggleSave={watchlist.toggle}
+      />
+    </div>
   );
 }
 

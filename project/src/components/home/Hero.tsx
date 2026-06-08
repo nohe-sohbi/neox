@@ -1,22 +1,30 @@
 import { useEffect, useState } from 'react';
 import { Bookmark, Info, Star } from 'lucide-react';
 import type { MediaItem } from '../../lib/types';
+import { useLibrary } from '../../context/LibraryContext';
+import { useOpenDetail } from '../../hooks/useDetailRoute';
 
-interface HeroProps {
-  items: MediaItem[];
-  onOpen: (item: MediaItem) => void;
-  isSaved: (item: MediaItem) => boolean;
-  onToggleSave: (item: MediaItem) => void;
-}
-
-export function Hero({ items, onOpen, isSaved, onToggleSave }: HeroProps) {
+export function Hero({ items }: { items: MediaItem[] }) {
+  const openDetail = useOpenDetail();
+  const { isSaved, toggle } = useLibrary();
   const [active, setActive] = useState(0);
 
+  // Auto-advance.
   useEffect(() => {
     if (items.length <= 1) return;
     const id = setInterval(() => setActive((i) => (i + 1) % items.length), 7000);
     return () => clearInterval(id);
   }, [items.length]);
+
+  // Preload the next backdrop for a seamless cross-fade.
+  useEffect(() => {
+    if (items.length <= 1) return;
+    const next = items[(active + 1) % items.length];
+    if (next?.backdrop) {
+      const img = new Image();
+      img.src = next.backdrop;
+    }
+  }, [active, items]);
 
   if (items.length === 0) return null;
   const current = items[active];
@@ -24,7 +32,6 @@ export function Hero({ items, onOpen, isSaved, onToggleSave }: HeroProps) {
 
   return (
     <section className="relative h-[70vh] min-h-[460px] w-full overflow-hidden">
-      {/* Backdrops cross-fade */}
       {items.map((item, i) => (
         <div
           key={item.id}
@@ -33,20 +40,14 @@ export function Hero({ items, onOpen, isSaved, onToggleSave }: HeroProps) {
           }`}
         >
           {item.backdrop && (
-            <img
-              src={item.backdrop}
-              alt=""
-              className="h-full w-full object-cover object-top"
-            />
+            <img src={item.backdrop} alt="" className="h-full w-full object-cover object-top" />
           )}
         </div>
       ))}
 
-      {/* Scrims */}
       <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/40 to-transparent" />
       <div className="absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/60 to-transparent" />
 
-      {/* Content */}
       <div className="relative z-10 flex h-full items-end pb-16">
         <div className="container mx-auto px-6">
           <div key={current.id} className="max-w-2xl animate-slide-up">
@@ -72,11 +73,11 @@ export function Hero({ items, onOpen, isSaved, onToggleSave }: HeroProps) {
             </p>
 
             <div className="mt-7 flex flex-wrap items-center gap-3">
-              <button onClick={() => onOpen(current)} className="btn-primary">
+              <button onClick={() => openDetail(current)} className="btn-primary">
                 <Info className="h-5 w-5" />
                 Voir les détails
               </button>
-              <button onClick={() => onToggleSave(current)} className="btn-ghost">
+              <button onClick={() => toggle(current)} className="btn-ghost">
                 <Bookmark className={`h-5 w-5 ${saved ? 'fill-current' : ''}`} />
                 {saved ? 'Dans ma liste' : 'Ma liste'}
               </button>
@@ -85,7 +86,6 @@ export function Hero({ items, onOpen, isSaved, onToggleSave }: HeroProps) {
         </div>
       </div>
 
-      {/* Dots */}
       {items.length > 1 && (
         <div className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 gap-2">
           {items.map((item, i) => (

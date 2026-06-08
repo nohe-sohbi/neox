@@ -71,3 +71,30 @@ export interface Genre {
   id: number;
   name: string;
 }
+
+export type LibraryStatus = 'want' | 'watched';
+
+export interface LibraryEntry {
+  id: number;
+  mediaType: MediaType;
+  title: string;
+  poster: string | null;
+  year: string;
+  rating: number | null;
+  status: LibraryStatus;
+  personalRating: number | null;
+  addedAt: number;
+  updatedAt: number;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  createdAt: number;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+

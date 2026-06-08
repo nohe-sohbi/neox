@@ -1,17 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Bookmark, Calendar, Clock, Play, Star, Tv, X } from 'lucide-react';
+import { Bookmark, Calendar, Check, Clock, Eye, Play, Star, Trash2, Tv, X } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
-import type { MediaDetails, MediaItem, MediaType } from '../../lib/types';
+import type { MediaDetails, MediaType } from '../../lib/types';
+import { useLibrary } from '../../context/LibraryContext';
+import { useDetailTarget, useOpenDetail } from '../../hooks/useDetailRoute';
 import { ErrorState, FullSpinner } from '../ui/States';
+import { StarRating } from '../ui/StarRating';
 import { WatchProviders } from './WatchProviders';
-
-interface DetailModalProps {
-  target: { id: number; mediaType: MediaType } | null;
-  onClose: () => void;
-  onOpen: (item: MediaItem) => void;
-  isSaved: (item: Pick<MediaItem, 'id' | 'mediaType'>) => boolean;
-  onToggleSave: (item: MediaItem) => void;
-}
 
 function runtimeLabel(minutes: number | null): string | null {
   if (!minutes) return null;
@@ -20,26 +15,27 @@ function runtimeLabel(minutes: number | null): string | null {
   return h > 0 ? `${h}h${m.toString().padStart(2, '0')}` : `${m} min`;
 }
 
-export function DetailModal({ target, onClose, onOpen, isSaved, onToggleSave }: DetailModalProps) {
+export function DetailModal() {
+  const { target, close } = useDetailTarget();
+  const openDetail = useOpenDetail();
+  const { statusOf, ratingOf, isSaved, setStatus, setRating, remove } = useLibrary();
+
   const [details, setDetails] = useState<MediaDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showTrailer, setShowTrailer] = useState(false);
 
-  const load = useCallback(
-    async (mediaType: MediaType, id: number) => {
-      setLoading(true);
-      setError(null);
-      try {
-        setDetails(await api.details(mediaType, id));
-      } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'Chargement impossible.');
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
+  const load = useCallback(async (mediaType: MediaType, id: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      setDetails(await api.details(mediaType, id));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!target) return;
@@ -48,35 +44,36 @@ export function DetailModal({ target, onClose, onOpen, isSaved, onToggleSave }: 
     void load(target.mediaType, target.id);
   }, [target, load]);
 
-  // Lock body scroll + Escape to close.
   useEffect(() => {
     if (!target) return undefined;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
     window.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener('keydown', onKey);
     };
-  }, [target, onClose]);
+  }, [target, close]);
 
   if (!target) return null;
 
+  const status = details ? statusOf(details) : null;
   const saved = details ? isSaved(details) : false;
+  const personalRating = details ? ratingOf(details) : null;
   const runtime = details ? runtimeLabel(details.runtime) : null;
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-0 backdrop-blur-sm sm:p-6"
-      onClick={onClose}
+      onClick={close}
     >
       <div
         className="relative w-full max-w-4xl animate-scale-in overflow-hidden bg-ink-900 shadow-2xl sm:rounded-3xl sm:border sm:border-white/10"
         onClick={(e) => e.stopPropagation()}
       >
         <button
-          onClick={onClose}
+          onClick={close}
           aria-label="Fermer"
           className="absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur-md transition-all hover:bg-black/80 hover:text-white"
         >
@@ -93,7 +90,6 @@ export function DetailModal({ target, onClose, onOpen, isSaved, onToggleSave }: 
 
         {details && !loading && (
           <>
-            {/* Backdrop header */}
             <div className="relative h-56 sm:h-80">
               {showTrailer && details.trailerKey ? (
                 <iframe
@@ -130,7 +126,6 @@ export function DetailModal({ target, onClose, onOpen, isSaved, onToggleSave }: 
               )}
             </div>
 
-            {/* Body */}
             <div className="relative -mt-16 space-y-7 px-5 pb-8 sm:px-8">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
                 {details.poster && (
@@ -173,8 +168,7 @@ export function DetailModal({ target, onClose, onOpen, isSaved, onToggleSave }: 
                     {details.numberOfSeasons ? (
                       <span className="inline-flex items-center gap-1.5">
                         <Tv className="h-4 w-4" />
-                        {details.numberOfSeasons} saison
-                        {details.numberOfSeasons > 1 ? 's' : ''}
+                        {details.numberOfSeasons} saison{details.numberOfSeasons > 1 ? 's' : ''}
                       </span>
                     ) : null}
                   </div>
@@ -191,17 +185,53 @@ export function DetailModal({ target, onClose, onOpen, isSaved, onToggleSave }: 
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-3">
+              {/* Actions: trailer + library status */}
+              <div className="flex flex-wrap items-center gap-3">
                 {details.trailerKey && !showTrailer && (
                   <button onClick={() => setShowTrailer(true)} className="btn-primary">
                     <Play className="h-5 w-5 fill-current" />
                     Bande-annonce
                   </button>
                 )}
-                <button onClick={() => onToggleSave(details)} className="btn-ghost">
-                  <Bookmark className={`h-5 w-5 ${saved ? 'fill-current' : ''}`} />
-                  {saved ? 'Dans ma liste' : 'Ajouter à ma liste'}
+                <button
+                  onClick={() => setStatus(details, 'want')}
+                  className={
+                    status === 'want'
+                      ? 'btn-primary'
+                      : 'btn-ghost'
+                  }
+                >
+                  <Bookmark className={`h-5 w-5 ${status === 'want' ? 'fill-current' : ''}`} />
+                  À voir
                 </button>
+                <button
+                  onClick={() => setStatus(details, 'watched')}
+                  className={status === 'watched' ? 'btn-primary' : 'btn-ghost'}
+                >
+                  {status === 'watched' ? (
+                    <Check className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                  {status === 'watched' ? 'Vu' : 'Marquer comme vu'}
+                </button>
+                {saved && (
+                  <button
+                    onClick={() => remove(details)}
+                    aria-label="Retirer de ma liste"
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Personal rating */}
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="mb-2 text-sm font-bold uppercase tracking-wider text-white/50">
+                  Ta note
+                </p>
+                <StarRating value={personalRating} onChange={(r) => setRating(details, r)} />
               </div>
 
               {details.overview && (
@@ -257,7 +287,7 @@ export function DetailModal({ target, onClose, onOpen, isSaved, onToggleSave }: 
                     {details.recommendations.map((rec) => (
                       <button
                         key={`${rec.mediaType}-${rec.id}`}
-                        onClick={() => onOpen(rec)}
+                        onClick={() => openDetail(rec)}
                         className="group w-28 shrink-0 text-left"
                       >
                         <div className="aspect-[2/3] overflow-hidden rounded-lg bg-ink-700 ring-1 ring-white/5 transition-transform group-hover:scale-[1.03]">

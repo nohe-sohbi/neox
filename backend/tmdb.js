@@ -193,10 +193,41 @@ async function trending(mediaType, window = 'week') {
     return normalizeList(await tmdbGet(`/trending/${mediaType}/${window}`), mediaType);
 }
 
-async function discover(mediaType, { genre, sort = 'popularity.desc', page = 1 } = {}) {
+async function discover(
+    mediaType,
+    { genre, sort = 'popularity.desc', page = 1, providers, region } = {},
+) {
     const params = { sort_by: sort, page: String(page), 'vote_count.gte': '50' };
     if (genre) params.with_genres = String(genre);
+    if (providers && providers.length) {
+        // TMDB: "|" = OR (available on ANY of these platforms).
+        params.with_watch_providers = providers.join('|');
+        params.watch_region = (region || DEFAULT_REGION).toUpperCase();
+        params.with_watch_monetization_types = 'flatrate';
+    }
     return normalizeList(await tmdbGet(`/discover/${mediaType}`, params), mediaType);
+}
+
+/**
+ * Watch providers available in a region, ordered by TMDB display priority.
+ * Powers the "only on my platforms" filter.
+ */
+async function getProviders(mediaType, region = DEFAULT_REGION) {
+    const data = await tmdbGet(`/watch/providers/${mediaType}`, { watch_region: region.toUpperCase() });
+    const priorityOf = (p) =>
+        (p.display_priorities && p.display_priorities[region.toUpperCase()]) ??
+        p.display_priority ??
+        999;
+    return (data.results || [])
+        .map((p) => ({
+            id: p.provider_id,
+            name: p.provider_name,
+            logo: img(p.logo_path, LOGO_SIZE),
+            priority: priorityOf(p),
+        }))
+        .sort((a, b) => a.priority - b.priority)
+        .slice(0, 24)
+        .map(({ id, name, logo }) => ({ id, name, logo }));
 }
 
 async function list(mediaType, kind, page = 1) {
@@ -278,6 +309,7 @@ async function home(region = DEFAULT_REGION) {
 module.exports = {
     isConfigured,
     getGenres,
+    getProviders,
     trending,
     discover,
     list,

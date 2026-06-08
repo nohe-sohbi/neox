@@ -10,6 +10,9 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const tmdb = require('./tmdb');
+const store = require('./store');
+const auth = require('./auth');
+const { sanitizeLibrary, mergeLibraries } = require('./library');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -69,15 +72,33 @@ app.get(
 );
 
 app.get(
+    '/api/providers/:mediaType',
+    route(async (req, res) => {
+        const mediaType = assertMediaType(req.params.mediaType);
+        const region = (req.query.region || tmdb.DEFAULT_REGION).toString().toUpperCase();
+        res.json({ providers: await tmdb.getProviders(mediaType, region) });
+    }),
+);
+
+app.get(
     '/api/discover/:mediaType',
     route(async (req, res) => {
         const mediaType = assertMediaType(req.params.mediaType);
-        const { genre, sort } = req.query;
+        const { genre, sort, providers, region } = req.query;
         const page = Math.max(1, Number(req.query.page) || 1);
+        const providerIds = providers
+            ? providers
+                  .toString()
+                  .split(',')
+                  .map((id) => id.trim())
+                  .filter(Boolean)
+            : undefined;
         res.json(
             await tmdb.discover(mediaType, {
                 genre: genre ? Number(genre) : undefined,
                 sort: sort ? sort.toString() : undefined,
+                providers: providerIds,
+                region: region ? region.toString() : undefined,
                 page,
             }),
         );
@@ -92,6 +113,74 @@ app.get(
             : 'all';
         const window = req.query.window === 'day' ? 'day' : 'week';
         res.json(await tmdb.trending(mediaType, window));
+    }),
+);
+
+/* ------------------------------- auth --------------------------------- */
+
+app.post(
+    '/api/auth/register',
+    route(async (req, res) => {
+        const { email, password } = req.body || {};
+        const validationError = auth.validateCredentials({ email, password });
+        if (validationError) return res.status(400).json({ error: validationError });
+
+        if (store.findUserByEmail(email)) {
+            return res.status(409).json({ error: 'Un compte existe déjà avec cet e-mail.' });
+        }
+
+        const passwordHash = await auth.hashPassword(password);
+        const user = await store.createUser({ email, passwordHash });
+        res.status(201).json({ token: auth.signToken(user), user: store.publicUser(user) });
+    }),
+);
+
+app.post(
+    '/api/auth/login',
+    route(async (req, res) => {
+        const { email, password } = req.body || {};
+        if (!email || !password) {
+            return res.status(400).json({ error: 'E-mail et mot de passe requis.' });
+        }
+        const user = store.findUserByEmail(email);
+        const ok = user && (await auth.verifyPassword(password, user.passwordHash));
+        if (!ok) {
+            return res.status(401).json({ error: 'E-mail ou mot de passe incorrect.' });
+        }
+        res.json({ token: auth.signToken(user), user: store.publicUser(user) });
+    }),
+);
+
+app.get('/api/auth/me', auth.requireAuth, (req, res) => {
+    const user = store.getUserById(req.userId);
+    if (!user) return res.status(404).json({ error: 'Compte introuvable.' });
+    res.json({ user: store.publicUser(user) });
+});
+
+/* ------------------------------ library ------------------------------- */
+
+app.get('/api/library', auth.requireAuth, (req, res) => {
+    res.json({ entries: store.getLibrary(req.userId) });
+});
+
+app.put(
+    '/api/library',
+    auth.requireAuth,
+    route(async (req, res) => {
+        const entries = sanitizeLibrary(req.body?.entries);
+        await store.setLibrary(req.userId, entries);
+        res.json({ entries });
+    }),
+);
+
+app.post(
+    '/api/library/merge',
+    auth.requireAuth,
+    route(async (req, res) => {
+        const incoming = sanitizeLibrary(req.body?.entries);
+        const merged = mergeLibraries(store.getLibrary(req.userId), incoming);
+        await store.setLibrary(req.userId, merged);
+        res.json({ entries: merged });
     }),
 );
 
@@ -127,6 +216,9 @@ app.use((err, _req, res, _next) => {
 app.listen(PORT, () => {
     console.log(`NEOX API running on port ${PORT}`);
     if (!tmdb.isConfigured()) {
-        console.warn('⚠  TMDB_API_KEY is not set — API requests will return 503 until configured.');
+        console.warn('⚠  TMDB_API_KEY is not set — TMDB requests will return 503 until configured.');
+    }
+    if (auth.usingDefaultSecret) {
+        console.warn('⚠  JWT_SECRET is not set — using an insecure default. Set it in production.');
     }
 });

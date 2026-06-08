@@ -10,6 +10,11 @@ services:
       - TMDB_READ_TOKEN=${TMDB_READ_TOKEN:-}
       - TMDB_REGION=${TMDB_REGION:-FR}
       - TMDB_LANGUAGE=${TMDB_LANGUAGE:-fr-FR}
+      - JWT_SECRET=${JWT_SECRET:-change_me_to_a_long_random_string}
+      - DATA_DIR=/data
+    volumes:
+      # Persist accounts + libraries across restarts/redeploys.
+      - neox-data:/data
     # For local dev, expose the API to the browser. Behind a reverse proxy
     # (e.g. Dokploy), drop this block and route via the proxy instead.
     ports:
@@ -31,3 +36,6 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  neox-data:

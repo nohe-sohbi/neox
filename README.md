@@ -24,14 +24,19 @@ Aucun contenu n'est hébergé ni stocké : NEOX agrège des **métadonnées publ
 
 ## ✨ Fonctionnalités
 
-- **Accueil éditorialisé** — hero rotatif + rails « À l'affiche », « Tendances séries »,
-  « Acclamés par la critique »…
+- **Accueil éditorialisé** — hero rotatif (avec préchargement des backdrops) + rails
+  « À l'affiche », « Tendances séries », « Acclamés par la critique »…
 - **Recherche instantanée** (debounced, films + séries) avec états loading / vide / erreur soignés.
 - **Explorer** — filtres par genre, tri (populaires, mieux notés, récents, box-office) et
   **scroll infini**.
+- **Filtre « Mes plateformes »** — n'affiche que ce qui est dispo sur tes services (Netflix,
+  Prime, Max…), préférence mémorisée.
 - **Fiche détaillée** — bande-annonce YouTube intégrée, synopsis, casting, genres, durée, et la
   section **« Où regarder (légalement) »**.
-- **Ma liste** — watchlist persistante (localStorage), synchronisée entre onglets.
+- **Bibliothèque perso** — statut **À voir / Vu**, **note personnelle 1–10**, filtres par statut.
+- **Comptes & sync cloud** — inscription/connexion (JWT), ta liste fusionnée et synchronisée sur
+  tous tes appareils. Hors-ligne : tout reste en localStorage.
+- **URLs partageables** — chaque fiche a son deep link (`/?watch=movie-550`), navigation par routes.
 - **Design system** Tailwind sur-mesure : thème sombre, dégradé de marque, micro-interactions,
   skeletons, responsive mobile-first.
 
@@ -39,19 +44,24 @@ Aucun contenu n'est hébergé ni stocké : NEOX agrège des **métadonnées publ
 
 ```
 neox/
-├── backend/            API Node/Express — proxy TMDB caché et normalisé
+├── backend/            API Node/Express — proxy TMDB + comptes + sync
 │   ├── server.js       routes + validation + gestion d'erreurs centralisée
-│   └── tmdb.js         client TMDB (cache TTL, retry/backoff, normalisation)
+│   ├── tmdb.js         client TMDB (cache TTL, retry/backoff, normalisation)
+│   ├── auth.js         bcrypt + JWT, middleware requireAuth
+│   ├── store.js        store JSON persistant (atomique, zéro dépendance)
+│   └── library.js      validation + merge des bibliothèques
 └── project/            Frontend React + TypeScript + Vite + Tailwind
     └── src/
-        ├── lib/        client API typé + types partagés
-        ├── hooks/      useDebounce, useWatchlist
-        ├── components/ layout · media · home · ui
-        └── views/      Home · Discover · Search · Watchlist
+        ├── lib/        client API typé (token) + types partagés
+        ├── context/    AuthContext · LibraryContext (sync cloud)
+        ├── hooks/      useDebounce · useMyPlatforms · useDetailRoute
+        ├── components/ layout · media · home · auth · ui
+        └── views/      Home · Discover · Search · Library
 ```
 
 La clé TMDB **reste côté serveur** : le frontend ne parle qu'à l'API NEOX, qui met en cache et
-normalise chaque réponse pour rester rapide et sous les limites de débit.
+normalise chaque réponse. L'auth est **self-contained** (bcrypt + JWT, store JSON) — aucun SaaS
+tiers requis. La bibliothèque est **localStorage-first** puis fusionnée au compte à la connexion.
 
 ## 🚀 Démarrage
 
@@ -94,7 +104,16 @@ cd project && npm install && npm run dev
 | GET | `/api/trending/:type?window=week\|day` | Tendances (`all`/`movie`/`tv`) |
 | GET | `/api/discover/:type?genre=&sort=&page=` | Exploration filtrée |
 | GET | `/api/genres/:type` | Genres (`movie`/`tv`) |
+| GET | `/api/providers/:type?region=` | Plateformes de streaming d'une région |
 | GET | `/api/:type/:id` | Fiche complète + providers + casting + reco |
+| POST | `/api/auth/register` | Création de compte → `{ token, user }` |
+| POST | `/api/auth/login` | Connexion → `{ token, user }` |
+| GET | `/api/auth/me` 🔒 | Profil du token courant |
+| GET | `/api/library` 🔒 | Bibliothèque du compte |
+| PUT | `/api/library` 🔒 | Remplace la bibliothèque |
+| POST | `/api/library/merge` 🔒 | Fusionne (local ⊕ serveur) |
+
+🔒 = requiert l'en-tête `Authorization: Bearer <token>`.
 
 ## 🧰 Stack
 

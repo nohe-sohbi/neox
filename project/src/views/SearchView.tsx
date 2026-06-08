@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Sparkles } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import type { MediaItem } from '../lib/types';
@@ -6,15 +7,11 @@ import { useDebounce } from '../hooks/useDebounce';
 import { MediaGrid } from '../components/media/MediaGrid';
 import { EmptyState, ErrorState } from '../components/ui/States';
 
-interface SearchViewProps {
-  query: string;
-  onOpen: (item: MediaItem) => void;
-  isSaved: (item: MediaItem) => boolean;
-  onToggleSave: (item: MediaItem) => void;
-}
-
-export function SearchView({ query, onOpen, isSaved, onToggleSave }: SearchViewProps) {
+export function SearchView() {
+  const [params] = useSearchParams();
+  const query = params.get('q') ?? '';
   const debounced = useDebounce(query.trim(), 350);
+
   const [results, setResults] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +75,7 @@ export function SearchView({ query, onOpen, isSaved, onToggleSave }: SearchViewP
           description="Tape le titre d’un film ou d’une série, on te dit instantanément où le voir légalement."
         />
       ) : loading ? (
-        <MediaGrid items={[]} loading onOpen={onOpen} isSaved={isSaved} onToggleSave={onToggleSave} />
+        <MediaGrid items={[]} loading />
       ) : results.length === 0 ? (
         <EmptyState
           icon={<Search className="h-12 w-12" />}
@@ -87,12 +84,7 @@ export function SearchView({ query, onOpen, isSaved, onToggleSave }: SearchViewP
         />
       ) : (
         <div className="animate-fade-in">
-          <MediaGrid
-            items={results}
-            onOpen={onOpen}
-            isSaved={isSaved}
-            onToggleSave={onToggleSave}
-          />
+          <MediaGrid items={results} />
         </div>
       )}
     </div>

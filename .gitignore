@@ -11,6 +11,9 @@ dist/
 dist-ssr/
 build/
 
+# Runtime data (local JSON store)
+backend/data/
+
 # Logs
 *.log
 npm-debug.log*

@@ -25,14 +25,17 @@ découverte légale (TMDB + « où regarder »). Ci-dessous : ce qui est fait, e
    - Retirer le bloc `ports` du backend si reverse proxy.
 5. **Smoke test prod** → `/api/health` renvoie `"tmdb":"configured"`.
 
-## 🔥 Phase 2 — Rétention (cette semaine)
+## ✅ Phase 2 — Rétention (LIVRÉ)
 
-- [ ] **Comptes + sync cloud** de la watchlist (Supabase/Clerk) — la watchlist locale est le hook,
-      le compte est la rétention.
-- [ ] **Notation perso** & statut « vu / à voir ».
-- [ ] **Filtre par plateforme** : « Montre-moi seulement ce qui est sur mon Netflix/Prime ».
-- [ ] **Pages dédiées** (routing `react-router`) + URLs partageables `/movie/:id` (SEO + partage social).
-- [ ] **Skeleton du Hero** affiné + préchargement des backdrops.
+- [x] **Comptes + sync cloud** — auth self-contained (bcrypt + JWT + store JSON, **sans SaaS
+      tiers**), bibliothèque localStorage-first fusionnée au compte à la connexion.
+- [x] **Notation perso (1–10)** & statut **À voir / Vu**, avec filtres par statut dans Ma liste.
+- [x] **Filtre « Mes plateformes »** — « seulement sur mon Netflix/Prime », préférence mémorisée.
+- [x] **Routing react-router** + **deep links partageables** (`?watch=movie-550`) + navigation par routes.
+- [x] **Hero** : préchargement des backdrops + skeletons affinés.
+
+> Reste pour le « SEO complet » des fiches : SSR / prerender (les deep links fonctionnent déjà,
+> mais le rendu est client-side). À traiter en Phase 3 si besoin (Next.js ou vite-plugin-ssr).
 
 ## 📈 Phase 3 — Croissance (ce mois)
 

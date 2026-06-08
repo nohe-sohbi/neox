@@ -7,19 +7,9 @@ interface MediaRowProps {
   title: string;
   items: MediaItem[];
   loading?: boolean;
-  onOpen: (item: MediaItem) => void;
-  isSaved: (item: MediaItem) => boolean;
-  onToggleSave: (item: MediaItem) => void;
 }
 
-export function MediaRow({
-  title,
-  items,
-  loading,
-  onOpen,
-  isSaved,
-  onToggleSave,
-}: MediaRowProps) {
+export function MediaRow({ title, items, loading }: MediaRowProps) {
   const railRef = useRef<HTMLDivElement>(null);
 
   const scrollBy = (dir: 1 | -1) => {
@@ -67,12 +57,7 @@ export function MediaRow({
                 key={`${item.mediaType}-${item.id}`}
                 className="w-[42vw] shrink-0 snap-start sm:w-44 md:w-48"
               >
-                <MediaCard
-                  item={item}
-                  onOpen={onOpen}
-                  saved={isSaved(item)}
-                  onToggleSave={onToggleSave}
-                />
+                <MediaCard item={item} />
               </div>
             ))}
       </div>

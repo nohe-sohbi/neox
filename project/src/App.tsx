@@ -1,16 +1,22 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { DetailModal } from './components/media/DetailModal';
+import { PersonModal } from './components/media/PersonModal';
 import { AuthModal } from './components/auth/AuthModal';
 import { HomeView } from './views/HomeView';
 import { DiscoverView } from './views/DiscoverView';
 import { SearchView } from './views/SearchView';
 import { LibraryView } from './views/LibraryView';
+import { initAnalytics } from './lib/analytics';
 
 function App() {
   const [authOpen, setAuthOpen] = useState(false);
+
+  useEffect(() => {
+    initAnalytics();
+  }, []);
 
   return (
     <div className="flex min-h-screen flex-col bg-ink-950 text-white">
@@ -31,8 +37,9 @@ function App() {
 
       <Footer />
 
-      {/* Global overlays — deep-link driven detail + auth */}
+      {/* Global overlays — deep-link driven detail, person, and auth */}
       <DetailModal />
+      <PersonModal />
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </div>
   );

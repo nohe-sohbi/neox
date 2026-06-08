@@ -184,20 +184,36 @@ function normalizeProviders(payload, region) {
 
 /* ------------------------------- queries ------------------------------- */
 
-async function getGenres(mediaType) {
-    const data = await tmdbGet(`/genre/${mediaType}/list`);
+/** Builds region/language overrides; only includes keys that were provided. */
+function locale(opts = {}) {
+    const p = {};
+    if (opts.language) p.language = opts.language;
+    if (opts.region) p.region = opts.region.toUpperCase();
+    return p;
+}
+
+async function getGenres(mediaType, opts = {}) {
+    const data = await tmdbGet(`/genre/${mediaType}/list`, locale(opts));
     return data.genres || [];
 }
 
-async function trending(mediaType, window = 'week') {
-    return normalizeList(await tmdbGet(`/trending/${mediaType}/${window}`), mediaType);
+async function trending(mediaType, window = 'week', opts = {}) {
+    return normalizeList(
+        await tmdbGet(`/trending/${mediaType}/${window}`, locale(opts)),
+        mediaType,
+    );
 }
 
 async function discover(
     mediaType,
-    { genre, sort = 'popularity.desc', page = 1, providers, region } = {},
+    { genre, sort = 'popularity.desc', page = 1, providers, region, language } = {},
 ) {
-    const params = { sort_by: sort, page: String(page), 'vote_count.gte': '50' };
+    const params = {
+        sort_by: sort,
+        page: String(page),
+        'vote_count.gte': '50',
+        ...locale({ language }),
+    };
     if (genre) params.with_genres = String(genre);
     if (providers && providers.length) {
         // TMDB: "|" = OR (available on ANY of these platforms).
@@ -230,18 +246,24 @@ async function getProviders(mediaType, region = DEFAULT_REGION) {
         .map(({ id, name, logo }) => ({ id, name, logo }));
 }
 
-async function list(mediaType, kind, page = 1) {
-    return normalizeList(await tmdbGet(`/${mediaType}/${kind}`, { page: String(page) }), mediaType);
+async function list(mediaType, kind, page = 1, opts = {}) {
+    return normalizeList(
+        await tmdbGet(`/${mediaType}/${kind}`, { page: String(page), ...locale(opts) }),
+        mediaType,
+    );
 }
 
-async function search(query, page = 1) {
+async function search(query, page = 1, opts = {}) {
     if (!query || !query.trim()) return { page: 1, totalPages: 1, totalResults: 0, results: [] };
-    return normalizeList(await tmdbGet('/search/multi', { query: query.trim(), page: String(page) }));
+    return normalizeList(
+        await tmdbGet('/search/multi', { query: query.trim(), page: String(page), ...locale(opts) }),
+    );
 }
 
-async function details(mediaType, id, region = DEFAULT_REGION) {
+async function details(mediaType, id, region = DEFAULT_REGION, opts = {}) {
     const data = await tmdbGet(`/${mediaType}/${id}`, {
         append_to_response: 'videos,credits,recommendations,watch/providers',
+        ...locale(opts),
     });
 
     const base = normalizeItem(data, mediaType);
@@ -272,7 +294,7 @@ async function details(mediaType, id, region = DEFAULT_REGION) {
  * Curated home payload assembled in a single round trip from the client's POV.
  * Each row is fetched in parallel; a failing row degrades gracefully to empty.
  */
-async function home(region = DEFAULT_REGION) {
+async function home(region = DEFAULT_REGION, opts = {}) {
     if (!isConfigured()) {
         const err = new Error('TMDB credentials are not configured on the server.');
         err.status = 503;
@@ -280,16 +302,17 @@ async function home(region = DEFAULT_REGION) {
         throw err;
     }
 
+    const loc = { language: opts.language, region };
     const safe = (promise) => promise.catch(() => ({ results: [] }));
 
     const [trendingAll, nowPlaying, popularMovies, topRatedMovies, trendingTv, popularTv] =
         await Promise.all([
-            safe(trending('all', 'week')),
-            safe(list('movie', 'now_playing')),
-            safe(list('movie', 'popular')),
-            safe(list('movie', 'top_rated')),
-            safe(trending('tv', 'week')),
-            safe(list('tv', 'popular')),
+            safe(trending('all', 'week', loc)),
+            safe(list('movie', 'now_playing', 1, loc)),
+            safe(list('movie', 'popular', 1, loc)),
+            safe(list('movie', 'top_rated', 1, loc)),
+            safe(trending('tv', 'week', loc)),
+            safe(list('tv', 'popular', 1, loc)),
         ]);
 
     const heroPool = (trendingAll.results || []).filter((m) => m.backdrop && m.overview);
@@ -306,10 +329,98 @@ async function home(region = DEFAULT_REGION) {
     return { hero, rows, region };
 }
 
+/**
+ * Person profile + best-known filmography (movies & TV), de-duplicated and
+ * ranked by popularity. Powers clickable cast → actor pages.
+ */
+async function getPerson(id, opts = {}) {
+    const data = await tmdbGet(`/person/${id}`, {
+        append_to_response: 'combined_credits',
+        ...locale(opts),
+    });
+
+    const seen = new Set();
+    const credits = (data.combined_credits?.cast || [])
+        .filter((c) => (c.media_type === 'movie' || c.media_type === 'tv') && (c.poster_path || c.backdrop_path))
+        .map((c) => ({ ...normalizeItem(c, c.media_type), character: c.character || '' }))
+        .filter((c) => {
+            const k = `${c.mediaType}:${c.id}`;
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+        })
+        .sort((a, b) => b.popularity - a.popularity)
+        .slice(0, 24);
+
+    return {
+        id: data.id,
+        name: data.name,
+        biography: data.biography || '',
+        photo: img(data.profile_path, PROFILE_SIZE),
+        knownFor: data.known_for_department || '',
+        birthday: data.birthday || null,
+        placeOfBirth: data.place_of_birth || '',
+        credits,
+    };
+}
+
+/**
+ * "For you" recommendations: fan out across the user's seeds, aggregate the
+ * results, and rank by how often + how strongly each title is recommended.
+ * Titles already in the seed set are excluded.
+ */
+async function recommend(seeds = [], opts = {}) {
+    const valid = seeds
+        .filter((s) => (s.mediaType === 'movie' || s.mediaType === 'tv') && Number(s.id) > 0)
+        .slice(0, 12);
+    if (valid.length === 0) return { results: [] };
+
+    if (!isConfigured()) {
+        const err = new Error('TMDB credentials are not configured on the server.');
+        err.status = 503;
+        err.code = 'TMDB_NOT_CONFIGURED';
+        throw err;
+    }
+
+    const seedKeys = new Set(valid.map((s) => `${s.mediaType}:${s.id}`));
+    const safe = (promise) => promise.catch(() => ({ results: [] }));
+
+    const lists = await Promise.all(
+        valid.map((s) =>
+            safe(
+                tmdbGet(`/${s.mediaType}/${s.id}/recommendations`, locale(opts)).then((d) =>
+                    normalizeList(d, s.mediaType),
+                ),
+            ),
+        ),
+    );
+
+    const scored = new Map();
+    for (const { results } of lists) {
+        for (const item of results || []) {
+            const k = `${item.mediaType}:${item.id}`;
+            if (seedKeys.has(k)) continue;
+            const prev = scored.get(k);
+            const weight = 1 + (item.popularity || 0) / 500;
+            if (prev) prev.score += weight;
+            else scored.set(k, { item, score: weight });
+        }
+    }
+
+    const results = [...scored.values()]
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 20)
+        .map((s) => s.item);
+
+    return { results };
+}
+
 module.exports = {
     isConfigured,
     getGenres,
     getProviders,
+    getPerson,
+    recommend,
     trending,
     discover,
     list,

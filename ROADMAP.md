@@ -37,20 +37,28 @@ découverte légale (TMDB + « où regarder »). Ci-dessous : ce qui est fait, e
 > Reste pour le « SEO complet » des fiches : SSR / prerender (les deep links fonctionnent déjà,
 > mais le rendu est client-side). À traiter en Phase 3 si besoin (Next.js ou vite-plugin-ssr).
 
-## 📈 Phase 3 — Croissance (ce mois)
+## ✅ Phase 3 — Croissance (LIVRÉ)
 
-- [ ] **Recommandations perso** basées sur la watchlist (TMDB `recommendations` agrégées).
-- [ ] **Notifications « ça arrive sur ta plateforme »** (digest e-mail/push).
-- [ ] **Personnes** (acteurs/réalisateurs) : filmographie cliquable depuis le casting.
-- [ ] **PWA** installable + offline shell.
-- [ ] **i18n** (region/langue dynamiques côté UI, déjà paramétrables côté API).
-- [ ] **Analytics produit** (Plausible) sur recherche, ouverture fiche, ajout watchlist.
+- [x] **Recommandations « Pour toi »** — agrégation des recommandations TMDB des titres de la
+      bibliothèque, classées par fréquence × popularité.
+- [x] **Personnes** — endpoint `/api/person/:id`, casting cliquable → bio + filmographie.
+- [x] **PWA** — manifest + service worker (vite-plugin-pwa), installable, shell offline, cache images.
+- [x] **Région & langue** — switcher catalogue (FR/US/ES/DE…), threadé jusqu'à TMDB (`region`/`lang`).
+- [x] **Analytics** — Plausible opt-in (no-op sans `VITE_PLAUSIBLE_DOMAIN`).
 
-## 🛡️ Tech debt / durcissement
+## ✅ Tech debt / durcissement (LIVRÉ)
 
-- [ ] Tests : Vitest (hooks/lib) + supertest (routes API).
-- [ ] Rate-limit + `helmet` + `compression` côté Express.
-- [ ] Cache partagé (Redis) si multi-instances.
-- [ ] CI : lint + typecheck + build sur PR.
-- [ ] **Faire tourner la clé du fournisseur** présente dans l'historique git (compromise) et purger
-      l'historique si le repo doit devenir public (`git filter-repo`).
+- [x] **Tests** : vitest (lib bibliothèque) + supertest (auth + sync) — 18 tests verts.
+- [x] **Durcissement Express** : `helmet`, `compression`, `express-rate-limit` (global + auth).
+- [x] **CI** : GitHub Actions (lint · typecheck · test · build) sur chaque PR.
+
+## ⏭️ Reste (nécessite une infra externe — volontairement non codé en dur)
+
+- [ ] **Notifications « ça arrive sur ta plateforme »** — requiert SMTP/push + un scheduler
+      (cron) + détection de changement de dispo. À brancher quand l'infra mail/push est choisie.
+- [ ] **Cache partagé (Redis)** — pour le scaling multi-instances (le cache actuel est en mémoire).
+- [ ] **SEO complet des fiches** — SSR/prerender (Next.js ou vite-plugin-ssr) ; les deep links
+      fonctionnent déjà côté client.
+- [ ] **i18n des chaînes d'UI** — le catalogue est déjà localisé ; reste à traduire les libellés.
+- [ ] **Sécurité** : faire tourner la clé du fournisseur présente dans l'historique git et purger
+      l'historique si le repo devient public (`git filter-repo`).

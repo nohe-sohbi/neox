@@ -98,3 +98,23 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface PersonCredit extends MediaItem {
+  character: string;
+}
+
+export interface Person {
+  id: number;
+  name: string;
+  biography: string;
+  photo: string | null;
+  knownFor: string;
+  birthday: string | null;
+  placeOfBirth: string;
+  credits: PersonCredit[];
+}
+
+export interface Locale {
+  region: string;
+  language: string;
+}
+

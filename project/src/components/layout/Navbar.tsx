@@ -4,6 +4,7 @@ import { Bookmark, LogOut, Search, User as UserIcon, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLibrary } from '../../context/LibraryContext';
 import { Logo } from './Logo';
+import { LocaleMenu } from './LocaleMenu';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Accueil', end: true },
@@ -93,6 +94,8 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
               </button>
             )}
           </div>
+
+          <LocaleMenu />
 
           <NavLink
             to="/library"

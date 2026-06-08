@@ -36,7 +36,12 @@ Aucun contenu n'est hébergé ni stocké : NEOX agrège des **métadonnées publ
 - **Bibliothèque perso** — statut **À voir / Vu**, **note personnelle 1–10**, filtres par statut.
 - **Comptes & sync cloud** — inscription/connexion (JWT), ta liste fusionnée et synchronisée sur
   tous tes appareils. Hors-ligne : tout reste en localStorage.
+- **Recommandations « Pour toi »** — suggestions personnalisées à partir de ta bibliothèque.
+- **Pages Personnes** — casting cliquable → bio + filmographie de l'acteur·rice.
+- **Région & langue** — bascule le catalogue et les disponibilités (FR, US, ES, DE…).
+- **PWA installable** — ajoute NEOX à ton écran d'accueil, shell offline, images en cache.
 - **URLs partageables** — chaque fiche a son deep link (`/?watch=movie-550`), navigation par routes.
+- **Analytics privacy-first** (Plausible, opt-in) et **API durcie** (helmet, compression, rate-limit).
 - **Design system** Tailwind sur-mesure : thème sombre, dégradé de marque, micro-interactions,
   skeletons, responsive mobile-first.
 
@@ -105,6 +110,8 @@ cd project && npm install && npm run dev
 | GET | `/api/discover/:type?genre=&sort=&page=` | Exploration filtrée |
 | GET | `/api/genres/:type` | Genres (`movie`/`tv`) |
 | GET | `/api/providers/:type?region=` | Plateformes de streaming d'une région |
+| GET | `/api/person/:id` | Profil + filmographie d'une personne |
+| POST | `/api/recommendations` | « Pour toi » à partir de `{ seeds: [...] }` |
 | GET | `/api/:type/:id` | Fiche complète + providers + casting + reco |
 | POST | `/api/auth/register` | Création de compte → `{ token, user }` |
 | POST | `/api/auth/login` | Connexion → `{ token, user }` |
@@ -114,6 +121,15 @@ cd project && npm install && npm run dev
 | POST | `/api/library/merge` 🔒 | Fusionne (local ⊕ serveur) |
 
 🔒 = requiert l'en-tête `Authorization: Bearer <token>`.
+Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et disponibilités.
+
+## ✅ Qualité
+
+- **Tests** : `npm test` côté `backend/` (auth + sync via supertest) et `project/` (logique
+  bibliothèque via vitest).
+- **Vérifs** : `npm run lint` · `npm run typecheck` · `npm run build`.
+- **CI** : GitHub Actions lance lint + typecheck + tests + build sur chaque PR
+  (`.github/workflows/ci.yml`).
 
 ## 🧰 Stack
 

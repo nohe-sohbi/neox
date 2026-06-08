@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { MediaItem } from '../../lib/types';
 import { MediaCard, MediaCardSkeleton } from './MediaCard';
@@ -7,9 +7,10 @@ interface MediaRowProps {
   title: string;
   items: MediaItem[];
   loading?: boolean;
+  icon?: ReactNode;
 }
 
-export function MediaRow({ title, items, loading }: MediaRowProps) {
+export function MediaRow({ title, items, loading, icon }: MediaRowProps) {
   const railRef = useRef<HTMLDivElement>(null);
 
   const scrollBy = (dir: 1 | -1) => {
@@ -23,7 +24,10 @@ export function MediaRow({ title, items, loading }: MediaRowProps) {
   return (
     <section className="group/row relative">
       <div className="mb-3 flex items-end justify-between px-1">
-        <h2 className="text-lg font-bold tracking-tight text-white sm:text-xl">{title}</h2>
+        <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight text-white sm:text-xl">
+          {icon}
+          {title}
+        </h2>
         <div className="hidden gap-2 sm:flex">
           <button
             onClick={() => scrollBy(-1)}

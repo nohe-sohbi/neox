@@ -9,6 +9,9 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 const tmdb = require('./tmdb');
 const store = require('./store');
 const auth = require('./auth');
@@ -17,8 +20,17 @@ const { sanitizeLibrary, mergeLibraries } = require('./library');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.set('trust proxy', 1); // honor X-Forwarded-* behind a reverse proxy
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(compression());
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '256kb' }));
+
+// Generous global limiter + a strict one for auth to blunt brute force.
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 600, standardHeaders: true, legacyHeaders: false });
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
+app.use('/api', apiLimiter);
+app.use('/api/auth', authLimiter);
 
 // Tiny request logger — quiet but useful in dev.
 app.use((req, _res, next) => {
@@ -42,6 +54,14 @@ function assertMediaType(value) {
     return value;
 }
 
+// Pulls region + language overrides off any request.
+function localeFrom(req) {
+    return {
+        region: req.query.region ? req.query.region.toString().toUpperCase() : undefined,
+        language: req.query.lang ? req.query.lang.toString() : undefined,
+    };
+}
+
 app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', tmdb: tmdb.isConfigured() ? 'configured' : 'missing-key' });
 });
@@ -49,8 +69,8 @@ app.get('/api/health', (_req, res) => {
 app.get(
     '/api/home',
     route(async (req, res) => {
-        const region = (req.query.region || tmdb.DEFAULT_REGION).toString().toUpperCase();
-        res.json(await tmdb.home(region));
+        const { region, language } = localeFrom(req);
+        res.json(await tmdb.home(region || tmdb.DEFAULT_REGION, { language }));
     }),
 );
 
@@ -59,7 +79,7 @@ app.get(
     route(async (req, res) => {
         const q = (req.query.q || '').toString();
         const page = Math.max(1, Number(req.query.page) || 1);
-        res.json(await tmdb.search(q, page));
+        res.json(await tmdb.search(q, page, localeFrom(req)));
     }),
 );
 
@@ -67,7 +87,7 @@ app.get(
     '/api/genres/:mediaType',
     route(async (req, res) => {
         const mediaType = assertMediaType(req.params.mediaType);
-        res.json({ genres: await tmdb.getGenres(mediaType) });
+        res.json({ genres: await tmdb.getGenres(mediaType, localeFrom(req)) });
     }),
 );
 
@@ -99,6 +119,7 @@ app.get(
                 sort: sort ? sort.toString() : undefined,
                 providers: providerIds,
                 region: region ? region.toString() : undefined,
+                language: req.query.lang ? req.query.lang.toString() : undefined,
                 page,
             }),
         );
@@ -112,7 +133,28 @@ app.get(
             ? req.params.mediaType
             : 'all';
         const window = req.query.window === 'day' ? 'day' : 'week';
-        res.json(await tmdb.trending(mediaType, window));
+        res.json(await tmdb.trending(mediaType, window, localeFrom(req)));
+    }),
+);
+
+app.get(
+    '/api/person/:id',
+    route(async (req, res) => {
+        const id = Number(req.params.id);
+        if (!Number.isInteger(id) || id <= 0) {
+            const err = new Error('Invalid id.');
+            err.status = 400;
+            throw err;
+        }
+        res.json(await tmdb.getPerson(id, localeFrom(req)));
+    }),
+);
+
+app.post(
+    '/api/recommendations',
+    route(async (req, res) => {
+        const seeds = Array.isArray(req.body?.seeds) ? req.body.seeds : [];
+        res.json(await tmdb.recommend(seeds, localeFrom(req)));
     }),
 );
 
@@ -194,8 +236,8 @@ app.get(
             err.status = 400;
             throw err;
         }
-        const region = (req.query.region || tmdb.DEFAULT_REGION).toString().toUpperCase();
-        res.json(await tmdb.details(mediaType, id, region));
+        const { region, language } = localeFrom(req);
+        res.json(await tmdb.details(mediaType, id, region || tmdb.DEFAULT_REGION, { language }));
     }),
 );
 
@@ -213,12 +255,17 @@ app.use((err, _req, res, _next) => {
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`NEOX API running on port ${PORT}`);
-    if (!tmdb.isConfigured()) {
-        console.warn('⚠  TMDB_API_KEY is not set — TMDB requests will return 503 until configured.');
-    }
-    if (auth.usingDefaultSecret) {
-        console.warn('⚠  JWT_SECRET is not set — using an insecure default. Set it in production.');
-    }
-});
+// Only start listening when run directly — tests import `app` via supertest.
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`NEOX API running on port ${PORT}`);
+        if (!tmdb.isConfigured()) {
+            console.warn('⚠  TMDB_API_KEY is not set — TMDB requests will return 503 until configured.');
+        }
+        if (auth.usingDefaultSecret) {
+            console.warn('⚠  JWT_SECRET is not set — using an insecure default. Set it in production.');
+        }
+    });
+}
+
+module.exports = app;

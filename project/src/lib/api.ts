@@ -3,15 +3,50 @@ import type {
   Genre,
   HomePayload,
   LibraryEntry,
+  Locale,
   MediaDetails,
   MediaItem,
   MediaType,
   Paginated,
+  Person,
   Provider,
   User,
 } from './types';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/$/, '');
+
+// Catalogue locale (region + language), initialized from storage so the very
+// first request already uses the user's preference.
+const LOCALE_KEY = 'neox.locale.v1';
+const DEFAULT_LOCALE: Locale = { region: 'FR', language: 'fr-FR' };
+
+function readLocale(): Locale {
+  try {
+    const raw = localStorage.getItem(LOCALE_KEY);
+    return raw ? { ...DEFAULT_LOCALE, ...(JSON.parse(raw) as Partial<Locale>) } : DEFAULT_LOCALE;
+  } catch {
+    return DEFAULT_LOCALE;
+  }
+}
+
+let locale: Locale = readLocale();
+
+export function getLocale() {
+  return locale;
+}
+
+export function setLocale(next: Locale) {
+  locale = next;
+  localStorage.setItem(LOCALE_KEY, JSON.stringify(next));
+}
+
+/** Appends the active region + language to a path's query string. */
+function withLocale(path: string): string {
+  const sep = path.includes('?') ? '&' : '?';
+  return `${path}${sep}region=${encodeURIComponent(locale.region)}&lang=${encodeURIComponent(
+    locale.language,
+  )}`;
+}
 
 export class ApiError extends Error {
   status: number;
@@ -83,18 +118,16 @@ export interface DiscoverOpts {
 }
 
 export const api = {
-  home: (region?: string) =>
-    request<HomePayload>(`/api/home${region ? `?region=${encodeURIComponent(region)}` : ''}`),
+  home: () => request<HomePayload>(withLocale('/api/home')),
 
   search: (query: string, page = 1) =>
-    request<Paginated<MediaItem>>(`/api/search?q=${encodeURIComponent(query)}&page=${page}`),
+    request<Paginated<MediaItem>>(withLocale(`/api/search?q=${encodeURIComponent(query)}&page=${page}`)),
 
-  genres: (mediaType: MediaType) => request<{ genres: Genre[] }>(`/api/genres/${mediaType}`),
+  genres: (mediaType: MediaType) =>
+    request<{ genres: Genre[] }>(withLocale(`/api/genres/${mediaType}`)),
 
-  providers: (mediaType: MediaType, region?: string) =>
-    request<{ providers: Provider[] }>(
-      `/api/providers/${mediaType}${region ? `?region=${encodeURIComponent(region)}` : ''}`,
-    ),
+  providers: (mediaType: MediaType) =>
+    request<{ providers: Provider[] }>(withLocale(`/api/providers/${mediaType}`)),
 
   discover: (mediaType: MediaType, opts: DiscoverOpts = {}) => {
     const params = new URLSearchParams();
@@ -102,15 +135,20 @@ export const api = {
     if (opts.sort) params.set('sort', opts.sort);
     if (opts.page) params.set('page', String(opts.page));
     if (opts.providers?.length) params.set('providers', opts.providers.join(','));
-    if (opts.region) params.set('region', opts.region);
     const qs = params.toString();
-    return request<Paginated<MediaItem>>(`/api/discover/${mediaType}${qs ? `?${qs}` : ''}`);
+    return request<Paginated<MediaItem>>(withLocale(`/api/discover/${mediaType}${qs ? `?${qs}` : ''}`));
   },
 
-  details: (mediaType: MediaType, id: number, region?: string) =>
-    request<MediaDetails>(
-      `/api/${mediaType}/${id}${region ? `?region=${encodeURIComponent(region)}` : ''}`,
-    ),
+  details: (mediaType: MediaType, id: number) =>
+    request<MediaDetails>(withLocale(`/api/${mediaType}/${id}`)),
+
+  person: (id: number) => request<Person>(withLocale(`/api/person/${id}`)),
+
+  recommendations: (seeds: { id: number; mediaType: MediaType }[]) =>
+    request<{ results: MediaItem[] }>(withLocale('/api/recommendations'), {
+      method: 'POST',
+      body: JSON.stringify({ seeds }),
+    }),
 
   // ── Auth ──
   register: (email: string, password: string) =>

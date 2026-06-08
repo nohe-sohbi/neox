@@ -9,13 +9,14 @@ import {
   type ReactNode,
 } from 'react';
 import { api } from '../lib/api';
+import { track } from '../lib/analytics';
+import { entryKey as keyOf, toggleEntry, upsertEntry } from '../lib/library-utils';
 import type { LibraryEntry, LibraryStatus, MediaItem } from '../lib/types';
 import { useAuth } from './AuthContext';
 
 const STORAGE_KEY = 'neox.library.v1';
 
 type ItemRef = Pick<MediaItem, 'id' | 'mediaType'>;
-const keyOf = (item: ItemRef) => `${item.mediaType}:${item.id}`;
 
 function readLocal(): LibraryEntry[] {
   try {
@@ -24,23 +25,6 @@ function readLocal(): LibraryEntry[] {
   } catch {
     return [];
   }
-}
-
-function toEntry(item: MediaItem, patch: Partial<LibraryEntry> = {}): LibraryEntry {
-  const now = Date.now();
-  return {
-    id: item.id,
-    mediaType: item.mediaType,
-    title: item.title,
-    poster: item.poster,
-    year: item.year,
-    rating: item.rating,
-    status: 'want',
-    personalRating: null,
-    addedAt: now,
-    updatedAt: now,
-    ...patch,
-  };
 }
 
 interface LibraryContextValue {
@@ -127,11 +111,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const toggle = useCallback(
     (item: MediaItem) => {
       const exists = entries.some((e) => keyOf(e) === keyOf(item));
-      apply((prev) =>
-        exists
-          ? prev.filter((e) => keyOf(e) !== keyOf(item))
-          : [toEntry(item), ...prev],
-      );
+      apply((prev) => toggleEntry(prev, item));
+      if (!exists) track('Library Add', { mediaType: item.mediaType });
       return !exists;
     },
     [entries, apply],
@@ -139,13 +120,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
 
   const upsert = useCallback(
     (item: MediaItem, patch: Partial<LibraryEntry>) => {
-      apply((prev) => {
-        const idx = prev.findIndex((e) => keyOf(e) === keyOf(item));
-        if (idx === -1) return [toEntry(item, { ...patch, updatedAt: Date.now() }), ...prev];
-        const next = [...prev];
-        next[idx] = { ...next[idx], ...patch, updatedAt: Date.now() };
-        return next;
-      });
+      apply((prev) => upsertEntry(prev, item, patch));
     },
     [apply],
   );

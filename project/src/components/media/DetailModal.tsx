@@ -3,7 +3,7 @@ import { Bookmark, Calendar, Check, Clock, Eye, Play, Star, Trash2, Tv, X } from
 import { api, ApiError } from '../../lib/api';
 import type { MediaDetails, MediaType } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
-import { useDetailTarget, useOpenDetail } from '../../hooks/useDetailRoute';
+import { useDetailTarget, useOpenDetail, useOpenPerson } from '../../hooks/useDetailRoute';
 import { ErrorState, FullSpinner } from '../ui/States';
 import { StarRating } from '../ui/StarRating';
 import { WatchProviders } from './WatchProviders';
@@ -18,6 +18,7 @@ function runtimeLabel(minutes: number | null): string | null {
 export function DetailModal() {
   const { target, close } = useDetailTarget();
   const openDetail = useOpenDetail();
+  const openPerson = useOpenPerson();
   const { statusOf, ratingOf, isSaved, setStatus, setRating, remove } = useLibrary();
 
   const [details, setDetails] = useState<MediaDetails | null>(null);
@@ -257,22 +258,28 @@ export function DetailModal() {
                   </h3>
                   <div className="no-scrollbar flex gap-4 overflow-x-auto pb-2">
                     {details.cast.map((member) => (
-                      <div key={member.id} className="w-20 shrink-0 text-center">
+                      <button
+                        key={member.id}
+                        onClick={() => openPerson(member.id)}
+                        className="group w-20 shrink-0 text-center"
+                      >
                         {member.photo ? (
                           <img
                             src={member.photo}
                             alt={member.name}
                             loading="lazy"
-                            className="mb-1.5 h-20 w-20 rounded-full object-cover ring-1 ring-white/10"
+                            className="mb-1.5 h-20 w-20 rounded-full object-cover ring-1 ring-white/10 transition-all group-hover:ring-brand-violet/50"
                           />
                         ) : (
-                          <div className="mb-1.5 flex h-20 w-20 items-center justify-center rounded-full bg-ink-700 text-lg font-bold text-white/40">
+                          <div className="mb-1.5 flex h-20 w-20 items-center justify-center rounded-full bg-ink-700 text-lg font-bold text-white/40 transition-all group-hover:ring-1 group-hover:ring-brand-violet/50">
                             {member.name.slice(0, 1)}
                           </div>
                         )}
-                        <p className="truncate text-xs font-medium text-white/90">{member.name}</p>
+                        <p className="truncate text-xs font-medium text-white/90 group-hover:text-white">
+                          {member.name}
+                        </p>
                         <p className="truncate text-[11px] text-white/40">{member.character}</p>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>

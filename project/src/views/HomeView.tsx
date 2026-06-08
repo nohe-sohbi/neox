@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, ApiError } from '../lib/api';
 import type { HomePayload } from '../lib/types';
 import { Hero } from '../components/home/Hero';
+import { ForYouRow } from '../components/home/ForYouRow';
 import { MediaRow } from '../components/media/MediaRow';
 import { ErrorState } from '../components/ui/States';
 
@@ -55,6 +56,7 @@ export function HomeView() {
     <div className="animate-fade-in">
       <Hero items={data.hero} />
       <div className="container mx-auto space-y-10 px-6 py-10">
+        <ForYouRow />
         {data.rows.map((row) => (
           <MediaRow key={row.id} title={row.title} items={row.items} />
         ))}

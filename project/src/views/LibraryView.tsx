@@ -6,13 +6,14 @@ import { useAuth } from '../context/AuthContext';
 import { useLibrary } from '../context/LibraryContext';
 import { MediaGrid } from '../components/media/MediaGrid';
 import { EmptyState } from '../components/ui/States';
+import { useT } from '../lib/i18n';
 
 type Filter = 'all' | LibraryStatus;
 
-const FILTERS: { id: Filter; label: string }[] = [
-  { id: 'all', label: 'Tout' },
-  { id: 'want', label: 'À voir' },
-  { id: 'watched', label: 'Vu' },
+const FILTERS: { id: Filter; key: string }[] = [
+  { id: 'all', key: 'filter.all' },
+  { id: 'want', key: 'filter.want' },
+  { id: 'watched', key: 'filter.watched' },
 ];
 
 // LibraryEntry carries everything MediaCard needs; pad the rest for the type.
@@ -33,6 +34,7 @@ function toMediaItem(entry: LibraryEntry): MediaItem {
 }
 
 export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
+  const { t, tn } = useT();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { entries, clear, syncing } = useLibrary();
@@ -54,13 +56,13 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-3 text-3xl font-extrabold sm:text-4xl">
-            Ma liste
+            {t('library.title')}
             {syncing && <Loader2 className="h-5 w-5 animate-spin text-brand-cyan" />}
           </h1>
           <p className="mt-1 text-white/50">
             {entries.length > 0
-              ? `${entries.length} titre${entries.length > 1 ? 's' : ''} dans ta collection.`
-              : 'Ta sélection perso, sauvegardée et synchronisée.'}
+              ? tn('library.count', entries.length)
+              : t('library.subtitle_empty')}
           </p>
         </div>
         {entries.length > 0 && (
@@ -69,7 +71,7 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
             className="inline-flex items-center gap-2 text-sm text-white/50 transition-colors hover:text-red-400"
           >
             <Trash2 className="h-4 w-4" />
-            Tout effacer
+            {t('library.clear_all')}
           </button>
         )}
       </div>
@@ -82,10 +84,8 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
         >
           <Cloud className="h-6 w-6 shrink-0 text-brand-cyan" />
           <div>
-            <p className="font-semibold text-white">Sauvegarde ta liste dans le cloud</p>
-            <p className="text-sm text-white/60">
-              Crée un compte gratuit pour retrouver ta collection sur tous tes appareils.
-            </p>
+            <p className="font-semibold text-white">{t('library.sync_cta_title')}</p>
+            <p className="text-sm text-white/60">{t('library.sync_cta_desc')}</p>
           </div>
         </button>
       )}
@@ -93,11 +93,11 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
       {entries.length === 0 ? (
         <EmptyState
           icon={<Bookmark className="h-12 w-12" />}
-          title="Ta liste est vide"
-          description="Repère un film ou une série qui te tente et clique sur le marque-page. On garde tout au chaud ici."
+          title={t('library.empty_title')}
+          description={t('library.empty_desc')}
           action={
             <button onClick={() => navigate('/movies')} className="btn-primary">
-              Explorer le catalogue
+              {t('library.explore')}
             </button>
           }
         />
@@ -114,7 +114,7 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
                     : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
                 }`}
               >
-                {f.label}
+                {t(f.key)}
                 <span className="ml-1.5 text-white/50">{counts[f.id]}</span>
               </button>
             ))}
@@ -122,11 +122,15 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
 
           {filtered.length === 0 ? (
             <EmptyState
-              title={filter === 'want' ? 'Rien à voir ici… encore' : 'Aucun titre vu'}
+              title={
+                filter === 'want'
+                  ? t('library.want_empty_title')
+                  : t('library.watched_empty_title')
+              }
               description={
                 filter === 'want'
-                  ? 'Ajoute des titres à voir depuis leur fiche.'
-                  : 'Marque des titres comme « vus » pour les retrouver ici.'
+                  ? t('library.want_empty_desc')
+                  : t('library.watched_empty_desc')
               }
             />
           ) : (

@@ -1,0 +1,798 @@
+/**
+ * UI string catalogs. Keys are flat and dotted by surface (nav.*, search.*…).
+ * `{var}` placeholders are filled by `interpolate`. Pluralized strings carry
+ * `_one` / `_other` suffixes; the caller picks based on count.
+ *
+ * The catalogue itself (titles, synopses…) is localized by TMDB — these are
+ * only the app's own chrome.
+ */
+export type Dict = Record<string, string>;
+
+const fr: Dict = {
+  // Navbar
+  'nav.home': 'Accueil',
+  'nav.movies': 'Films',
+  'nav.tv': 'Séries',
+  'nav.search_placeholder': 'Rechercher…',
+  'nav.clear_search': 'Effacer la recherche',
+  'nav.library': 'Ma liste',
+  'nav.account': 'Mon compte',
+  'nav.logged_as': 'Connecté en tant que',
+  'nav.logout': 'Se déconnecter',
+  'nav.login': 'Connexion',
+  'locale.title': 'Région & langue',
+
+  // Footer
+  'footer.tagline': 'ton radar cinéma & séries.',
+  'footer.data_by': 'Données & disponibilités fournies par',
+  'footer.data_suffix': "& JustWatch. NEOX ne stocke ni n’héberge aucun contenu.",
+
+  // Shared
+  'common.close': 'Fermer',
+  'common.load_error': 'Chargement impossible.',
+  'api.network': 'Impossible de joindre le serveur. Vérifie ta connexion.',
+  'api.server': 'Erreur serveur ({status})',
+  'error.title': 'Aïe, ça a coincé',
+  'error.retry': 'Réessayer',
+
+  // Home
+  'home.row.now_playing': 'À l’affiche en ce moment',
+  'home.row.trending_tv': 'Séries qui cartonnent',
+  'home.row.popular_movies': 'Les films du moment',
+  'home.row.top_rated': 'Acclamés par la critique',
+  'home.row.popular_tv': 'Séries populaires',
+  'home.for_you': 'Pour toi',
+  'home.error_no_key':
+    'Le serveur n’a pas de clé TMDB configurée. Ajoute TMDB_API_KEY côté backend.',
+
+  // Search view
+  'search.results_for': 'Résultats pour',
+  'search.title': 'Recherche',
+  'search.count_one': '{count} résultat',
+  'search.count_other': '{count} résultats',
+  'search.empty_title': 'Qu’as-tu envie de regarder ce soir ?',
+  'search.empty_desc':
+    'Tape le titre d’un film ou d’une série, on te dit instantanément où le voir légalement.',
+  'search.none_title': 'Aucun résultat',
+  'search.none_desc':
+    'Rien trouvé pour « {query} ». Vérifie l’orthographe ou essaie un autre titre.',
+
+  // Discover
+  'discover.movies_title': 'Films',
+  'discover.tv_title': 'Séries',
+  'discover.movies_sub':
+    'Du blockbuster au film culte — explore, filtre, trouve ta prochaine séance.',
+  'discover.tv_sub': 'Des pépites à binge-watcher, triées sur le volet.',
+  'sort.popularity': 'Populaires',
+  'sort.vote_movie': 'Les mieux notés',
+  'sort.vote_tv': 'Les mieux notées',
+  'sort.release_movie': 'Récents',
+  'sort.release_tv': 'Récentes',
+  'sort.revenue': 'Box-office',
+  'discover.my_platforms': 'Mes plateformes',
+  'discover.platforms_hint': 'Affiche uniquement ce qui est dispo sur tes services',
+  'discover.reset': 'Réinitialiser',
+  'discover.all_genres': 'Tous',
+  'discover.empty_title': 'Rien à afficher',
+  'discover.empty_platforms':
+    'Aucun titre ne correspond à tes plateformes avec ce filtre. Élargis ta sélection.',
+  'discover.empty_default': 'Essaie un autre filtre.',
+
+  // Library
+  'library.title': 'Ma liste',
+  'library.count_one': '{count} titre dans ta collection.',
+  'library.count_other': '{count} titres dans ta collection.',
+  'library.subtitle_empty': 'Ta sélection perso, sauvegardée et synchronisée.',
+  'library.clear_all': 'Tout effacer',
+  'library.sync_cta_title': 'Sauvegarde ta liste dans le cloud',
+  'library.sync_cta_desc':
+    'Crée un compte gratuit pour retrouver ta collection sur tous tes appareils.',
+  'library.empty_title': 'Ta liste est vide',
+  'library.empty_desc':
+    'Repère un film ou une série qui te tente et clique sur le marque-page. On garde tout au chaud ici.',
+  'library.explore': 'Explorer le catalogue',
+  'filter.all': 'Tout',
+  'filter.want': 'À voir',
+  'filter.watched': 'Vu',
+  'library.want_empty_title': 'Rien à voir ici… encore',
+  'library.watched_empty_title': 'Aucun titre vu',
+  'library.want_empty_desc': 'Ajoute des titres à voir depuis leur fiche.',
+  'library.watched_empty_desc': 'Marque des titres comme « vus » pour les retrouver ici.',
+
+  // Auth
+  'auth.welcome_back': 'Content de te revoir',
+  'auth.create_account': 'Crée ton compte NEOX',
+  'auth.login_sub': 'Connecte-toi pour retrouver ta liste sur tous tes appareils.',
+  'auth.register_sub': 'Synchronise ta watchlist et tes notes partout, gratuitement.',
+  'auth.password_min': '8 caractères minimum',
+  'auth.password_placeholder': 'Mot de passe',
+  'auth.login_btn': 'Se connecter',
+  'auth.register_btn': 'Créer mon compte',
+  'auth.no_account': 'Pas encore de compte ?',
+  'auth.have_account': 'Déjà inscrit ?',
+  'auth.signup_link': 'Inscris-toi',
+  'auth.login_link': 'Connecte-toi',
+  'auth.generic_error': 'Une erreur est survenue.',
+
+  // Detail modal
+  'detail.loading': 'On récupère les infos…',
+  'detail.trailer': 'Bande-annonce',
+  'detail.play_trailer': 'Lire la bande-annonce',
+  'detail.mark_watched': 'Marquer comme vu',
+  'detail.remove': 'Retirer de ma liste',
+  'detail.your_rating': 'Ta note',
+  'detail.synopsis': 'Synopsis',
+  'detail.where_watch': 'Où regarder (légalement)',
+  'detail.cast': 'Casting',
+  'detail.similar': 'Dans le même esprit',
+  'detail.seasons_one': '{count} saison',
+  'detail.seasons_other': '{count} saisons',
+
+  // Hero
+  'hero.series': 'Série',
+  'hero.movie': 'Film',
+  'hero.no_synopsis': 'Synopsis bientôt disponible.',
+  'hero.details': 'Voir les détails',
+  'hero.in_list': 'Dans ma liste',
+  'hero.add_list': 'Ma liste',
+  'hero.goto_slide': 'Aller à la diapositive {n}',
+
+  // Media card
+  'card.add': 'Ajouter à ma liste',
+  'card.remove': 'Retirer de ma liste',
+
+  // Watch providers
+  'providers.none':
+    'Aucune offre légale détectée dans ta région pour le moment. Reviens bientôt — le catalogue évolue chaque semaine.',
+  'providers.streaming': 'En streaming',
+  'providers.rent': 'En location',
+  'providers.buy': 'À l’achat',
+  'providers.justwatch': 'Voir toutes les offres sur JustWatch',
+  'providers.disclaimer': 'Disponibilité fournie par JustWatch via TMDB.',
+
+  // Media row
+  'row.prev': 'Précédent',
+  'row.next': 'Suivant',
+
+  // Person modal
+  'person.loading': 'On récupère la filmographie…',
+  'person.years': '{count} ans',
+  'person.known_for': 'Connu·e pour',
+
+  // Star rating
+  'rating.rate': 'Noter {n} sur 10',
+  'rating.clear': 'Effacer la note',
+
+  // Command palette
+  'cmd.placeholder': 'Rechercher un film, une série, une page…',
+  'cmd.recent': 'Recherches récentes',
+  'cmd.clear_recent': 'Effacer',
+  'cmd.nav': 'Aller à',
+  'cmd.results': 'Résultats',
+  'cmd.searching': 'Recherche…',
+  'cmd.no_results': 'Aucun résultat pour « {query} ».',
+  'cmd.hint_select': 'sélectionner',
+  'cmd.hint_nav': 'naviguer',
+  'cmd.hint_close': 'fermer',
+  'cmd.open': 'Ouvrir la recherche rapide',
+};
+
+const en: Dict = {
+  'nav.home': 'Home',
+  'nav.movies': 'Movies',
+  'nav.tv': 'TV Shows',
+  'nav.search_placeholder': 'Search…',
+  'nav.clear_search': 'Clear search',
+  'nav.library': 'My list',
+  'nav.account': 'My account',
+  'nav.logged_as': 'Signed in as',
+  'nav.logout': 'Sign out',
+  'nav.login': 'Sign in',
+  'locale.title': 'Region & language',
+
+  'footer.tagline': 'your movie & TV radar.',
+  'footer.data_by': 'Data & availability provided by',
+  'footer.data_suffix': '& JustWatch. NEOX neither stores nor hosts any content.',
+
+  'common.close': 'Close',
+  'common.load_error': 'Something went wrong while loading.',
+  'api.network': 'Couldn’t reach the server. Check your connection.',
+  'api.server': 'Server error ({status})',
+  'error.title': 'Oops, that broke',
+  'error.retry': 'Try again',
+
+  'home.row.now_playing': 'In theaters now',
+  'home.row.trending_tv': 'Trending shows',
+  'home.row.popular_movies': 'Popular movies',
+  'home.row.top_rated': 'Critically acclaimed',
+  'home.row.popular_tv': 'Popular shows',
+  'home.for_you': 'For you',
+  'home.error_no_key':
+    'The server has no TMDB key configured. Add TMDB_API_KEY on the backend.',
+
+  'search.results_for': 'Results for',
+  'search.title': 'Search',
+  'search.count_one': '{count} result',
+  'search.count_other': '{count} results',
+  'search.empty_title': 'What do you feel like watching tonight?',
+  'search.empty_desc':
+    'Type a movie or show title — we’ll tell you instantly where to watch it legally.',
+  'search.none_title': 'No results',
+  'search.none_desc':
+    'Nothing found for “{query}”. Check the spelling or try another title.',
+
+  'discover.movies_title': 'Movies',
+  'discover.tv_title': 'TV Shows',
+  'discover.movies_sub':
+    'From blockbusters to cult classics — explore, filter, find your next session.',
+  'discover.tv_sub': 'Binge-worthy gems, hand-picked for you.',
+  'sort.popularity': 'Popular',
+  'sort.vote_movie': 'Top rated',
+  'sort.vote_tv': 'Top rated',
+  'sort.release_movie': 'Recent',
+  'sort.release_tv': 'Recent',
+  'sort.revenue': 'Box office',
+  'discover.my_platforms': 'My platforms',
+  'discover.platforms_hint': 'Only show what’s available on your services',
+  'discover.reset': 'Reset',
+  'discover.all_genres': 'All',
+  'discover.empty_title': 'Nothing to show',
+  'discover.empty_platforms':
+    'No title matches your platforms with this filter. Broaden your selection.',
+  'discover.empty_default': 'Try another filter.',
+
+  'library.title': 'My list',
+  'library.count_one': '{count} title in your collection.',
+  'library.count_other': '{count} titles in your collection.',
+  'library.subtitle_empty': 'Your personal picks, saved and synced.',
+  'library.clear_all': 'Clear all',
+  'library.sync_cta_title': 'Back up your list to the cloud',
+  'library.sync_cta_desc':
+    'Create a free account to find your collection on all your devices.',
+  'library.empty_title': 'Your list is empty',
+  'library.empty_desc':
+    'Spot a movie or show you fancy and tap the bookmark. We’ll keep it safe right here.',
+  'library.explore': 'Browse the catalog',
+  'filter.all': 'All',
+  'filter.want': 'To watch',
+  'filter.watched': 'Watched',
+  'library.want_empty_title': 'Nothing to watch here… yet',
+  'library.watched_empty_title': 'Nothing watched yet',
+  'library.want_empty_desc': 'Add titles to watch from their page.',
+  'library.watched_empty_desc': 'Mark titles as “watched” to find them here.',
+
+  'auth.welcome_back': 'Welcome back',
+  'auth.create_account': 'Create your NEOX account',
+  'auth.login_sub': 'Sign in to find your list on all your devices.',
+  'auth.register_sub': 'Sync your watchlist and ratings everywhere, for free.',
+  'auth.password_min': '8 characters minimum',
+  'auth.password_placeholder': 'Password',
+  'auth.login_btn': 'Sign in',
+  'auth.register_btn': 'Create my account',
+  'auth.no_account': 'No account yet?',
+  'auth.have_account': 'Already registered?',
+  'auth.signup_link': 'Sign up',
+  'auth.login_link': 'Sign in',
+  'auth.generic_error': 'Something went wrong.',
+
+  'detail.loading': 'Fetching the details…',
+  'detail.trailer': 'Trailer',
+  'detail.play_trailer': 'Play trailer',
+  'detail.mark_watched': 'Mark as watched',
+  'detail.remove': 'Remove from my list',
+  'detail.your_rating': 'Your rating',
+  'detail.synopsis': 'Synopsis',
+  'detail.where_watch': 'Where to watch (legally)',
+  'detail.cast': 'Cast',
+  'detail.similar': 'More like this',
+  'detail.seasons_one': '{count} season',
+  'detail.seasons_other': '{count} seasons',
+
+  'hero.series': 'Show',
+  'hero.movie': 'Movie',
+  'hero.no_synopsis': 'Synopsis coming soon.',
+  'hero.details': 'View details',
+  'hero.in_list': 'In my list',
+  'hero.add_list': 'My list',
+  'hero.goto_slide': 'Go to slide {n}',
+
+  'card.add': 'Add to my list',
+  'card.remove': 'Remove from my list',
+
+  'providers.none':
+    'No legal offer detected in your region yet. Check back soon — the catalog changes every week.',
+  'providers.streaming': 'Streaming',
+  'providers.rent': 'Rent',
+  'providers.buy': 'Buy',
+  'providers.justwatch': 'See all offers on JustWatch',
+  'providers.disclaimer': 'Availability provided by JustWatch via TMDB.',
+
+  'row.prev': 'Previous',
+  'row.next': 'Next',
+
+  'person.loading': 'Fetching the filmography…',
+  'person.years': '{count} years old',
+  'person.known_for': 'Known for',
+
+  'rating.rate': 'Rate {n} out of 10',
+  'rating.clear': 'Clear rating',
+
+  'cmd.placeholder': 'Search a movie, a show, a page…',
+  'cmd.recent': 'Recent searches',
+  'cmd.clear_recent': 'Clear',
+  'cmd.nav': 'Jump to',
+  'cmd.results': 'Results',
+  'cmd.searching': 'Searching…',
+  'cmd.no_results': 'No results for “{query}”.',
+  'cmd.hint_select': 'select',
+  'cmd.hint_nav': 'navigate',
+  'cmd.hint_close': 'close',
+  'cmd.open': 'Open quick search',
+};
+
+const es: Dict = {
+  'nav.home': 'Inicio',
+  'nav.movies': 'Películas',
+  'nav.tv': 'Series',
+  'nav.search_placeholder': 'Buscar…',
+  'nav.clear_search': 'Borrar búsqueda',
+  'nav.library': 'Mi lista',
+  'nav.account': 'Mi cuenta',
+  'nav.logged_as': 'Conectado como',
+  'nav.logout': 'Cerrar sesión',
+  'nav.login': 'Iniciar sesión',
+  'locale.title': 'Región e idioma',
+
+  'footer.tagline': 'tu radar de cine y series.',
+  'footer.data_by': 'Datos y disponibilidad proporcionados por',
+  'footer.data_suffix': '& JustWatch. NEOX no almacena ni aloja ningún contenido.',
+
+  'common.close': 'Cerrar',
+  'common.load_error': 'No se pudo cargar.',
+  'api.network': 'No se pudo conectar con el servidor. Revisa tu conexión.',
+  'api.server': 'Error del servidor ({status})',
+  'error.title': 'Vaya, algo falló',
+  'error.retry': 'Reintentar',
+
+  'home.row.now_playing': 'En cartelera ahora',
+  'home.row.trending_tv': 'Series en tendencia',
+  'home.row.popular_movies': 'Películas populares',
+  'home.row.top_rated': 'Aclamadas por la crítica',
+  'home.row.popular_tv': 'Series populares',
+  'home.for_you': 'Para ti',
+  'home.error_no_key':
+    'El servidor no tiene una clave TMDB configurada. Añade TMDB_API_KEY en el backend.',
+
+  'search.results_for': 'Resultados para',
+  'search.title': 'Buscar',
+  'search.count_one': '{count} resultado',
+  'search.count_other': '{count} resultados',
+  'search.empty_title': '¿Qué te apetece ver esta noche?',
+  'search.empty_desc':
+    'Escribe el título de una película o serie y te decimos al instante dónde verla legalmente.',
+  'search.none_title': 'Sin resultados',
+  'search.none_desc':
+    'No se encontró nada para «{query}». Revisa la ortografía o prueba otro título.',
+
+  'discover.movies_title': 'Películas',
+  'discover.tv_title': 'Series',
+  'discover.movies_sub':
+    'Del taquillazo al clásico de culto: explora, filtra y encuentra tu próxima sesión.',
+  'discover.tv_sub': 'Joyas para maratonear, seleccionadas con mimo.',
+  'sort.popularity': 'Populares',
+  'sort.vote_movie': 'Mejor valoradas',
+  'sort.vote_tv': 'Mejor valoradas',
+  'sort.release_movie': 'Recientes',
+  'sort.release_tv': 'Recientes',
+  'sort.revenue': 'Taquilla',
+  'discover.my_platforms': 'Mis plataformas',
+  'discover.platforms_hint': 'Muestra solo lo disponible en tus servicios',
+  'discover.reset': 'Restablecer',
+  'discover.all_genres': 'Todos',
+  'discover.empty_title': 'Nada que mostrar',
+  'discover.empty_platforms':
+    'Ningún título coincide con tus plataformas con este filtro. Amplía tu selección.',
+  'discover.empty_default': 'Prueba otro filtro.',
+
+  'library.title': 'Mi lista',
+  'library.count_one': '{count} título en tu colección.',
+  'library.count_other': '{count} títulos en tu colección.',
+  'library.subtitle_empty': 'Tu selección personal, guardada y sincronizada.',
+  'library.clear_all': 'Borrar todo',
+  'library.sync_cta_title': 'Guarda tu lista en la nube',
+  'library.sync_cta_desc':
+    'Crea una cuenta gratis para recuperar tu colección en todos tus dispositivos.',
+  'library.empty_title': 'Tu lista está vacía',
+  'library.empty_desc':
+    'Encuentra una película o serie que te atraiga y toca el marcador. Lo guardamos todo aquí.',
+  'library.explore': 'Explorar el catálogo',
+  'filter.all': 'Todo',
+  'filter.want': 'Por ver',
+  'filter.watched': 'Vistas',
+  'library.want_empty_title': 'Nada por ver aún',
+  'library.watched_empty_title': 'Ningún título visto',
+  'library.want_empty_desc': 'Añade títulos por ver desde su ficha.',
+  'library.watched_empty_desc': 'Marca títulos como «vistos» para encontrarlos aquí.',
+
+  'auth.welcome_back': 'Qué bueno verte de nuevo',
+  'auth.create_account': 'Crea tu cuenta NEOX',
+  'auth.login_sub': 'Inicia sesión para recuperar tu lista en todos tus dispositivos.',
+  'auth.register_sub': 'Sincroniza tu lista y tus valoraciones en todas partes, gratis.',
+  'auth.password_min': '8 caracteres mínimo',
+  'auth.password_placeholder': 'Contraseña',
+  'auth.login_btn': 'Iniciar sesión',
+  'auth.register_btn': 'Crear mi cuenta',
+  'auth.no_account': '¿Aún no tienes cuenta?',
+  'auth.have_account': '¿Ya estás registrado?',
+  'auth.signup_link': 'Regístrate',
+  'auth.login_link': 'Inicia sesión',
+  'auth.generic_error': 'Ha ocurrido un error.',
+
+  'detail.loading': 'Obteniendo la información…',
+  'detail.trailer': 'Tráiler',
+  'detail.play_trailer': 'Reproducir tráiler',
+  'detail.mark_watched': 'Marcar como vista',
+  'detail.remove': 'Quitar de mi lista',
+  'detail.your_rating': 'Tu valoración',
+  'detail.synopsis': 'Sinopsis',
+  'detail.where_watch': 'Dónde ver (legalmente)',
+  'detail.cast': 'Reparto',
+  'detail.similar': 'Más como esto',
+  'detail.seasons_one': '{count} temporada',
+  'detail.seasons_other': '{count} temporadas',
+
+  'hero.series': 'Serie',
+  'hero.movie': 'Película',
+  'hero.no_synopsis': 'Sinopsis disponible pronto.',
+  'hero.details': 'Ver detalles',
+  'hero.in_list': 'En mi lista',
+  'hero.add_list': 'Mi lista',
+  'hero.goto_slide': 'Ir a la diapositiva {n}',
+
+  'card.add': 'Añadir a mi lista',
+  'card.remove': 'Quitar de mi lista',
+
+  'providers.none':
+    'No se detectó ninguna oferta legal en tu región por ahora. Vuelve pronto: el catálogo cambia cada semana.',
+  'providers.streaming': 'En streaming',
+  'providers.rent': 'En alquiler',
+  'providers.buy': 'En compra',
+  'providers.justwatch': 'Ver todas las ofertas en JustWatch',
+  'providers.disclaimer': 'Disponibilidad proporcionada por JustWatch vía TMDB.',
+
+  'row.prev': 'Anterior',
+  'row.next': 'Siguiente',
+
+  'person.loading': 'Obteniendo la filmografía…',
+  'person.years': '{count} años',
+  'person.known_for': 'Conocido·a por',
+
+  'rating.rate': 'Valorar {n} sobre 10',
+  'rating.clear': 'Borrar valoración',
+
+  'cmd.placeholder': 'Busca una película, una serie, una página…',
+  'cmd.recent': 'Búsquedas recientes',
+  'cmd.clear_recent': 'Borrar',
+  'cmd.nav': 'Ir a',
+  'cmd.results': 'Resultados',
+  'cmd.searching': 'Buscando…',
+  'cmd.no_results': 'Sin resultados para «{query}».',
+  'cmd.hint_select': 'seleccionar',
+  'cmd.hint_nav': 'navegar',
+  'cmd.hint_close': 'cerrar',
+  'cmd.open': 'Abrir búsqueda rápida',
+};
+
+const de: Dict = {
+  'nav.home': 'Start',
+  'nav.movies': 'Filme',
+  'nav.tv': 'Serien',
+  'nav.search_placeholder': 'Suchen…',
+  'nav.clear_search': 'Suche löschen',
+  'nav.library': 'Meine Liste',
+  'nav.account': 'Mein Konto',
+  'nav.logged_as': 'Angemeldet als',
+  'nav.logout': 'Abmelden',
+  'nav.login': 'Anmelden',
+  'locale.title': 'Region & Sprache',
+
+  'footer.tagline': 'dein Film- & Serienradar.',
+  'footer.data_by': 'Daten & Verfügbarkeit bereitgestellt von',
+  'footer.data_suffix': '& JustWatch. NEOX speichert und hostet keine Inhalte.',
+
+  'common.close': 'Schließen',
+  'common.load_error': 'Laden fehlgeschlagen.',
+  'api.network': 'Server nicht erreichbar. Prüfe deine Verbindung.',
+  'api.server': 'Serverfehler ({status})',
+  'error.title': 'Hoppla, da ging was schief',
+  'error.retry': 'Erneut versuchen',
+
+  'home.row.now_playing': 'Jetzt im Kino',
+  'home.row.trending_tv': 'Angesagte Serien',
+  'home.row.popular_movies': 'Beliebte Filme',
+  'home.row.top_rated': 'Von der Kritik gefeiert',
+  'home.row.popular_tv': 'Beliebte Serien',
+  'home.for_you': 'Für dich',
+  'home.error_no_key':
+    'Der Server hat keinen TMDB-Schlüssel konfiguriert. Füge TMDB_API_KEY im Backend hinzu.',
+
+  'search.results_for': 'Ergebnisse für',
+  'search.title': 'Suche',
+  'search.count_one': '{count} Ergebnis',
+  'search.count_other': '{count} Ergebnisse',
+  'search.empty_title': 'Worauf hast du heute Abend Lust?',
+  'search.empty_desc':
+    'Tippe den Titel eines Films oder einer Serie — wir sagen dir sofort, wo du ihn legal schauen kannst.',
+  'search.none_title': 'Keine Ergebnisse',
+  'search.none_desc':
+    'Nichts gefunden für „{query}“. Prüfe die Schreibweise oder probiere einen anderen Titel.',
+
+  'discover.movies_title': 'Filme',
+  'discover.tv_title': 'Serien',
+  'discover.movies_sub':
+    'Vom Blockbuster bis zum Kultfilm — entdecken, filtern, nächsten Film finden.',
+  'discover.tv_sub': 'Binge-würdige Perlen, handverlesen für dich.',
+  'sort.popularity': 'Beliebt',
+  'sort.vote_movie': 'Bestbewertet',
+  'sort.vote_tv': 'Bestbewertet',
+  'sort.release_movie': 'Neu',
+  'sort.release_tv': 'Neu',
+  'sort.revenue': 'Einspielergebnis',
+  'discover.my_platforms': 'Meine Plattformen',
+  'discover.platforms_hint': 'Nur zeigen, was auf deinen Diensten verfügbar ist',
+  'discover.reset': 'Zurücksetzen',
+  'discover.all_genres': 'Alle',
+  'discover.empty_title': 'Nichts anzuzeigen',
+  'discover.empty_platforms':
+    'Kein Titel passt mit diesem Filter zu deinen Plattformen. Erweitere deine Auswahl.',
+  'discover.empty_default': 'Probiere einen anderen Filter.',
+
+  'library.title': 'Meine Liste',
+  'library.count_one': '{count} Titel in deiner Sammlung.',
+  'library.count_other': '{count} Titel in deiner Sammlung.',
+  'library.subtitle_empty': 'Deine persönliche Auswahl, gespeichert und synchronisiert.',
+  'library.clear_all': 'Alles löschen',
+  'library.sync_cta_title': 'Sichere deine Liste in der Cloud',
+  'library.sync_cta_desc':
+    'Erstelle ein kostenloses Konto, um deine Sammlung auf allen Geräten wiederzufinden.',
+  'library.empty_title': 'Deine Liste ist leer',
+  'library.empty_desc':
+    'Finde einen Film oder eine Serie und tippe auf das Lesezeichen. Wir bewahren alles hier auf.',
+  'library.explore': 'Katalog durchstöbern',
+  'filter.all': 'Alle',
+  'filter.want': 'Vormerken',
+  'filter.watched': 'Gesehen',
+  'library.want_empty_title': 'Noch nichts zum Anschauen',
+  'library.watched_empty_title': 'Noch nichts gesehen',
+  'library.want_empty_desc': 'Füge Titel von ihrer Seite zum Anschauen hinzu.',
+  'library.watched_empty_desc': 'Markiere Titel als „gesehen“, um sie hier zu finden.',
+
+  'auth.welcome_back': 'Schön, dich wiederzusehen',
+  'auth.create_account': 'Erstelle dein NEOX-Konto',
+  'auth.login_sub': 'Melde dich an, um deine Liste auf allen Geräten zu finden.',
+  'auth.register_sub': 'Synchronisiere deine Watchlist und Bewertungen überall, kostenlos.',
+  'auth.password_min': 'Mindestens 8 Zeichen',
+  'auth.password_placeholder': 'Passwort',
+  'auth.login_btn': 'Anmelden',
+  'auth.register_btn': 'Konto erstellen',
+  'auth.no_account': 'Noch kein Konto?',
+  'auth.have_account': 'Schon registriert?',
+  'auth.signup_link': 'Registrieren',
+  'auth.login_link': 'Anmelden',
+  'auth.generic_error': 'Ein Fehler ist aufgetreten.',
+
+  'detail.loading': 'Infos werden geladen…',
+  'detail.trailer': 'Trailer',
+  'detail.play_trailer': 'Trailer abspielen',
+  'detail.mark_watched': 'Als gesehen markieren',
+  'detail.remove': 'Aus meiner Liste entfernen',
+  'detail.your_rating': 'Deine Bewertung',
+  'detail.synopsis': 'Handlung',
+  'detail.where_watch': 'Wo ansehen (legal)',
+  'detail.cast': 'Besetzung',
+  'detail.similar': 'Mehr in dieser Art',
+  'detail.seasons_one': '{count} Staffel',
+  'detail.seasons_other': '{count} Staffeln',
+
+  'hero.series': 'Serie',
+  'hero.movie': 'Film',
+  'hero.no_synopsis': 'Handlung bald verfügbar.',
+  'hero.details': 'Details ansehen',
+  'hero.in_list': 'In meiner Liste',
+  'hero.add_list': 'Meine Liste',
+  'hero.goto_slide': 'Zu Folie {n} springen',
+
+  'card.add': 'Zu meiner Liste hinzufügen',
+  'card.remove': 'Aus meiner Liste entfernen',
+
+  'providers.none':
+    'Derzeit kein legales Angebot in deiner Region gefunden. Schau bald wieder vorbei — der Katalog ändert sich jede Woche.',
+  'providers.streaming': 'Im Streaming',
+  'providers.rent': 'Zum Leihen',
+  'providers.buy': 'Zum Kaufen',
+  'providers.justwatch': 'Alle Angebote auf JustWatch ansehen',
+  'providers.disclaimer': 'Verfügbarkeit bereitgestellt von JustWatch über TMDB.',
+
+  'row.prev': 'Zurück',
+  'row.next': 'Weiter',
+
+  'person.loading': 'Filmografie wird geladen…',
+  'person.years': '{count} Jahre',
+  'person.known_for': 'Bekannt für',
+
+  'rating.rate': '{n} von 10 bewerten',
+  'rating.clear': 'Bewertung löschen',
+
+  'cmd.placeholder': 'Film, Serie oder Seite suchen…',
+  'cmd.recent': 'Letzte Suchen',
+  'cmd.clear_recent': 'Löschen',
+  'cmd.nav': 'Springe zu',
+  'cmd.results': 'Ergebnisse',
+  'cmd.searching': 'Suche…',
+  'cmd.no_results': 'Keine Ergebnisse für „{query}“.',
+  'cmd.hint_select': 'auswählen',
+  'cmd.hint_nav': 'navigieren',
+  'cmd.hint_close': 'schließen',
+  'cmd.open': 'Schnellsuche öffnen',
+};
+
+const it: Dict = {
+  'nav.home': 'Home',
+  'nav.movies': 'Film',
+  'nav.tv': 'Serie',
+  'nav.search_placeholder': 'Cerca…',
+  'nav.clear_search': 'Cancella ricerca',
+  'nav.library': 'La mia lista',
+  'nav.account': 'Il mio account',
+  'nav.logged_as': 'Connesso come',
+  'nav.logout': 'Esci',
+  'nav.login': 'Accedi',
+  'locale.title': 'Regione e lingua',
+
+  'footer.tagline': 'il tuo radar di film e serie.',
+  'footer.data_by': 'Dati e disponibilità forniti da',
+  'footer.data_suffix': '& JustWatch. NEOX non memorizza né ospita alcun contenuto.',
+
+  'common.close': 'Chiudi',
+  'common.load_error': 'Caricamento non riuscito.',
+  'api.network': 'Impossibile raggiungere il server. Controlla la connessione.',
+  'api.server': 'Errore del server ({status})',
+  'error.title': 'Ops, qualcosa è andato storto',
+  'error.retry': 'Riprova',
+
+  'home.row.now_playing': 'Ora al cinema',
+  'home.row.trending_tv': 'Serie del momento',
+  'home.row.popular_movies': 'Film popolari',
+  'home.row.top_rated': 'Acclamati dalla critica',
+  'home.row.popular_tv': 'Serie popolari',
+  'home.for_you': 'Per te',
+  'home.error_no_key':
+    'Il server non ha una chiave TMDB configurata. Aggiungi TMDB_API_KEY nel backend.',
+
+  'search.results_for': 'Risultati per',
+  'search.title': 'Cerca',
+  'search.count_one': '{count} risultato',
+  'search.count_other': '{count} risultati',
+  'search.empty_title': 'Cosa hai voglia di guardare stasera?',
+  'search.empty_desc':
+    'Digita il titolo di un film o di una serie: ti diciamo subito dove vederlo legalmente.',
+  'search.none_title': 'Nessun risultato',
+  'search.none_desc':
+    'Niente trovato per «{query}». Controlla l’ortografia o prova un altro titolo.',
+
+  'discover.movies_title': 'Film',
+  'discover.tv_title': 'Serie',
+  'discover.movies_sub':
+    'Dal blockbuster al cult — esplora, filtra, trova la tua prossima visione.',
+  'discover.tv_sub': 'Gemme da maratona, selezionate con cura.',
+  'sort.popularity': 'Popolari',
+  'sort.vote_movie': 'Più votati',
+  'sort.vote_tv': 'Più votate',
+  'sort.release_movie': 'Recenti',
+  'sort.release_tv': 'Recenti',
+  'sort.revenue': 'Incassi',
+  'discover.my_platforms': 'Le mie piattaforme',
+  'discover.platforms_hint': 'Mostra solo ciò che è disponibile sui tuoi servizi',
+  'discover.reset': 'Reimposta',
+  'discover.all_genres': 'Tutti',
+  'discover.empty_title': 'Niente da mostrare',
+  'discover.empty_platforms':
+    'Nessun titolo corrisponde alle tue piattaforme con questo filtro. Amplia la selezione.',
+  'discover.empty_default': 'Prova un altro filtro.',
+
+  'library.title': 'La mia lista',
+  'library.count_one': '{count} titolo nella tua collezione.',
+  'library.count_other': '{count} titoli nella tua collezione.',
+  'library.subtitle_empty': 'La tua selezione personale, salvata e sincronizzata.',
+  'library.clear_all': 'Cancella tutto',
+  'library.sync_cta_title': 'Salva la tua lista nel cloud',
+  'library.sync_cta_desc':
+    'Crea un account gratuito per ritrovare la tua collezione su tutti i dispositivi.',
+  'library.empty_title': 'La tua lista è vuota',
+  'library.empty_desc':
+    'Individua un film o una serie che ti ispira e tocca il segnalibro. Teniamo tutto al sicuro qui.',
+  'library.explore': 'Esplora il catalogo',
+  'filter.all': 'Tutto',
+  'filter.want': 'Da vedere',
+  'filter.watched': 'Visti',
+  'library.want_empty_title': 'Ancora niente da vedere',
+  'library.watched_empty_title': 'Nessun titolo visto',
+  'library.want_empty_desc': 'Aggiungi titoli da vedere dalla loro scheda.',
+  'library.watched_empty_desc': 'Segna i titoli come «visti» per ritrovarli qui.',
+
+  'auth.welcome_back': 'Bentornato',
+  'auth.create_account': 'Crea il tuo account NEOX',
+  'auth.login_sub': 'Accedi per ritrovare la tua lista su tutti i dispositivi.',
+  'auth.register_sub': 'Sincronizza la tua watchlist e i voti ovunque, gratis.',
+  'auth.password_min': 'Almeno 8 caratteri',
+  'auth.password_placeholder': 'Password',
+  'auth.login_btn': 'Accedi',
+  'auth.register_btn': 'Crea il mio account',
+  'auth.no_account': 'Non hai ancora un account?',
+  'auth.have_account': 'Già registrato?',
+  'auth.signup_link': 'Registrati',
+  'auth.login_link': 'Accedi',
+  'auth.generic_error': 'Si è verificato un errore.',
+
+  'detail.loading': 'Recupero le informazioni…',
+  'detail.trailer': 'Trailer',
+  'detail.play_trailer': 'Riproduci trailer',
+  'detail.mark_watched': 'Segna come visto',
+  'detail.remove': 'Rimuovi dalla mia lista',
+  'detail.your_rating': 'Il tuo voto',
+  'detail.synopsis': 'Trama',
+  'detail.where_watch': 'Dove guardare (legalmente)',
+  'detail.cast': 'Cast',
+  'detail.similar': 'Altri come questo',
+  'detail.seasons_one': '{count} stagione',
+  'detail.seasons_other': '{count} stagioni',
+
+  'hero.series': 'Serie',
+  'hero.movie': 'Film',
+  'hero.no_synopsis': 'Trama presto disponibile.',
+  'hero.details': 'Vedi dettagli',
+  'hero.in_list': 'Nella mia lista',
+  'hero.add_list': 'La mia lista',
+  'hero.goto_slide': 'Vai alla slide {n}',
+
+  'card.add': 'Aggiungi alla mia lista',
+  'card.remove': 'Rimuovi dalla mia lista',
+
+  'providers.none':
+    'Nessuna offerta legale rilevata nella tua regione per ora. Torna presto: il catalogo cambia ogni settimana.',
+  'providers.streaming': 'In streaming',
+  'providers.rent': 'A noleggio',
+  'providers.buy': "All’acquisto",
+  'providers.justwatch': 'Vedi tutte le offerte su JustWatch',
+  'providers.disclaimer': 'Disponibilità fornita da JustWatch tramite TMDB.',
+
+  'row.prev': 'Precedente',
+  'row.next': 'Successivo',
+
+  'person.loading': 'Recupero la filmografia…',
+  'person.years': '{count} anni',
+  'person.known_for': 'Noto per',
+
+  'rating.rate': 'Vota {n} su 10',
+  'rating.clear': 'Cancella voto',
+
+  'cmd.placeholder': 'Cerca un film, una serie, una pagina…',
+  'cmd.recent': 'Ricerche recenti',
+  'cmd.clear_recent': 'Cancella',
+  'cmd.nav': 'Vai a',
+  'cmd.results': 'Risultati',
+  'cmd.searching': 'Ricerca…',
+  'cmd.no_results': 'Nessun risultato per «{query}».',
+  'cmd.hint_select': 'seleziona',
+  'cmd.hint_nav': 'naviga',
+  'cmd.hint_close': 'chiudi',
+  'cmd.open': 'Apri ricerca rapida',
+};
+
+export const translations: Record<'fr' | 'en' | 'es' | 'de' | 'it', Dict> = {
+  fr,
+  en,
+  es,
+  de,
+  it,
+};

@@ -27,6 +27,8 @@ Aucun contenu n'est hébergé ni stocké : NEOX agrège des **métadonnées publ
 - **Accueil éditorialisé** — hero rotatif (avec préchargement des backdrops) + rails
   « À l'affiche », « Tendances séries », « Acclamés par la critique »…
 - **Recherche instantanée** (debounced, films + séries) avec états loading / vide / erreur soignés.
+- **Palette de commandes ⌘K** — lanceur clavier global (⌘K / Ctrl+K) : recherche instantanée, saut
+  vers n'importe quelle page et **recherches récentes**, navigation 100 % clavier.
 - **Explorer** — filtres par genre, tri (populaires, mieux notés, récents, box-office) et
   **scroll infini**.
 - **Filtre « Mes plateformes »** — n'affiche que ce qui est dispo sur tes services (Netflix,
@@ -38,10 +40,13 @@ Aucun contenu n'est hébergé ni stocké : NEOX agrège des **métadonnées publ
   tous tes appareils. Hors-ligne : tout reste en localStorage.
 - **Recommandations « Pour toi »** — suggestions personnalisées à partir de ta bibliothèque.
 - **Pages Personnes** — casting cliquable → bio + filmographie de l'acteur·rice.
-- **Région & langue** — bascule le catalogue et les disponibilités (FR, US, ES, DE…).
+- **Interface multilingue (i18n)** — toute l'UI est traduite (FR · EN · ES · DE · IT) et suit le
+  sélecteur région/langue, en plus du catalogue déjà localisé par TMDB.
 - **PWA installable** — ajoute NEOX à ton écran d'accueil, shell offline, images en cache.
 - **URLs partageables** — chaque fiche a son deep link (`/?watch=movie-550`), navigation par routes.
 - **Analytics privacy-first** (Plausible, opt-in) et **API durcie** (helmet, compression, rate-limit).
+- **Cache TMDB résilient** — cache borné **LRU + TTL** avec **stale-while-revalidate** (une panne
+  TMDB sert la donnée en cache plutôt qu'une erreur) ; métriques exposées sur `/api/health`.
 - **Design system** Tailwind sur-mesure : thème sombre, dégradé de marque, micro-interactions,
   skeletons, responsive mobile-first.
 
@@ -51,16 +56,17 @@ Aucun contenu n'est hébergé ni stocké : NEOX agrège des **métadonnées publ
 neox/
 ├── backend/            API Node/Express — proxy TMDB + comptes + sync
 │   ├── server.js       routes + validation + gestion d'erreurs centralisée
-│   ├── tmdb.js         client TMDB (cache TTL, retry/backoff, normalisation)
+│   ├── tmdb.js         client TMDB (retry/backoff, normalisation)
+│   ├── cache.js        cache borné LRU + TTL + stale-while-revalidate (testé)
 │   ├── auth.js         bcrypt + JWT, middleware requireAuth
 │   ├── store.js        store JSON persistant (atomique, zéro dépendance)
 │   └── library.js      validation + merge des bibliothèques
 └── project/            Frontend React + TypeScript + Vite + Tailwind
     └── src/
-        ├── lib/        client API typé (token) + types partagés
+        ├── lib/        client API typé · i18n (FR/EN/ES/DE/IT) · recherches récentes
         ├── context/    AuthContext · LibraryContext (sync cloud)
         ├── hooks/      useDebounce · useMyPlatforms · useDetailRoute
-        ├── components/ layout · media · home · auth · ui
+        ├── components/ layout · media · home · auth · ui · command (⌘K)
         └── views/      Home · Discover · Search · Library
 ```
 

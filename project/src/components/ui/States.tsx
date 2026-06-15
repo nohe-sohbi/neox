@@ -1,5 +1,6 @@
 import { AlertTriangle, Loader2, SearchX } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useT } from '../../lib/i18n';
 
 export function Spinner({ className = '' }: { className?: string }) {
   return <Loader2 className={`animate-spin ${className}`} />;
@@ -38,16 +39,17 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({ message, onRetry }: ErrorStateProps) {
+  const { t } = useT();
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
       <AlertTriangle className="h-12 w-12 text-orange-400" />
       <div>
-        <h3 className="text-xl font-semibold text-white">Aïe, ça a coincé</h3>
+        <h3 className="text-xl font-semibold text-white">{t('error.title')}</h3>
         <p className="mt-1 max-w-md text-sm text-white/50">{message}</p>
       </div>
       {onRetry && (
         <button onClick={onRetry} className="btn-ghost">
-          Réessayer
+          {t('error.retry')}
         </button>
       )}
     </div>

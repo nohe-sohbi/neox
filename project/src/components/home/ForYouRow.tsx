@@ -4,12 +4,14 @@ import { api } from '../../lib/api';
 import type { MediaItem } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
 import { MediaRow } from '../media/MediaRow';
+import { useT } from '../../lib/i18n';
 
 /**
  * Personalized recommendations seeded from the user's library. Renders nothing
  * until there's at least one seed and at least one result.
  */
 export function ForYouRow() {
+  const { t } = useT();
   const { entries } = useLibrary();
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -52,7 +54,7 @@ export function ForYouRow() {
 
   return (
     <MediaRow
-      title="Pour toi"
+      title={t('home.for_you')}
       items={items}
       loading={loading}
       icon={<Sparkles className="h-5 w-5 text-brand-cyan" />}

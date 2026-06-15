@@ -1,5 +1,6 @@
 import { ExternalLink } from 'lucide-react';
 import type { Provider, WatchProviders as Providers } from '../../lib/types';
+import { useT } from '../../lib/i18n';
 
 function ProviderGroup({ label, providers }: { label: string; providers: Provider[] }) {
   if (providers.length === 0) return null;
@@ -29,23 +30,23 @@ function ProviderGroup({ label, providers }: { label: string; providers: Provide
 }
 
 export function WatchProviders({ providers }: { providers: Providers }) {
+  const { t } = useT();
   const hasAny =
     providers.flatrate.length > 0 || providers.rent.length > 0 || providers.buy.length > 0;
 
   if (!hasAny) {
     return (
       <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/50">
-        Aucune offre légale détectée dans ta région pour le moment. Reviens bientôt — le catalogue
-        évolue chaque semaine.
+        {t('providers.none')}
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <ProviderGroup label="En streaming" providers={providers.flatrate} />
-      <ProviderGroup label="En location" providers={providers.rent} />
-      <ProviderGroup label="À l’achat" providers={providers.buy} />
+      <ProviderGroup label={t('providers.streaming')} providers={providers.flatrate} />
+      <ProviderGroup label={t('providers.rent')} providers={providers.rent} />
+      <ProviderGroup label={t('providers.buy')} providers={providers.buy} />
       {providers.link && (
         <a
           href={providers.link}
@@ -53,11 +54,11 @@ export function WatchProviders({ providers }: { providers: Providers }) {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-cyan transition-colors hover:text-white"
         >
-          Voir toutes les offres sur JustWatch
+          {t('providers.justwatch')}
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
       )}
-      <p className="text-xs text-white/30">Disponibilité fournie par JustWatch via TMDB.</p>
+      <p className="text-xs text-white/30">{t('providers.disclaimer')}</p>
     </div>
   );
 }

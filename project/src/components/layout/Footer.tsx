@@ -1,12 +1,15 @@
+import { useT } from '../../lib/i18n';
+
 export function Footer() {
+  const { t } = useT();
   return (
     <footer className="border-t border-white/10 bg-ink-950">
       <div className="container mx-auto flex flex-col items-center gap-3 px-6 py-8 text-center text-sm text-white/40 sm:flex-row sm:justify-between sm:text-left">
         <p>
-          <span className="font-bold text-gradient">NEOX</span> — ton radar cinéma & séries.
+          <span className="font-bold text-gradient">NEOX</span> — {t('footer.tagline')}
         </p>
         <p>
-          Données & disponibilités fournies par{' '}
+          {t('footer.data_by')}{' '}
           <a
             href="https://www.themoviedb.org/"
             target="_blank"
@@ -15,7 +18,7 @@ export function Footer() {
           >
             TMDB
           </a>{' '}
-          &amp; JustWatch. NEOX ne stocke ni n’héberge aucun contenu.
+          {t('footer.data_suffix')}
         </p>
       </div>
     </footer>

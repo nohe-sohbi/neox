@@ -63,7 +63,12 @@ function localeFrom(req) {
 }
 
 app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', tmdb: tmdb.isConfigured() ? 'configured' : 'missing-key' });
+    res.json({
+        status: 'ok',
+        tmdb: tmdb.isConfigured() ? 'configured' : 'missing-key',
+        cache: tmdb.cacheStats(),
+        uptime: Math.round(process.uptime()),
+    });
 });
 
 app.get(

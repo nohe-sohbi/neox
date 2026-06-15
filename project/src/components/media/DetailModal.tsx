@@ -7,6 +7,7 @@ import { useDetailTarget, useOpenDetail, useOpenPerson } from '../../hooks/useDe
 import { ErrorState, FullSpinner } from '../ui/States';
 import { StarRating } from '../ui/StarRating';
 import { WatchProviders } from './WatchProviders';
+import { useT } from '../../lib/i18n';
 
 function runtimeLabel(minutes: number | null): string | null {
   if (!minutes) return null;
@@ -16,6 +17,7 @@ function runtimeLabel(minutes: number | null): string | null {
 }
 
 export function DetailModal() {
+  const { t, tn, formatNumber } = useT();
   const { target, close } = useDetailTarget();
   const openDetail = useOpenDetail();
   const openPerson = useOpenPerson();
@@ -32,11 +34,11 @@ export function DetailModal() {
     try {
       setDetails(await api.details(mediaType, id));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setError(err instanceof ApiError ? err.message : t('common.load_error'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!target) return;
@@ -75,13 +77,13 @@ export function DetailModal() {
       >
         <button
           onClick={close}
-          aria-label="Fermer"
+          aria-label={t('common.close')}
           className="absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur-md transition-all hover:bg-black/80 hover:text-white"
         >
           <X className="h-5 w-5" />
         </button>
 
-        {loading && <FullSpinner label="On récupère les infos…" />}
+        {loading && <FullSpinner label={t('detail.loading')} />}
 
         {error && !loading && (
           <div className="py-10">
@@ -94,7 +96,7 @@ export function DetailModal() {
             <div className="relative h-56 sm:h-80">
               {showTrailer && details.trailerKey ? (
                 <iframe
-                  title={`Bande-annonce de ${details.title}`}
+                  title={`${t('detail.trailer')} — ${details.title}`}
                   src={`https://www.youtube.com/embed/${details.trailerKey}?autoplay=1&rel=0`}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -116,7 +118,7 @@ export function DetailModal() {
                     <button
                       onClick={() => setShowTrailer(true)}
                       className="group absolute inset-0 flex items-center justify-center"
-                      aria-label="Lire la bande-annonce"
+                      aria-label={t('detail.play_trailer')}
                     >
                       <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-gradient shadow-glow transition-transform group-hover:scale-110">
                         <Play className="ml-1 h-7 w-7 fill-white text-white" />
@@ -150,7 +152,7 @@ export function DetailModal() {
                         <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                         {details.rating.toFixed(1)}
                         <span className="font-normal text-white/40">
-                          ({details.voteCount.toLocaleString('fr-FR')})
+                          ({formatNumber(details.voteCount)})
                         </span>
                       </span>
                     ) : null}
@@ -169,7 +171,7 @@ export function DetailModal() {
                     {details.numberOfSeasons ? (
                       <span className="inline-flex items-center gap-1.5">
                         <Tv className="h-4 w-4" />
-                        {details.numberOfSeasons} saison{details.numberOfSeasons > 1 ? 's' : ''}
+                        {tn('detail.seasons', details.numberOfSeasons)}
                       </span>
                     ) : null}
                   </div>
@@ -191,7 +193,7 @@ export function DetailModal() {
                 {details.trailerKey && !showTrailer && (
                   <button onClick={() => setShowTrailer(true)} className="btn-primary">
                     <Play className="h-5 w-5 fill-current" />
-                    Bande-annonce
+                    {t('detail.trailer')}
                   </button>
                 )}
                 <button
@@ -203,7 +205,7 @@ export function DetailModal() {
                   }
                 >
                   <Bookmark className={`h-5 w-5 ${status === 'want' ? 'fill-current' : ''}`} />
-                  À voir
+                  {t('filter.want')}
                 </button>
                 <button
                   onClick={() => setStatus(details, 'watched')}
@@ -214,12 +216,12 @@ export function DetailModal() {
                   ) : (
                     <Eye className="h-5 w-5" />
                   )}
-                  {status === 'watched' ? 'Vu' : 'Marquer comme vu'}
+                  {status === 'watched' ? t('filter.watched') : t('detail.mark_watched')}
                 </button>
                 {saved && (
                   <button
                     onClick={() => remove(details)}
-                    aria-label="Retirer de ma liste"
+                    aria-label={t('detail.remove')}
                     className="flex h-10 w-10 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-red-500/10 hover:text-red-400"
                   >
                     <Trash2 className="h-5 w-5" />
@@ -230,7 +232,7 @@ export function DetailModal() {
               {/* Personal rating */}
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
                 <p className="mb-2 text-sm font-bold uppercase tracking-wider text-white/50">
-                  Ta note
+                  {t('detail.your_rating')}
                 </p>
                 <StarRating value={personalRating} onChange={(r) => setRating(details, r)} />
               </div>
@@ -238,7 +240,7 @@ export function DetailModal() {
               {details.overview && (
                 <div>
                   <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-white/50">
-                    Synopsis
+                    {t('detail.synopsis')}
                   </h3>
                   <p className="leading-relaxed text-white/80">{details.overview}</p>
                 </div>
@@ -246,7 +248,7 @@ export function DetailModal() {
 
               <div>
                 <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-white/50">
-                  Où regarder (légalement)
+                  {t('detail.where_watch')}
                 </h3>
                 <WatchProviders providers={details.providers} />
               </div>
@@ -254,7 +256,7 @@ export function DetailModal() {
               {details.cast.length > 0 && (
                 <div>
                   <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-white/50">
-                    Casting
+                    {t('detail.cast')}
                   </h3>
                   <div className="no-scrollbar flex gap-4 overflow-x-auto pb-2">
                     {details.cast.map((member) => (
@@ -288,7 +290,7 @@ export function DetailModal() {
               {details.recommendations.length > 0 && (
                 <div>
                   <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-white/50">
-                    Dans le même esprit
+                    {t('detail.similar')}
                   </h3>
                   <div className="no-scrollbar flex gap-4 overflow-x-auto pb-2">
                     {details.recommendations.map((rec) => (

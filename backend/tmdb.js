@@ -1,12 +1,14 @@
 /**
  * TMDB client: thin, cached, fault-tolerant wrapper around the TMDB v3 API.
  *
- * - In-memory TTL cache to stay well under rate limits and keep the UI snappy.
+ * - Bounded TTL + LRU cache to stay well under rate limits and keep the UI
+ *   snappy, with stale-while-revalidate so a TMDB outage degrades gracefully.
  * - Automatic retry with backoff on 429 / transient network errors.
  * - Normalizes TMDB payloads into the compact shape the frontend consumes,
  *   so the React layer never has to know about TMDB field names.
  */
 const fetch = require('node-fetch');
+const { TtlLruCache } = require('./cache');
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const IMG_BASE = 'https://image.tmdb.org/t/p';
@@ -21,8 +23,15 @@ const READ_TOKEN = process.env.TMDB_READ_TOKEN; // optional v4 bearer token
 const DEFAULT_REGION = process.env.TMDB_REGION || 'FR';
 const DEFAULT_LANGUAGE = process.env.TMDB_LANGUAGE || 'fr-FR';
 
-const CACHE_TTL_MS = 1000 * 60 * 10; // 10 minutes
-const cache = new Map();
+const CACHE_TTL_MS = 1000 * 60 * 10; // fresh for 10 minutes
+const CACHE_STALE_MS = 1000 * 60 * 60; // usable as a fallback for up to 1 hour
+const CACHE_MAX_ENTRIES = Number(process.env.TMDB_CACHE_MAX) || 1000;
+
+const cache = new TtlLruCache({
+    max: CACHE_MAX_ENTRIES,
+    ttlMs: CACHE_TTL_MS,
+    staleMs: CACHE_STALE_MS,
+});
 
 function isConfigured() {
     return Boolean(API_KEY || READ_TOKEN);
@@ -32,18 +41,9 @@ function img(path, size) {
     return path ? `${IMG_BASE}/${size}${path}` : null;
 }
 
-function cacheGet(key) {
-    const hit = cache.get(key);
-    if (!hit) return null;
-    if (Date.now() > hit.expires) {
-        cache.delete(key);
-        return null;
-    }
-    return hit.value;
-}
-
-function cacheSet(key, value) {
-    cache.set(key, { value, expires: Date.now() + CACHE_TTL_MS });
+/** Cache diagnostics surfaced via /api/health. */
+function cacheStats() {
+    return cache.stats();
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -72,8 +72,8 @@ async function tmdbGet(path, params = {}) {
     const url = `${TMDB_BASE}${path}?${query.toString()}`;
     const cacheKey = url;
 
-    const cached = cacheGet(cacheKey);
-    if (cached) return cached;
+    const cached = cache.get(cacheKey);
+    if (cached && !cached.stale) return cached.value;
 
     const headers = { accept: 'application/json' };
     if (READ_TOKEN) headers.Authorization = `Bearer ${READ_TOKEN}`;
@@ -99,7 +99,7 @@ async function tmdbGet(path, params = {}) {
                 throw err;
             }
 
-            cacheSet(cacheKey, data);
+            cache.set(cacheKey, data);
             return data;
         } catch (error) {
             lastError = error;
@@ -107,6 +107,12 @@ async function tmdbGet(path, params = {}) {
             if (error.status && error.status >= 400 && error.status < 500) throw error;
             if (attempt < maxAttempts) await sleep(2 ** attempt * 250);
         }
+    }
+
+    // Upstream is failing — serve slightly-stale data rather than erroring out.
+    if (cached) {
+        cache.recordStaleServe();
+        return cached.value;
     }
 
     const err = new Error(`TMDB request failed after ${maxAttempts} attempts: ${lastError?.message}`);
@@ -417,6 +423,7 @@ async function recommend(seeds = [], opts = {}) {
 
 module.exports = {
     isConfigured,
+    cacheStats,
     getGenres,
     getProviders,
     getPerson,

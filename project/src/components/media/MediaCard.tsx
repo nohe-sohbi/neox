@@ -3,8 +3,10 @@ import type { MediaItem } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
 import { useOpenDetail } from '../../hooks/useDetailRoute';
 import { RatingBadge } from '../ui/RatingBadge';
+import { useT } from '../../lib/i18n';
 
 export function MediaCard({ item }: { item: MediaItem }) {
+  const { t } = useT();
   const openDetail = useOpenDetail();
   const { isSaved, statusOf, toggle } = useLibrary();
   const saved = isSaved(item);
@@ -45,11 +47,11 @@ export function MediaCard({ item }: { item: MediaItem }) {
 
         {watched ? (
           <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md bg-emerald-500/90 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
-            <Check className="h-3 w-3" /> Vu
+            <Check className="h-3 w-3" /> {t('filter.watched')}
           </span>
         ) : (
           <span className="absolute right-2 top-2 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/80 backdrop-blur-sm">
-            {item.mediaType === 'tv' ? 'Série' : 'Film'}
+            {item.mediaType === 'tv' ? t('hero.series') : t('hero.movie')}
           </span>
         )}
 
@@ -58,7 +60,7 @@ export function MediaCard({ item }: { item: MediaItem }) {
             e.stopPropagation();
             toggle(item);
           }}
-          aria-label={saved ? 'Retirer de ma liste' : 'Ajouter à ma liste'}
+          aria-label={saved ? t('card.remove') : t('card.add')}
           className={`absolute bottom-2 right-2 flex h-9 w-9 translate-y-2 items-center justify-center rounded-full backdrop-blur-md transition-all duration-300 group-hover:translate-y-0 ${
             saved
               ? 'bg-brand-gradient text-white shadow-glow'

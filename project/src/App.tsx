@@ -5,6 +5,7 @@ import { Footer } from './components/layout/Footer';
 import { DetailModal } from './components/media/DetailModal';
 import { PersonModal } from './components/media/PersonModal';
 import { AuthModal } from './components/auth/AuthModal';
+import { CommandPalette } from './components/command/CommandPalette';
 import { HomeView } from './views/HomeView';
 import { DiscoverView } from './views/DiscoverView';
 import { SearchView } from './views/SearchView';
@@ -37,10 +38,11 @@ function App() {
 
       <Footer />
 
-      {/* Global overlays — deep-link driven detail, person, and auth */}
+      {/* Global overlays — deep-link driven detail, person, auth, and ⌘K palette */}
       <DetailModal />
       <PersonModal />
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+      <CommandPalette />
     </div>
   );
 }

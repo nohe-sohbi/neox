@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, Lock, Mail, X } from 'lucide-react';
 import { ApiError } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import { useT } from '../../lib/i18n';
 
 interface AuthModalProps {
   open: boolean;
@@ -9,6 +10,7 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ open, onClose }: AuthModalProps) {
+  const { t } = useT();
   const { login, register } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
@@ -41,7 +43,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
       else await register(email, password);
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Une erreur est survenue.');
+      setError(err instanceof ApiError ? err.message : t('auth.generic_error'));
     } finally {
       setSubmitting(false);
     }
@@ -58,20 +60,18 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
       >
         <div className="mb-1 flex items-start justify-between">
           <h2 className="text-2xl font-extrabold text-white">
-            {mode === 'login' ? 'Content de te revoir' : 'Crée ton compte NEOX'}
+            {mode === 'login' ? t('auth.welcome_back') : t('auth.create_account')}
           </h2>
           <button
             onClick={onClose}
-            aria-label="Fermer"
+            aria-label={t('common.close')}
             className="text-white/50 transition-colors hover:text-white"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
         <p className="mb-6 text-sm text-white/50">
-          {mode === 'login'
-            ? 'Connecte-toi pour retrouver ta liste sur tous tes appareils.'
-            : 'Synchronise ta watchlist et tes notes partout, gratuitement.'}
+          {mode === 'login' ? t('auth.login_sub') : t('auth.register_sub')}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -83,7 +83,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="ton@email.com"
+              placeholder="you@email.com"
               className="w-full rounded-xl border border-white/15 bg-white/5 py-3 pl-11 pr-4 text-white placeholder-white/40 outline-none transition-all focus:border-brand-violet/50 focus:ring-2 focus:ring-brand-violet/30"
             />
           </div>
@@ -95,7 +95,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={mode === 'register' ? '8 caractères minimum' : 'Mot de passe'}
+              placeholder={mode === 'register' ? t('auth.password_min') : t('auth.password_placeholder')}
               className="w-full rounded-xl border border-white/15 bg-white/5 py-3 pl-11 pr-4 text-white placeholder-white/40 outline-none transition-all focus:border-brand-violet/50 focus:ring-2 focus:ring-brand-violet/30"
             />
           </div>
@@ -110,15 +110,15 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
             {submitting ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : mode === 'login' ? (
-              'Se connecter'
+              t('auth.login_btn')
             ) : (
-              'Créer mon compte'
+              t('auth.register_btn')
             )}
           </button>
         </form>
 
         <p className="mt-5 text-center text-sm text-white/50">
-          {mode === 'login' ? 'Pas encore de compte ?' : 'Déjà inscrit ?'}{' '}
+          {mode === 'login' ? t('auth.no_account') : t('auth.have_account')}{' '}
           <button
             onClick={() => {
               setMode(mode === 'login' ? 'register' : 'login');
@@ -126,7 +126,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
             }}
             className="font-semibold text-brand-cyan transition-colors hover:text-white"
           >
-            {mode === 'login' ? 'Inscris-toi' : 'Connecte-toi'}
+            {mode === 'login' ? t('auth.signup_link') : t('auth.login_link')}
           </button>
         </p>
       </div>

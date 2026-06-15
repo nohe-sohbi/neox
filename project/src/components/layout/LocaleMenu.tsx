@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Globe } from 'lucide-react';
 import { getLocale, setLocale } from '../../lib/api';
+import { useT } from '../../lib/i18n';
 
 const LOCALES = [
   { region: 'FR', language: 'fr-FR', label: 'France', flag: '🇫🇷' },
@@ -18,6 +19,7 @@ export function LocaleMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const current = getLocale();
+  const { t } = useT();
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -41,7 +43,7 @@ export function LocaleMenu() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        aria-label="Région & langue"
+        aria-label={t('locale.title')}
         className="flex h-10 w-10 items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/5 hover:text-white"
       >
         <Globe className="h-5 w-5" />
@@ -49,7 +51,7 @@ export function LocaleMenu() {
       {open && (
         <div className="card-surface absolute right-0 top-12 z-50 w-56 animate-scale-in p-2">
           <p className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-white/40">
-            Région & langue
+            {t('locale.title')}
           </p>
           <div className="max-h-72 overflow-y-auto">
             {LOCALES.map((l) => {

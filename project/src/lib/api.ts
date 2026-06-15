@@ -12,6 +12,7 @@ import type {
   Provider,
   User,
 } from './types';
+import { createTranslator, langFromLocale } from './i18n/core';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
@@ -30,6 +31,10 @@ function readLocale(): Locale {
 }
 
 let locale: Locale = readLocale();
+
+// Local translator for transport-level error messages. Built from `core` (which
+// does not import this module) to avoid an import cycle with lib/i18n.
+const tApi = createTranslator(langFromLocale(locale.language));
 
 export function getLocale() {
   return locale;
@@ -83,7 +88,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     response = await fetch(`${API_URL}${path}`, { ...init, headers });
   } catch {
-    throw new ApiError('Impossible de joindre le serveur. Vérifie ta connexion.', 0);
+    throw new ApiError(tApi('api.network'), 0);
   }
 
   let body: unknown = null;
@@ -100,7 +105,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const data = body as { error?: string; code?: string } | null;
     if (response.status === 401) setAuthToken(null);
     throw new ApiError(
-      data?.error || `Erreur serveur (${response.status})`,
+      data?.error || tApi('api.server', { status: response.status }),
       response.status,
       data?.code,
     );

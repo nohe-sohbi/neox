@@ -1,17 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError } from '../lib/api';
 import type { HomePayload } from '../lib/types';
 import { Hero } from '../components/home/Hero';
 import { ForYouRow } from '../components/home/ForYouRow';
 import { MediaRow } from '../components/media/MediaRow';
 import { ErrorState } from '../components/ui/States';
+import { useT } from '../lib/i18n';
 
 export function HomeView() {
+  const { t } = useT();
   const [data, setData] = useState<HomePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
     setError(null);
     api
@@ -21,15 +23,17 @@ export function HomeView() {
         setError(
           err instanceof ApiError
             ? err.code === 'TMDB_NOT_CONFIGURED'
-              ? 'Le serveur n’a pas de clé TMDB configurée. Ajoute TMDB_API_KEY côté backend.'
+              ? t('home.error_no_key')
               : err.message
-            : 'Chargement impossible.',
+            : t('common.load_error'),
         ),
       )
       .finally(() => setLoading(false));
-  };
+  }, [t]);
 
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   if (error) {
     return (
@@ -58,7 +62,7 @@ export function HomeView() {
       <div className="container mx-auto space-y-10 px-6 py-10">
         <ForYouRow />
         {data.rows.map((row) => (
-          <MediaRow key={row.id} title={row.title} items={row.items} />
+          <MediaRow key={row.id} title={t(`home.row.${row.id}`)} items={row.items} />
         ))}
       </div>
     </div>

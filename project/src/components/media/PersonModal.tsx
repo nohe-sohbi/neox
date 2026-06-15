@@ -5,6 +5,8 @@ import type { Person } from '../../lib/types';
 import { usePersonTarget } from '../../hooks/useDetailRoute';
 import { ErrorState, FullSpinner } from '../ui/States';
 import { MediaGrid } from './MediaGrid';
+import { useT, activeLang } from '../../lib/i18n';
+import { localeTag } from '../../lib/i18n/core';
 
 function age(birthday: string | null): number | null {
   if (!birthday) return null;
@@ -14,22 +16,26 @@ function age(birthday: string | null): number | null {
 }
 
 export function PersonModal() {
+  const { t } = useT();
   const { personId, close } = usePersonTarget();
   const [person, setPerson] = useState<Person | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (id: number) => {
-    setLoading(true);
-    setError(null);
-    try {
-      setPerson(await api.person(id));
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Chargement impossible.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (id: number) => {
+      setLoading(true);
+      setError(null);
+      try {
+        setPerson(await api.person(id));
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : t('common.load_error'));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [t],
+  );
 
   useEffect(() => {
     if (!personId) return;
@@ -64,13 +70,13 @@ export function PersonModal() {
       >
         <button
           onClick={close}
-          aria-label="Fermer"
+          aria-label={t('common.close')}
           className="absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur-md transition-all hover:bg-black/80 hover:text-white"
         >
           <X className="h-5 w-5" />
         </button>
 
-        {loading && <FullSpinner label="On récupère la filmographie…" />}
+        {loading && <FullSpinner label={t('person.loading')} />}
         {error && !loading && <ErrorState message={error} onRetry={() => load(personId)} />}
 
         {person && !loading && (
@@ -96,8 +102,8 @@ export function PersonModal() {
                   {person.birthday && (
                     <span className="inline-flex items-center gap-1.5">
                       <Cake className="h-4 w-4" />
-                      {new Date(person.birthday).toLocaleDateString('fr-FR')}
-                      {years ? ` (${years} ans)` : ''}
+                      {new Date(person.birthday).toLocaleDateString(localeTag(activeLang))}
+                      {years ? ` (${t('person.years', { count: years })})` : ''}
                     </span>
                   )}
                   {person.placeOfBirth && (
@@ -118,7 +124,7 @@ export function PersonModal() {
             {person.credits.length > 0 && (
               <div className="mt-8">
                 <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-white/50">
-                  Connu·e pour
+                  {t('person.known_for')}
                 </h3>
                 <MediaGrid items={person.credits} />
               </div>

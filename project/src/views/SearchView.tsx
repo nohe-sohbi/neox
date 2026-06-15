@@ -6,11 +6,14 @@ import type { MediaItem } from '../lib/types';
 import { useDebounce } from '../hooks/useDebounce';
 import { MediaGrid } from '../components/media/MediaGrid';
 import { EmptyState, ErrorState } from '../components/ui/States';
+import { useT } from '../lib/i18n';
+import { rememberSearch } from '../lib/recent-searches';
 
 export function SearchView() {
   const [params] = useSearchParams();
   const query = params.get('q') ?? '';
   const debounced = useDebounce(query.trim(), 350);
+  const { t, tn, formatNumber } = useT();
 
   const [results, setResults] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -35,10 +38,11 @@ export function SearchView() {
         if (cancelled) return;
         setResults(page.results);
         setTotal(page.totalResults);
+        if (page.results.length > 0) rememberSearch(debounced);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setError(err instanceof ApiError ? err.message : 'Recherche impossible.');
+        setError(err instanceof ApiError ? err.message : t('common.load_error'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -47,22 +51,23 @@ export function SearchView() {
     return () => {
       cancelled = true;
     };
-  }, [debounced]);
+  }, [debounced, t]);
 
   return (
     <div className="container mx-auto px-6 pb-16 pt-28">
       <h1 className="mb-1 text-2xl font-extrabold sm:text-3xl">
         {debounced ? (
           <>
-            Résultats pour <span className="text-gradient">«&nbsp;{debounced}&nbsp;»</span>
+            {t('search.results_for')}{' '}
+            <span className="text-gradient">«&nbsp;{debounced}&nbsp;»</span>
           </>
         ) : (
-          'Recherche'
+          t('search.title')
         )}
       </h1>
       {debounced && !loading && !error && (
         <p className="mb-6 text-sm text-white/50">
-          {total.toLocaleString('fr-FR')} résultat{total > 1 ? 's' : ''}
+          {tn('search.count', total, { count: formatNumber(total) })}
         </p>
       )}
 
@@ -71,16 +76,16 @@ export function SearchView() {
       ) : !debounced ? (
         <EmptyState
           icon={<Sparkles className="h-12 w-12" />}
-          title="Qu’as-tu envie de regarder ce soir ?"
-          description="Tape le titre d’un film ou d’une série, on te dit instantanément où le voir légalement."
+          title={t('search.empty_title')}
+          description={t('search.empty_desc')}
         />
       ) : loading ? (
         <MediaGrid items={[]} loading />
       ) : results.length === 0 ? (
         <EmptyState
           icon={<Search className="h-12 w-12" />}
-          title="Aucun résultat"
-          description={`Rien trouvé pour «${debounced}». Vérifie l’orthographe ou essaie un autre titre.`}
+          title={t('search.none_title')}
+          description={t('search.none_desc', { query: debounced })}
         />
       ) : (
         <div className="animate-fade-in">

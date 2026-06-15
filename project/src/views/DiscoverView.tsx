@@ -5,21 +5,23 @@ import type { Genre, MediaItem, MediaType, Provider } from '../lib/types';
 import { useMyPlatforms } from '../hooks/useMyPlatforms';
 import { MediaGrid } from '../components/media/MediaGrid';
 import { EmptyState, ErrorState, Spinner } from '../components/ui/States';
+import { useT } from '../lib/i18n';
 
 const MOVIE_SORTS = [
-  { id: 'popularity.desc', label: 'Populaires' },
-  { id: 'vote_average.desc', label: 'Les mieux notés' },
-  { id: 'primary_release_date.desc', label: 'Récents' },
-  { id: 'revenue.desc', label: 'Box-office' },
+  { id: 'popularity.desc', key: 'sort.popularity' },
+  { id: 'vote_average.desc', key: 'sort.vote_movie' },
+  { id: 'primary_release_date.desc', key: 'sort.release_movie' },
+  { id: 'revenue.desc', key: 'sort.revenue' },
 ];
 
 const TV_SORTS = [
-  { id: 'popularity.desc', label: 'Populaires' },
-  { id: 'vote_average.desc', label: 'Les mieux notées' },
-  { id: 'first_air_date.desc', label: 'Récentes' },
+  { id: 'popularity.desc', key: 'sort.popularity' },
+  { id: 'vote_average.desc', key: 'sort.vote_tv' },
+  { id: 'first_air_date.desc', key: 'sort.release_tv' },
 ];
 
 export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
+  const { t } = useT();
   const platforms = useMyPlatforms();
 
   const [genres, setGenres] = useState<Genre[]>([]);
@@ -79,13 +81,13 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
         setPage(res.page);
         setItems((prev) => (replace ? res.results : [...prev, ...res.results]));
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+        setError(err instanceof ApiError ? err.message : t('common.load_error'));
       } finally {
         setLoading(false);
         setLoadingMore(false);
       }
     },
-    [mediaType, activeGenre, sort, platformIds],
+    [mediaType, activeGenre, sort, platformIds, t],
   );
 
   useEffect(() => {
@@ -114,12 +116,10 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
   return (
     <div className="container mx-auto px-6 pb-16 pt-28">
       <h1 className="text-3xl font-extrabold sm:text-4xl">
-        {mediaType === 'tv' ? 'Séries' : 'Films'}
+        {mediaType === 'tv' ? t('discover.tv_title') : t('discover.movies_title')}
       </h1>
       <p className="mt-1 text-white/50">
-        {mediaType === 'tv'
-          ? 'Des pépites à binge-watcher, triées sur le volet.'
-          : 'Du blockbuster au film culte — explore, filtre, trouve ta prochaine séance.'}
+        {mediaType === 'tv' ? t('discover.tv_sub') : t('discover.movies_sub')}
       </p>
 
       {/* Sort + platform toggle */}
@@ -134,7 +134,7 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
                 : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
             }`}
           >
-            {s.label}
+            {t(s.key)}
           </button>
         ))}
         <button
@@ -146,7 +146,7 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
           }`}
         >
           <SlidersHorizontal className="h-4 w-4" />
-          Mes plateformes
+          {t('discover.my_platforms')}
           {platformsActive && (
             <span className="rounded-full bg-white/25 px-1.5 text-xs">{platforms.ids.length}</span>
           )}
@@ -158,14 +158,14 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
         <div className="mt-4 animate-slide-up rounded-2xl border border-white/10 bg-white/[0.03] p-4">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-sm font-medium text-white/70">
-              Affiche uniquement ce qui est dispo sur tes services
+              {t('discover.platforms_hint')}
             </p>
             {platformsActive && (
               <button
                 onClick={platforms.clear}
                 className="text-xs text-white/50 transition-colors hover:text-white"
               >
-                Réinitialiser
+                {t('discover.reset')}
               </button>
             )}
           </div>
@@ -200,7 +200,7 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
               activeGenre === undefined ? 'bg-white/15 text-white' : 'bg-white/5 text-white/60 hover:text-white'
             }`}
           >
-            Tous
+            {t('discover.all_genres')}
           </button>
           {genres.map((g) => (
             <button
@@ -221,11 +221,9 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
           <ErrorState message={error} onRetry={() => fetchPage(1, true)} />
         ) : !loading && items.length === 0 ? (
           <EmptyState
-            title="Rien à afficher"
+            title={t('discover.empty_title')}
             description={
-              platformsActive
-                ? 'Aucun titre ne correspond à tes plateformes avec ce filtre. Élargis ta sélection.'
-                : 'Essaie un autre filtre.'
+              platformsActive ? t('discover.empty_platforms') : t('discover.empty_default')
             }
           />
         ) : (

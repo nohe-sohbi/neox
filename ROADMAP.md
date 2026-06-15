@@ -52,13 +52,25 @@ découverte légale (TMDB + « où regarder »). Ci-dessous : ce qui est fait, e
 - [x] **Durcissement Express** : `helmet`, `compression`, `express-rate-limit` (global + auth).
 - [x] **CI** : GitHub Actions (lint · typecheck · test · build) sur chaque PR.
 
+## ✅ Phase 4 — UX, i18n & résilience (LIVRÉ)
+
+- [x] **i18n complète de l'UI** — toutes les chaînes de l'interface sont traduites (FR · EN · ES ·
+      DE · IT), pilotées par le sélecteur région/langue. Système maison sans dépendance
+      (`lib/i18n`), fallback automatique vers l'anglais puis vers la clé, tests de parité des clés.
+- [x] **Palette de commandes ⌘K / Ctrl+K** — lanceur clavier global : recherche instantanée,
+      navigation rapide (Accueil/Films/Séries/Ma liste) et **recherches récentes** persistées.
+      Navigation 100 % clavier (↑/↓/Entrée/Échap).
+- [x] **Cache TMDB durci** — cache borné **LRU + TTL** (plus de fuite mémoire) avec
+      **stale-while-revalidate** : en cas de panne TMDB, on sert la donnée légèrement périmée
+      plutôt qu'une erreur. Métriques exposées dans `/api/health`. Module isolé et testé.
+
 ## ⏭️ Reste (nécessite une infra externe — volontairement non codé en dur)
 
 - [ ] **Notifications « ça arrive sur ta plateforme »** — requiert SMTP/push + un scheduler
       (cron) + détection de changement de dispo. À brancher quand l'infra mail/push est choisie.
-- [ ] **Cache partagé (Redis)** — pour le scaling multi-instances (le cache actuel est en mémoire).
+- [ ] **Cache partagé (Redis)** — pour le scaling multi-instances (le cache actuel est borné en
+      mémoire par instance — voir Phase 4).
 - [ ] **SEO complet des fiches** — SSR/prerender (Next.js ou vite-plugin-ssr) ; les deep links
       fonctionnent déjà côté client.
-- [ ] **i18n des chaînes d'UI** — le catalogue est déjà localisé ; reste à traduire les libellés.
 - [ ] **Sécurité** : faire tourner la clé du fournisseur présente dans l'historique git et purger
       l'historique si le repo devient public (`git filter-repo`).

@@ -2,6 +2,7 @@ import { useRef, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { MediaItem } from '../../lib/types';
 import { MediaCard, MediaCardSkeleton } from './MediaCard';
+import { useT } from '../../lib/i18n';
 
 interface MediaRowProps {
   title: string;
@@ -11,6 +12,7 @@ interface MediaRowProps {
 }
 
 export function MediaRow({ title, items, loading, icon }: MediaRowProps) {
+  const { t } = useT();
   const railRef = useRef<HTMLDivElement>(null);
 
   const scrollBy = (dir: 1 | -1) => {
@@ -31,14 +33,14 @@ export function MediaRow({ title, items, loading, icon }: MediaRowProps) {
         <div className="hidden gap-2 sm:flex">
           <button
             onClick={() => scrollBy(-1)}
-            aria-label="Précédent"
+            aria-label={t('row.prev')}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button
             onClick={() => scrollBy(1)}
-            aria-label="Suivant"
+            aria-label={t('row.next')}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
           >
             <ChevronRight className="h-4 w-4" />

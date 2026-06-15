@@ -3,8 +3,10 @@ import { Bookmark, Info, Star } from 'lucide-react';
 import type { MediaItem } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
 import { useOpenDetail } from '../../hooks/useDetailRoute';
+import { useT } from '../../lib/i18n';
 
 export function Hero({ items }: { items: MediaItem[] }) {
+  const { t } = useT();
   const openDetail = useOpenDetail();
   const { isSaved, toggle } = useLibrary();
   const [active, setActive] = useState(0);
@@ -53,7 +55,7 @@ export function Hero({ items }: { items: MediaItem[] }) {
           <div key={current.id} className="max-w-2xl animate-slide-up">
             <div className="mb-4 flex items-center gap-3 text-sm font-medium text-white/70">
               <span className="rounded-md bg-brand-gradient px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-white">
-                {current.mediaType === 'tv' ? 'Série' : 'Film'}
+                {current.mediaType === 'tv' ? t('hero.series') : t('hero.movie')}
               </span>
               {current.rating ? (
                 <span className="inline-flex items-center gap-1">
@@ -69,17 +71,17 @@ export function Hero({ items }: { items: MediaItem[] }) {
             </h1>
 
             <p className="mt-4 line-clamp-3 max-w-xl text-base text-white/70 sm:text-lg">
-              {current.overview || 'Synopsis bientôt disponible.'}
+              {current.overview || t('hero.no_synopsis')}
             </p>
 
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <button onClick={() => openDetail(current)} className="btn-primary">
                 <Info className="h-5 w-5" />
-                Voir les détails
+                {t('hero.details')}
               </button>
               <button onClick={() => toggle(current)} className="btn-ghost">
                 <Bookmark className={`h-5 w-5 ${saved ? 'fill-current' : ''}`} />
-                {saved ? 'Dans ma liste' : 'Ma liste'}
+                {saved ? t('hero.in_list') : t('hero.add_list')}
               </button>
             </div>
           </div>
@@ -92,7 +94,7 @@ export function Hero({ items }: { items: MediaItem[] }) {
             <button
               key={item.id}
               onClick={() => setActive(i)}
-              aria-label={`Aller à la diapositive ${i + 1}`}
+              aria-label={t('hero.goto_slide', { n: i + 1 })}
               className={`h-1.5 rounded-full transition-all duration-300 ${
                 i === active ? 'w-8 bg-brand-gradient' : 'w-2 bg-white/30 hover:bg-white/50'
               }`}

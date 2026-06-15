@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Star, X } from 'lucide-react';
+import { useT } from '../../lib/i18n';
 
 interface StarRatingProps {
   value: number | null; // 1..10
@@ -9,6 +10,7 @@ interface StarRatingProps {
 
 /** A 1–10 personal rating control (matches the TMDB scale). */
 export function StarRating({ value, onChange, size = 'md' }: StarRatingProps) {
+  const { t } = useT();
   const [hover, setHover] = useState<number | null>(null);
   const display = hover ?? value ?? 0;
   const star = size === 'sm' ? 'h-4 w-4' : 'h-5 w-5';
@@ -22,7 +24,7 @@ export function StarRating({ value, onChange, size = 'md' }: StarRatingProps) {
             type="button"
             onMouseEnter={() => setHover(n)}
             onClick={() => onChange(n === value ? null : n)}
-            aria-label={`Noter ${n} sur 10`}
+            aria-label={t('rating.rate', { n })}
             className="p-0.5 transition-transform hover:scale-110"
           >
             <Star
@@ -40,7 +42,7 @@ export function StarRating({ value, onChange, size = 'md' }: StarRatingProps) {
         <button
           type="button"
           onClick={() => onChange(null)}
-          aria-label="Effacer la note"
+          aria-label={t('rating.clear')}
           className="text-white/40 transition-colors hover:text-white"
         >
           <X className="h-4 w-4" />

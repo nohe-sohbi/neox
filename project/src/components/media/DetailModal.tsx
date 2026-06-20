@@ -4,6 +4,7 @@ import { api, ApiError } from '../../lib/api';
 import type { MediaDetails, MediaType } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
 import { useDetailTarget, useOpenDetail, useOpenPerson } from '../../hooks/useDetailRoute';
+import { useModal } from '../../hooks/useModal';
 import { ErrorState, FullSpinner } from '../ui/States';
 import { StarRating } from '../ui/StarRating';
 import { WatchProviders } from './WatchProviders';
@@ -47,17 +48,7 @@ export function DetailModal() {
     void load(target.mediaType, target.id);
   }, [target, load]);
 
-  useEffect(() => {
-    if (!target) return undefined;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [target, close]);
+  const dialogRef = useModal<HTMLDivElement>(Boolean(target), close);
 
   if (!target) return null;
 
@@ -72,7 +63,12 @@ export function DetailModal() {
       onClick={close}
     >
       <div
-        className="relative w-full max-w-4xl animate-scale-in overflow-hidden bg-ink-900 shadow-2xl sm:rounded-3xl sm:border sm:border-white/10"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={details?.title || t('detail.loading')}
+        tabIndex={-1}
+        className="relative w-full max-w-4xl animate-scale-in overflow-hidden bg-ink-900 shadow-2xl outline-none sm:rounded-3xl sm:border sm:border-white/10"
         onClick={(e) => e.stopPropagation()}
       >
         <button

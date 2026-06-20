@@ -3,6 +3,7 @@ import { Cake, MapPin, X } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import type { Person } from '../../lib/types';
 import { usePersonTarget } from '../../hooks/useDetailRoute';
+import { useModal } from '../../hooks/useModal';
 import { ErrorState, FullSpinner } from '../ui/States';
 import { MediaGrid } from './MediaGrid';
 import { useT, activeLang } from '../../lib/i18n';
@@ -43,17 +44,7 @@ export function PersonModal() {
     void load(personId);
   }, [personId, load]);
 
-  useEffect(() => {
-    if (!personId) return undefined;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [personId, close]);
+  const dialogRef = useModal<HTMLDivElement>(Boolean(personId), close);
 
   if (!personId) return null;
 
@@ -65,7 +56,12 @@ export function PersonModal() {
       onClick={close}
     >
       <div
-        className="relative w-full max-w-4xl animate-scale-in overflow-hidden bg-ink-900 p-5 shadow-2xl sm:rounded-3xl sm:border sm:border-white/10 sm:p-8"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={person?.name || t('person.loading')}
+        tabIndex={-1}
+        className="relative w-full max-w-4xl animate-scale-in overflow-hidden bg-ink-900 p-5 shadow-2xl outline-none sm:rounded-3xl sm:border sm:border-white/10 sm:p-8"
         onClick={(e) => e.stopPropagation()}
       >
         <button

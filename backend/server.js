@@ -16,11 +16,13 @@ const tmdb = require('./tmdb');
 const store = require('./store');
 const auth = require('./auth');
 const { sanitizeLibrary, mergeLibraries } = require('./library');
+const { cacheControl, noStore, TTL } = require('./http-cache');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.set('trust proxy', 1); // honor X-Forwarded-* behind a reverse proxy
+app.set('etag', 'strong'); // strong ETags → cheap 304s on unchanged payloads
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(compression());
 app.use(cors());
@@ -62,7 +64,7 @@ function localeFrom(req) {
     };
 }
 
-app.get('/api/health', (_req, res) => {
+app.get('/api/health', noStore, (_req, res) => {
     res.json({
         status: 'ok',
         tmdb: tmdb.isConfigured() ? 'configured' : 'missing-key',
@@ -73,6 +75,7 @@ app.get('/api/health', (_req, res) => {
 
 app.get(
     '/api/home',
+    cacheControl(TTL.dynamic),
     route(async (req, res) => {
         const { region, language } = localeFrom(req);
         res.json(await tmdb.home(region || tmdb.DEFAULT_REGION, { language }));
@@ -81,6 +84,7 @@ app.get(
 
 app.get(
     '/api/search',
+    cacheControl(TTL.dynamic),
     route(async (req, res) => {
         const q = (req.query.q || '').toString();
         const page = Math.max(1, Number(req.query.page) || 1);
@@ -90,6 +94,7 @@ app.get(
 
 app.get(
     '/api/genres/:mediaType',
+    cacheControl(TTL.static),
     route(async (req, res) => {
         const mediaType = assertMediaType(req.params.mediaType);
         res.json({ genres: await tmdb.getGenres(mediaType, localeFrom(req)) });
@@ -98,6 +103,7 @@ app.get(
 
 app.get(
     '/api/providers/:mediaType',
+    cacheControl(TTL.static),
     route(async (req, res) => {
         const mediaType = assertMediaType(req.params.mediaType);
         const region = (req.query.region || tmdb.DEFAULT_REGION).toString().toUpperCase();
@@ -107,6 +113,7 @@ app.get(
 
 app.get(
     '/api/discover/:mediaType',
+    cacheControl(TTL.dynamic),
     route(async (req, res) => {
         const mediaType = assertMediaType(req.params.mediaType);
         const { genre, sort, providers, region } = req.query;
@@ -133,6 +140,7 @@ app.get(
 
 app.get(
     '/api/trending/:mediaType',
+    cacheControl(TTL.dynamic),
     route(async (req, res) => {
         const mediaType = ['all', 'movie', 'tv'].includes(req.params.mediaType)
             ? req.params.mediaType
@@ -144,6 +152,7 @@ app.get(
 
 app.get(
     '/api/person/:id',
+    cacheControl(TTL.details),
     route(async (req, res) => {
         const id = Number(req.params.id);
         if (!Number.isInteger(id) || id <= 0) {
@@ -164,6 +173,9 @@ app.post(
 );
 
 /* ------------------------------- auth --------------------------------- */
+
+// Auth + library responses are per-user and must never be cached by anyone.
+app.use(['/api/auth', '/api/library'], noStore);
 
 app.post(
     '/api/auth/register',
@@ -233,6 +245,7 @@ app.post(
 
 app.get(
     '/api/:mediaType/:id',
+    cacheControl(TTL.details),
     route(async (req, res) => {
         const mediaType = assertMediaType(req.params.mediaType);
         const id = Number(req.params.id);

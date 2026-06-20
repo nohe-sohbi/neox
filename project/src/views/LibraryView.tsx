@@ -1,9 +1,17 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bookmark, Cloud, Loader2, Trash2 } from 'lucide-react';
+import { Bookmark, Cloud, Download, Loader2, Trash2, Upload } from 'lucide-react';
 import type { LibraryEntry, LibraryStatus, MediaItem } from '../lib/types';
 import { useAuth } from '../context/AuthContext';
 import { useLibrary } from '../context/LibraryContext';
+import {
+  SORT_MODES,
+  backupFilename,
+  parseLibrary,
+  serializeLibrary,
+  sortEntries,
+  type SortMode,
+} from '../lib/library-io';
 import { MediaGrid } from '../components/media/MediaGrid';
 import { EmptyState } from '../components/ui/States';
 import { useT } from '../lib/i18n';
@@ -33,12 +41,17 @@ function toMediaItem(entry: LibraryEntry): MediaItem {
   };
 }
 
+type Notice = { kind: 'ok' | 'error'; text: string } | null;
+
 export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
   const { t, tn } = useT();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { entries, clear, syncing } = useLibrary();
+  const { entries, clear, syncing, importEntries } = useLibrary();
   const [filter, setFilter] = useState<Filter>('all');
+  const [sort, setSort] = useState<SortMode>('added_desc');
+  const [notice, setNotice] = useState<Notice>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const counts = {
     all: entries.length,
@@ -46,10 +59,33 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
     watched: entries.filter((e) => e.status === 'watched').length,
   };
 
-  const filtered = entries
-    .filter((e) => filter === 'all' || e.status === filter)
-    .sort((a, b) => b.addedAt - a.addedAt)
-    .map(toMediaItem);
+  const filtered = sortEntries(
+    entries.filter((e) => filter === 'all' || e.status === filter),
+    sort,
+  ).map(toMediaItem);
+
+  const handleExport = () => {
+    const blob = new Blob([serializeLibrary(entries)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = backupFilename();
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = async (file: File) => {
+    try {
+      const text = await file.text();
+      const incoming = parseLibrary(text);
+      const added = importEntries(incoming);
+      setNotice({ kind: 'ok', text: t('library.import_ok', { count: added }) });
+    } catch {
+      setNotice({ kind: 'error', text: t('library.import_error') });
+    } finally {
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
 
   return (
     <div className="container mx-auto px-6 pb-16 pt-28">
@@ -65,16 +101,58 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
               : t('library.subtitle_empty')}
           </p>
         </div>
-        {entries.length > 0 && (
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Backup / restore — works logged-out too (data ownership). */}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleImport(file);
+            }}
+          />
           <button
-            onClick={clear}
-            className="inline-flex items-center gap-2 text-sm text-white/50 transition-colors hover:text-red-400"
+            onClick={() => fileRef.current?.click()}
+            className="inline-flex items-center gap-2 text-sm text-white/50 transition-colors hover:text-white"
           >
-            <Trash2 className="h-4 w-4" />
-            {t('library.clear_all')}
+            <Upload className="h-4 w-4" />
+            {t('library.import')}
           </button>
-        )}
+          {entries.length > 0 && (
+            <button
+              onClick={handleExport}
+              className="inline-flex items-center gap-2 text-sm text-white/50 transition-colors hover:text-white"
+            >
+              <Download className="h-4 w-4" />
+              {t('library.export')}
+            </button>
+          )}
+          {entries.length > 0 && (
+            <button
+              onClick={clear}
+              className="inline-flex items-center gap-2 text-sm text-white/50 transition-colors hover:text-red-400"
+            >
+              <Trash2 className="h-4 w-4" />
+              {t('library.clear_all')}
+            </button>
+          )}
+        </div>
       </div>
+
+      {notice && (
+        <p
+          role="status"
+          className={`mb-6 rounded-xl border px-4 py-3 text-sm ${
+            notice.kind === 'ok'
+              ? 'border-brand-cyan/30 bg-brand-cyan/10 text-brand-cyan'
+              : 'border-red-500/30 bg-red-900/20 text-red-300'
+          }`}
+        >
+          {notice.text}
+        </p>
+      )}
 
       {/* Sync banner for logged-out users */}
       {!user && entries.length > 0 && (
@@ -103,21 +181,38 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
         />
       ) : (
         <>
-          <div className="mb-6 flex gap-2">
-            {FILTERS.map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setFilter(f.id)}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
-                  filter === f.id
-                    ? 'bg-brand-gradient text-white shadow-glow'
-                    : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
-                }`}
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex gap-2">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setFilter(f.id)}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
+                    filter === f.id
+                      ? 'bg-brand-gradient text-white shadow-glow'
+                      : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
+                  }`}
+                >
+                  {t(f.key)}
+                  <span className="ml-1.5 text-white/50">{counts[f.id]}</span>
+                </button>
+              ))}
+            </div>
+
+            <label className="flex items-center gap-2 text-sm text-white/50">
+              {t('library.sort_by')}
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortMode)}
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white outline-none transition-colors hover:bg-white/10 focus:border-brand-violet/50"
               >
-                {t(f.key)}
-                <span className="ml-1.5 text-white/50">{counts[f.id]}</span>
-              </button>
-            ))}
+                {SORT_MODES.map((m) => (
+                  <option key={m.id} value={m.id} className="bg-ink-900">
+                    {t(m.key)}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           {filtered.length === 0 ? (

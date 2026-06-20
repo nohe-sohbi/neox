@@ -35,7 +35,9 @@ Aucun contenu n'est hébergé ni stocké : NEOX agrège des **métadonnées publ
   Prime, Max…), préférence mémorisée.
 - **Fiche détaillée** — bande-annonce YouTube intégrée, synopsis, casting, genres, durée, et la
   section **« Où regarder (légalement) »**.
-- **Bibliothèque perso** — statut **À voir / Vu**, **note personnelle 1–10**, filtres par statut.
+- **Bibliothèque perso** — statut **À voir / Vu**, **note personnelle 1–10**, filtres par statut,
+  **tri** (ajout, titre, note TMDB, ta note, année) et **export / import JSON** (sauvegarde et
+  restauration portables, sans compte requis).
 - **Comptes & sync cloud** — inscription/connexion (JWT), ta liste fusionnée et synchronisée sur
   tous tes appareils. Hors-ligne : tout reste en localStorage.
 - **Recommandations « Pour toi »** — suggestions personnalisées à partir de ta bibliothèque.
@@ -47,6 +49,12 @@ Aucun contenu n'est hébergé ni stocké : NEOX agrège des **métadonnées publ
 - **Analytics privacy-first** (Plausible, opt-in) et **API durcie** (helmet, compression, rate-limit).
 - **Cache TMDB résilient** — cache borné **LRU + TTL** avec **stale-while-revalidate** (une panne
   TMDB sert la donnée en cache plutôt qu'une erreur) ; métriques exposées sur `/api/health`.
+- **Cache HTTP** — en plus du cache mémoire, les endpoints de lecture envoient `Cache-Control`
+  (`max-age` + `stale-while-revalidate`) et des **ETags forts** → navigateurs et CDN réutilisent les
+  réponses et obtiennent des **304** quand rien n'a changé ; les routes privées sont en `no-store`.
+- **Accessibilité des modales** — fiche, personne, auth et palette ⌘K partagent un hook
+  `useModal` : **piège de focus**, restauration du focus à la fermeture, `Escape`, verrou de scroll
+  et sémantique `role="dialog"` / `aria-modal`.
 - **Design system** Tailwind sur-mesure : thème sombre, dégradé de marque, micro-interactions,
   skeletons, responsive mobile-first.
 
@@ -58,14 +66,15 @@ neox/
 │   ├── server.js       routes + validation + gestion d'erreurs centralisée
 │   ├── tmdb.js         client TMDB (retry/backoff, normalisation)
 │   ├── cache.js        cache borné LRU + TTL + stale-while-revalidate (testé)
+│   ├── http-cache.js   middlewares Cache-Control + ETag/304 + no-store (testé)
 │   ├── auth.js         bcrypt + JWT, middleware requireAuth
 │   ├── store.js        store JSON persistant (atomique, zéro dépendance)
 │   └── library.js      validation + merge des bibliothèques
 └── project/            Frontend React + TypeScript + Vite + Tailwind
     └── src/
-        ├── lib/        client API typé · i18n (FR/EN/ES/DE/IT) · recherches récentes
+        ├── lib/        client API typé · i18n (FR/EN/ES/DE/IT) · recherches récentes · library-io (export/import + tri)
         ├── context/    AuthContext · LibraryContext (sync cloud)
-        ├── hooks/      useDebounce · useMyPlatforms · useDetailRoute
+        ├── hooks/      useDebounce · useMyPlatforms · useDetailRoute · useModal (focus trap a11y)
         ├── components/ layout · media · home · auth · ui · command (⌘K)
         └── views/      Home · Discover · Search · Library
 ```
@@ -131,8 +140,8 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 
 ## ✅ Qualité
 
-- **Tests** : `npm test` côté `backend/` (auth + sync via supertest) et `project/` (logique
-  bibliothèque via vitest).
+- **Tests** : `npm test` côté `backend/` (auth + sync via supertest, cache HTTP : headers + 304) et
+  `project/` (logique bibliothèque + export/import/tri, i18n via vitest).
 - **Vérifs** : `npm run lint` · `npm run typecheck` · `npm run build`.
 - **CI** : GitHub Actions lance lint + typecheck + tests + build sur chaque PR
   (`.github/workflows/ci.yml`).

@@ -14,6 +14,7 @@ import { api } from '../../lib/api';
 import type { MediaItem } from '../../lib/types';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useOpenDetail } from '../../hooks/useDetailRoute';
+import { useModal } from '../../hooks/useModal';
 import { useT } from '../../lib/i18n';
 import {
   clearSearches,
@@ -96,17 +97,9 @@ export function CommandPalette() {
     };
   }, [show]);
 
-  // Lock body scroll + focus input while open.
-  useEffect(() => {
-    if (!open) return undefined;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const id = window.setTimeout(() => inputRef.current?.focus(), 20);
-    return () => {
-      document.body.style.overflow = prev;
-      window.clearTimeout(id);
-    };
-  }, [open]);
+  // Scroll lock, Escape, focus trap + restore — and focus the input on open
+  // (it's the first focusable element inside the dialog).
+  const dialogRef = useModal<HTMLDivElement>(open, hide);
 
   // Fetch search results as the user types.
   useEffect(() => {
@@ -207,7 +200,11 @@ export function CommandPalette() {
       onClick={hide}
     >
       <div
-        className="card-surface w-full max-w-xl animate-scale-in overflow-hidden p-0"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('cmd.placeholder')}
+        className="card-surface w-full max-w-xl animate-scale-in overflow-hidden p-0 outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 border-b border-white/10 px-4">

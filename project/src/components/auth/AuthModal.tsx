@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, Lock, Mail, X } from 'lucide-react';
 import { ApiError } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import { useModal } from '../../hooks/useModal';
 import { useT } from '../../lib/i18n';
 
 interface AuthModalProps {
@@ -25,12 +26,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
     }
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  const dialogRef = useModal<HTMLDivElement>(open, onClose);
 
   if (!open) return null;
 
@@ -55,7 +51,12 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
       onClick={onClose}
     >
       <div
-        className="card-surface w-full max-w-md animate-scale-in p-7"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={mode === 'login' ? t('auth.welcome_back') : t('auth.create_account')}
+        tabIndex={-1}
+        className="card-surface w-full max-w-md animate-scale-in p-7 outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-1 flex items-start justify-between">

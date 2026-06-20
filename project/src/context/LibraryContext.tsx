@@ -11,6 +11,7 @@ import {
 import { api } from '../lib/api';
 import { track } from '../lib/analytics';
 import { entryKey as keyOf, toggleEntry, upsertEntry } from '../lib/library-utils';
+import { mergeEntries } from '../lib/library-io';
 import type { LibraryEntry, LibraryStatus, MediaItem } from '../lib/types';
 import { useAuth } from './AuthContext';
 
@@ -40,6 +41,7 @@ interface LibraryContextValue {
   setRating: (item: MediaItem, rating: number | null) => void;
   remove: (item: ItemRef) => void;
   clear: () => void;
+  importEntries: (incoming: LibraryEntry[]) => number;
 }
 
 const LibraryContext = createContext<LibraryContextValue | null>(null);
@@ -144,6 +146,22 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
 
   const clear = useCallback(() => apply(() => []), [apply]);
 
+  // Merge a restored/imported backup into the current library. Returns how many
+  // entries the collection grew by, so the UI can report the result.
+  const importEntries = useCallback(
+    (incoming: LibraryEntry[]) => {
+      let added = 0;
+      apply((prev) => {
+        const merged = mergeEntries(prev, incoming);
+        added = merged.length - prev.length;
+        return merged;
+      });
+      track('Library Import', { count: incoming.length });
+      return added;
+    },
+    [apply],
+  );
+
   const value = useMemo<LibraryContextValue>(
     () => ({
       entries,
@@ -158,6 +176,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       setRating,
       remove,
       clear,
+      importEntries,
     }),
     [
       entries,
@@ -171,6 +190,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       setRating,
       remove,
       clear,
+      importEntries,
     ],
   );
 

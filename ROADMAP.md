@@ -64,6 +64,24 @@ découverte légale (TMDB + « où regarder »). Ci-dessous : ce qui est fait, e
       **stale-while-revalidate** : en cas de panne TMDB, on sert la donnée légèrement périmée
       plutôt qu'une erreur. Métriques exposées dans `/api/health`. Module isolé et testé.
 
+## ✅ Phase 5 — Perf, data ownership & a11y (LIVRÉ)
+
+Trois axes d'amélioration majeurs, sans dépendance ni infra externe :
+
+- [x] **Cache HTTP (perf backend)** — les endpoints de lecture renvoient désormais `Cache-Control`
+      (`max-age` + `s-maxage` + `stale-while-revalidate`) et des **ETags forts**. Navigateurs et CDN
+      réutilisent les réponses et reçoivent un **304** quand rien n'a changé ; les erreurs ne sont
+      jamais marquées cacheables et les routes privées (auth/library/health) sont en `no-store`.
+      Middlewares isolés et testés (`backend/http-cache.js`).
+- [x] **Export / import de la bibliothèque + tri (feature)** — sauvegarde JSON versionnée et
+      restauration portables (sans compte), import re-validé et fusionné (le plus récent gagne), plus
+      un tri configurable (ajout, titre, note TMDB, note perso, année). Logique pure et testée
+      (`project/src/lib/library-io.ts`).
+- [x] **Accessibilité des modales (qualité/UX)** — hook `useModal` partagé par les 4 overlays
+      (fiche, personne, auth, palette ⌘K) : **piège de focus**, restauration du focus, `Escape`,
+      verrou de scroll et `role="dialog"` / `aria-modal`. Les dialogues empilés ne se disputent plus
+      les raccourcis (seul celui qui a le focus réagit).
+
 ## ⏭️ Reste (nécessite une infra externe — volontairement non codé en dur)
 
 - [ ] **Notifications « ça arrive sur ta plateforme »** — requiert SMTP/push + un scheduler

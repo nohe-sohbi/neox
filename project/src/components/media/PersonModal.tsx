@@ -4,6 +4,7 @@ import { api, ApiError } from '../../lib/api';
 import type { Person } from '../../lib/types';
 import { usePersonTarget } from '../../hooks/useDetailRoute';
 import { useModal } from '../../hooks/useModal';
+import { DocumentMeta } from '../../hooks/useDocumentMeta';
 import { ErrorState, FullSpinner } from '../ui/States';
 import { MediaGrid } from './MediaGrid';
 import { useT, activeLang } from '../../lib/i18n';
@@ -77,6 +78,13 @@ export function PersonModal() {
 
         {person && !loading && (
           <>
+            <DocumentMeta
+              title={person.name}
+              description={person.biography || `${person.name} — ${person.knownFor}`}
+              image={person.photo}
+              type="profile"
+              path={`/?person=${person.id}`}
+            />
             <div className="flex flex-col gap-5 sm:flex-row">
               {person.photo ? (
                 <img

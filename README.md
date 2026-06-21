@@ -29,8 +29,8 @@ Aucun contenu n'est hébergé ni stocké : NEOX agrège des **métadonnées publ
 - **Recherche instantanée** (debounced, films + séries) avec états loading / vide / erreur soignés.
 - **Palette de commandes ⌘K** — lanceur clavier global (⌘K / Ctrl+K) : recherche instantanée, saut
   vers n'importe quelle page et **recherches récentes**, navigation 100 % clavier.
-- **Explorer** — filtres par genre, tri (populaires, mieux notés, récents, box-office) et
-  **scroll infini**.
+- **Explorer** — filtres par genre, **année de sortie**, **note minimale** (6+/7+/8+/9+), tri
+  (populaires, mieux notés, récents, box-office) et **scroll infini**.
 - **Filtre « Mes plateformes »** — n'affiche que ce qui est dispo sur tes services (Netflix,
   Prime, Max…), préférence mémorisée.
 - **Fiche détaillée** — bande-annonce YouTube intégrée, synopsis, casting, genres, durée, et la
@@ -49,6 +49,13 @@ Aucun contenu n'est hébergé ni stocké : NEOX agrège des **métadonnées publ
 - **Analytics privacy-first** (Plausible, opt-in) et **API durcie** (helmet, compression, rate-limit).
 - **Cache TMDB résilient** — cache borné **LRU + TTL** avec **stale-while-revalidate** (une panne
   TMDB sert la donnée en cache plutôt qu'une erreur) ; métriques exposées sur `/api/health`.
+- **Coalescing de requêtes (single-flight)** — les **cache-miss concurrents** sur une même URL TMDB
+  ne déclenchent qu'**un seul appel amont** (le premier appelant travaille, les autres attendent la
+  même promesse) : protection thundering-herd, quota TMDB préservé sous charge. Compteurs
+  `coalesced` / `flights` / `inFlight` exposés sur `/api/health`.
+- **SEO dynamique & cartes sociales** — chaque route et chaque fiche/personne pilote le `<head>`
+  (`title`, `description`, **Open Graph + Twitter Card** avec poster, URL canonique) ; les overlays
+  restaurent le head à la fermeture. `robots.txt` + `sitemap.xml` inclus.
 - **Cache HTTP** — en plus du cache mémoire, les endpoints de lecture envoient `Cache-Control`
   (`max-age` + `stale-while-revalidate`) et des **ETags forts** → navigateurs et CDN réutilisent les
   réponses et obtiennent des **304** quand rien n'a changé ; les routes privées sont en `no-store`.
@@ -66,15 +73,16 @@ neox/
 │   ├── server.js       routes + validation + gestion d'erreurs centralisée
 │   ├── tmdb.js         client TMDB (retry/backoff, normalisation)
 │   ├── cache.js        cache borné LRU + TTL + stale-while-revalidate (testé)
+│   ├── single-flight.js coalescing des requêtes amont concurrentes (testé)
 │   ├── http-cache.js   middlewares Cache-Control + ETag/304 + no-store (testé)
 │   ├── auth.js         bcrypt + JWT, middleware requireAuth
 │   ├── store.js        store JSON persistant (atomique, zéro dépendance)
 │   └── library.js      validation + merge des bibliothèques
 └── project/            Frontend React + TypeScript + Vite + Tailwind
     └── src/
-        ├── lib/        client API typé · i18n (FR/EN/ES/DE/IT) · recherches récentes · library-io (export/import + tri)
+        ├── lib/        client API typé · i18n (FR/EN/ES/DE/IT) · recherches récentes · library-io (export/import + tri) · seo (meta/OG)
         ├── context/    AuthContext · LibraryContext (sync cloud)
-        ├── hooks/      useDebounce · useMyPlatforms · useDetailRoute · useModal (focus trap a11y)
+        ├── hooks/      useDebounce · useMyPlatforms · useDetailRoute · useModal (focus trap a11y) · useDocumentMeta (SEO)
         ├── components/ layout · media · home · auth · ui · command (⌘K)
         └── views/      Home · Discover · Search · Library
 ```
@@ -122,7 +130,7 @@ cd project && npm install && npm run dev
 | GET | `/api/home` | Payload accueil (hero + rails) |
 | GET | `/api/search?q=&page=` | Recherche multi (films + séries) |
 | GET | `/api/trending/:type?window=week\|day` | Tendances (`all`/`movie`/`tv`) |
-| GET | `/api/discover/:type?genre=&sort=&page=` | Exploration filtrée |
+| GET | `/api/discover/:type?genre=&sort=&year=&minRating=&page=` | Exploration filtrée (genre, année, note min., tri) |
 | GET | `/api/genres/:type` | Genres (`movie`/`tv`) |
 | GET | `/api/providers/:type?region=` | Plateformes de streaming d'une région |
 | GET | `/api/person/:id` | Profil + filmographie d'une personne |
@@ -140,8 +148,9 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 
 ## ✅ Qualité
 
-- **Tests** : `npm test` côté `backend/` (auth + sync via supertest, cache HTTP : headers + 304) et
-  `project/` (logique bibliothèque + export/import/tri, i18n via vitest).
+- **Tests** : `npm test` côté `backend/` (auth + sync via supertest, cache HTTP : headers + 304,
+  cache LRU, **single-flight**, **params discover**) et `project/` (logique bibliothèque +
+  export/import/tri, i18n, **SEO/meta** via vitest) — 34 + 39 tests verts.
 - **Vérifs** : `npm run lint` · `npm run typecheck` · `npm run build`.
 - **CI** : GitHub Actions lance lint + typecheck + tests + build sur chaque PR
   (`.github/workflows/ci.yml`).

@@ -9,6 +9,7 @@
  */
 const fetch = require('node-fetch');
 const { TtlLruCache } = require('./cache');
+const { SingleFlight } = require('./single-flight');
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const IMG_BASE = 'https://image.tmdb.org/t/p';
@@ -33,6 +34,9 @@ const cache = new TtlLruCache({
     staleMs: CACHE_STALE_MS,
 });
 
+// Collapses concurrent identical cache-misses into a single upstream fetch.
+const inflight = new SingleFlight();
+
 function isConfigured() {
     return Boolean(API_KEY || READ_TOKEN);
 }
@@ -43,7 +47,7 @@ function img(path, size) {
 
 /** Cache diagnostics surfaced via /api/health. */
 function cacheStats() {
-    return cache.stats();
+    return { ...cache.stats(), inflight: inflight.stats() };
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -75,49 +79,59 @@ async function tmdbGet(path, params = {}) {
     const cached = cache.get(cacheKey);
     if (cached && !cached.stale) return cached.value;
 
-    const headers = { accept: 'application/json' };
-    if (READ_TOKEN) headers.Authorization = `Bearer ${READ_TOKEN}`;
+    // Coalesce concurrent misses for this exact URL: only the first caller hits
+    // TMDB, the rest await the same flight. Keyed by URL so different params
+    // (locale, page…) never share a result.
+    return inflight.run(cacheKey, async () => {
+        // Re-check the cache inside the flight: an earlier flight may have just
+        // populated it while we were queued behind the single-flight lock.
+        const fresh = cache.get(cacheKey);
+        if (fresh && !fresh.stale) return fresh.value;
 
-    const maxAttempts = 4;
-    let lastError;
+        const headers = { accept: 'application/json' };
+        if (READ_TOKEN) headers.Authorization = `Bearer ${READ_TOKEN}`;
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-            const response = await fetch(url, { headers, timeout: 12000 });
+        const maxAttempts = 4;
+        let lastError;
 
-            if (response.status === 429) {
-                const retryAfter = Number(response.headers.get('retry-after')) || attempt;
-                await sleep(retryAfter * 1000);
-                continue;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                const response = await fetch(url, { headers, timeout: 12000 });
+
+                if (response.status === 429) {
+                    const retryAfter = Number(response.headers.get('retry-after')) || attempt;
+                    await sleep(retryAfter * 1000);
+                    continue;
+                }
+
+                const data = await response.json();
+
+                if (!response.ok || data.success === false) {
+                    const err = new Error(data.status_message || `TMDB error (HTTP ${response.status})`);
+                    err.status = response.status >= 400 && response.status < 500 ? response.status : 502;
+                    throw err;
+                }
+
+                cache.set(cacheKey, data);
+                return data;
+            } catch (error) {
+                lastError = error;
+                // Don't retry deterministic client errors.
+                if (error.status && error.status >= 400 && error.status < 500) throw error;
+                if (attempt < maxAttempts) await sleep(2 ** attempt * 250);
             }
-
-            const data = await response.json();
-
-            if (!response.ok || data.success === false) {
-                const err = new Error(data.status_message || `TMDB error (HTTP ${response.status})`);
-                err.status = response.status >= 400 && response.status < 500 ? response.status : 502;
-                throw err;
-            }
-
-            cache.set(cacheKey, data);
-            return data;
-        } catch (error) {
-            lastError = error;
-            // Don't retry deterministic client errors.
-            if (error.status && error.status >= 400 && error.status < 500) throw error;
-            if (attempt < maxAttempts) await sleep(2 ** attempt * 250);
         }
-    }
 
-    // Upstream is failing — serve slightly-stale data rather than erroring out.
-    if (cached) {
-        cache.recordStaleServe();
-        return cached.value;
-    }
+        // Upstream is failing — serve slightly-stale data rather than erroring out.
+        if (cached) {
+            cache.recordStaleServe();
+            return cached.value;
+        }
 
-    const err = new Error(`TMDB request failed after ${maxAttempts} attempts: ${lastError?.message}`);
-    err.status = 502;
-    throw err;
+        const err = new Error(`TMDB request failed after ${maxAttempts} attempts: ${lastError?.message}`);
+        err.status = 502;
+        throw err;
+    });
 }
 
 /* ----------------------------- normalizers ----------------------------- */
@@ -210,24 +224,51 @@ async function trending(mediaType, window = 'week', opts = {}) {
     );
 }
 
-async function discover(
+/**
+ * Pure builder for TMDB /discover query params. Kept separate from the network
+ * call so the filter logic (genre, sort, year, rating, providers) is trivially
+ * unit-testable without mocking fetch.
+ */
+function buildDiscoverParams(
     mediaType,
-    { genre, sort = 'popularity.desc', page = 1, providers, region, language } = {},
+    { genre, sort = 'popularity.desc', page = 1, providers, region, language, year, minRating } = {},
 ) {
     const params = {
         sort_by: sort,
         page: String(page),
-        'vote_count.gte': '50',
+        // A floor of 50 votes keeps obscure entries out — but a user asking for
+        // a minimum rating wants a stricter signal, so raise the floor then.
+        'vote_count.gte': minRating ? '200' : '50',
         ...locale({ language }),
     };
     if (genre) params.with_genres = String(genre);
+
+    // Release year: TMDB uses different keys for movies vs. shows.
+    const y = Number(year);
+    if (Number.isInteger(y) && y >= 1900 && y <= 2100) {
+        params[mediaType === 'tv' ? 'first_air_date_year' : 'primary_release_year'] = String(y);
+    }
+
+    // Minimum TMDB score (0–10, one decimal of granularity is plenty).
+    const r = Number(minRating);
+    if (Number.isFinite(r) && r > 0 && r <= 10) {
+        params['vote_average.gte'] = String(r);
+    }
+
     if (providers && providers.length) {
         // TMDB: "|" = OR (available on ANY of these platforms).
         params.with_watch_providers = providers.join('|');
         params.watch_region = (region || DEFAULT_REGION).toUpperCase();
         params.with_watch_monetization_types = 'flatrate';
     }
-    return normalizeList(await tmdbGet(`/discover/${mediaType}`, params), mediaType);
+    return params;
+}
+
+async function discover(mediaType, opts = {}) {
+    return normalizeList(
+        await tmdbGet(`/discover/${mediaType}`, buildDiscoverParams(mediaType, opts)),
+        mediaType,
+    );
 }
 
 /**
@@ -430,6 +471,7 @@ module.exports = {
     recommend,
     trending,
     discover,
+    buildDiscoverParams,
     list,
     search,
     details,

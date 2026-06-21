@@ -82,6 +82,25 @@ Trois axes d'amélioration majeurs, sans dépendance ni infra externe :
       verrou de scroll et `role="dialog"` / `aria-modal`. Les dialogues empilés ne se disputent plus
       les raccourcis (seul celui qui a le focus réagit).
 
+## ✅ Phase 6 — Débit, découverte & SEO (LIVRÉ)
+
+Trois axes d'amélioration majeurs, toujours sans dépendance ni infra externe :
+
+- [x] **Coalescing de requêtes / single-flight (perf & résilience backend)** — au-delà du
+      cache LRU+TTL, les **cache-miss concurrents** sur une même URL TMDB ne déclenchent plus
+      qu'**un seul appel amont** : le premier appelant fait le travail, les autres attendent la même
+      promesse (protection thundering-herd, économie de quota TMDB sous charge). Module isolé et
+      testé (`backend/single-flight.js`), métriques (`coalesced`/`flights`/`inFlight`) exposées dans
+      `/api/health`.
+- [x] **Filtres avancés « Explorer » (feature)** — en plus du genre/tri/plateformes, on filtre
+      désormais par **année de sortie** (sélecteur) et **note minimale** (6+/7+/8+/9+, avec un
+      plancher de votes relevé pour écarter le bruit). Mapping TMDB pur et testé
+      (`buildDiscoverParams`), threadé jusqu'à l'UI et i18n (FR·EN·ES·DE·IT).
+- [x] **SEO dynamique & cartes sociales (croissance/UX)** — chaque route et chaque fiche/personne
+      pilote le `<head>` : `title`, `description`, **Open Graph + Twitter Card** (avec poster), URL
+      canonique. Les overlays restaurent proprement le head à la fermeture (snapshot/restore).
+      `robots.txt` + `sitemap.xml` ajoutés. Logique pure et testée (`project/src/lib/seo.ts`).
+
 ## ⏭️ Reste (nécessite une infra externe — volontairement non codé en dur)
 
 - [ ] **Notifications « ça arrive sur ta plateforme »** — requiert SMTP/push + un scheduler

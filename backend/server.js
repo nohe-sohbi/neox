@@ -116,7 +116,7 @@ app.get(
     cacheControl(TTL.dynamic),
     route(async (req, res) => {
         const mediaType = assertMediaType(req.params.mediaType);
-        const { genre, sort, providers, region } = req.query;
+        const { genre, sort, providers, region, year, minRating } = req.query;
         const page = Math.max(1, Number(req.query.page) || 1);
         const providerIds = providers
             ? providers
@@ -132,6 +132,8 @@ app.get(
                 providers: providerIds,
                 region: region ? region.toString() : undefined,
                 language: req.query.lang ? req.query.lang.toString() : undefined,
+                year: year ? Number(year) : undefined,
+                minRating: minRating ? Number(minRating) : undefined,
                 page,
             }),
         );

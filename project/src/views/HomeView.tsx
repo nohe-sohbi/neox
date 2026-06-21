@@ -6,9 +6,11 @@ import { ForYouRow } from '../components/home/ForYouRow';
 import { MediaRow } from '../components/media/MediaRow';
 import { ErrorState } from '../components/ui/States';
 import { useT } from '../lib/i18n';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 export function HomeView() {
   const { t } = useT();
+  useDocumentMeta({ path: '/' });
   const [data, setData] = useState<HomePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

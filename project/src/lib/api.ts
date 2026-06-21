@@ -120,6 +120,8 @@ export interface DiscoverOpts {
   page?: number;
   providers?: number[];
   region?: string;
+  year?: number;
+  minRating?: number;
 }
 
 export const api = {
@@ -140,6 +142,8 @@ export const api = {
     if (opts.sort) params.set('sort', opts.sort);
     if (opts.page) params.set('page', String(opts.page));
     if (opts.providers?.length) params.set('providers', opts.providers.join(','));
+    if (opts.year) params.set('year', String(opts.year));
+    if (opts.minRating) params.set('minRating', String(opts.minRating));
     const qs = params.toString();
     return request<Paginated<MediaItem>>(withLocale(`/api/discover/${mediaType}${qs ? `?${qs}` : ''}`));
   },

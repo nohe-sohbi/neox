@@ -15,6 +15,7 @@ import {
 import { MediaGrid } from '../components/media/MediaGrid';
 import { EmptyState } from '../components/ui/States';
 import { useT } from '../lib/i18n';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 type Filter = 'all' | LibraryStatus;
 
@@ -45,6 +46,7 @@ type Notice = { kind: 'ok' | 'error'; text: string } | null;
 
 export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
   const { t, tn } = useT();
+  useDocumentMeta({ title: t('library.title'), path: '/library' });
   const navigate = useNavigate();
   const { user } = useAuth();
   const { entries, clear, syncing, importEntries } = useLibrary();

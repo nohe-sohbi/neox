@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, Star } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import type { Genre, MediaItem, MediaType, Provider } from '../lib/types';
 import { useMyPlatforms } from '../hooks/useMyPlatforms';
 import { MediaGrid } from '../components/media/MediaGrid';
 import { EmptyState, ErrorState, Spinner } from '../components/ui/States';
 import { useT } from '../lib/i18n';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 const MOVIE_SORTS = [
   { id: 'popularity.desc', key: 'sort.popularity' },
@@ -20,6 +21,15 @@ const TV_SORTS = [
   { id: 'first_air_date.desc', key: 'sort.release_tv' },
 ];
 
+// Minimum-rating presets (0 = no floor). Kept coarse on purpose — fine-grained
+// sliders add friction without improving discovery.
+const RATING_OPTIONS = [0, 6, 7, 8, 9];
+
+const CURRENT_YEAR = new Date().getFullYear();
+// Exact release years, newest first, back to 1950 — matches TMDB's
+// primary_release_year / first_air_date_year filter.
+const YEAR_OPTIONS = Array.from({ length: CURRENT_YEAR - 1950 + 1 }, (_, i) => CURRENT_YEAR - i);
+
 export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
   const { t } = useT();
   const platforms = useMyPlatforms();
@@ -28,6 +38,8 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [activeGenre, setActiveGenre] = useState<number | undefined>(undefined);
   const [sort, setSort] = useState('popularity.desc');
+  const [year, setYear] = useState<number | undefined>(undefined);
+  const [minRating, setMinRating] = useState(0);
   const [showPlatforms, setShowPlatforms] = useState(false);
 
   const [items, setItems] = useState<MediaItem[]>([]);
@@ -39,9 +51,17 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
 
   const sorts = mediaType === 'tv' ? TV_SORTS : MOVIE_SORTS;
 
+  useDocumentMeta({
+    title: mediaType === 'tv' ? t('discover.tv_title') : t('discover.movies_title'),
+    description: mediaType === 'tv' ? t('discover.tv_sub') : t('discover.movies_sub'),
+    path: mediaType === 'tv' ? '/tv' : '/movies',
+  });
+
   useEffect(() => {
     setActiveGenre(undefined);
     setSort('popularity.desc');
+    setYear(undefined);
+    setMinRating(0);
   }, [mediaType]);
 
   // Genres + providers for this media type.
@@ -74,6 +94,8 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
         const res = await api.discover(mediaType, {
           genre: activeGenre,
           sort,
+          year,
+          minRating: minRating || undefined,
           page: targetPage,
           providers: platformIds ? platformIds.split(',').map(Number) : undefined,
         });
@@ -87,7 +109,7 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
         setLoadingMore(false);
       }
     },
-    [mediaType, activeGenre, sort, platformIds, t],
+    [mediaType, activeGenre, sort, year, minRating, platformIds, t],
   );
 
   useEffect(() => {
@@ -215,6 +237,55 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
           ))}
         </div>
       )}
+
+      {/* Advanced filters: release year + minimum rating */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
+        <label className="flex items-center gap-2 text-sm text-white/60">
+          <span>{t('discover.year')}</span>
+          <select
+            value={year ?? ''}
+            onChange={(e) => setYear(e.target.value ? Number(e.target.value) : undefined)}
+            className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/90 outline-none transition-colors hover:bg-white/10 focus:border-brand-violet/60"
+          >
+            <option value="">{t('discover.all_years')}</option>
+            {YEAR_OPTIONS.map((y) => (
+              <option key={y} value={y} className="bg-ink-900">
+                {y}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-white/60">{t('discover.min_rating')}</span>
+          <div className="flex flex-wrap gap-1.5">
+            {RATING_OPTIONS.map((r) => {
+              const on = minRating === r;
+              return (
+                <button
+                  key={r}
+                  onClick={() => setMinRating(r)}
+                  aria-pressed={on}
+                  className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium transition-all ${
+                    on
+                      ? 'bg-brand-gradient text-white shadow-glow'
+                      : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
+                  }`}
+                >
+                  {r === 0 ? (
+                    t('discover.any_rating')
+                  ) : (
+                    <>
+                      <Star className={`h-3.5 w-3.5 ${on ? 'fill-current' : 'fill-amber-400 text-amber-400'}`} />
+                      {r}+
+                    </>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
       <div className="mt-8">
         {error ? (

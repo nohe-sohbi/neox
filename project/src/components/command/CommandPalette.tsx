@@ -21,6 +21,7 @@ import {
   readSearches,
   rememberSearch,
 } from '../../lib/recent-searches';
+import { readRecent, toMediaItem, type RecentItem } from '../../lib/recently-viewed';
 
 /** Custom event other components can dispatch to open the palette. */
 export const OPEN_COMMAND_EVENT = 'neox:open-command';
@@ -42,6 +43,7 @@ export function CommandPalette() {
   const [results, setResults] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);
+  const [viewed, setViewed] = useState<RecentItem[]>([]);
   const [active, setActive] = useState(0);
 
   const debounced = useDebounce(query.trim(), 250);
@@ -64,6 +66,7 @@ export function CommandPalette() {
 
   const show = useCallback(() => {
     setRecent(readSearches());
+    setViewed(readRecent());
     setQuery('');
     setResults([]);
     setActive(0);
@@ -80,6 +83,7 @@ export function CommandPalette() {
         setOpen((o) => {
           if (!o) {
             setRecent(readSearches());
+            setViewed(readRecent());
             setQuery('');
             setResults([]);
             setActive(0);
@@ -134,8 +138,12 @@ export function CommandPalette() {
         ...results.map((item) => ({ kind: 'result' as const, item })),
       ];
     }
-    return [...navItems, ...recent.map((q) => ({ kind: 'recent' as const, query: q }))];
-  }, [query, results, navItems, recent]);
+    return [
+      ...navItems,
+      ...viewed.map((v) => ({ kind: 'result' as const, item: toMediaItem(v) })),
+      ...recent.map((q) => ({ kind: 'recent' as const, query: q })),
+    ];
+  }, [query, results, navItems, viewed, recent]);
 
   useEffect(() => {
     setActive((i) => Math.min(i, Math.max(0, commands.length - 1)));
@@ -305,6 +313,37 @@ export function CommandPalette() {
                     onClick={() => run(item)}
                     icon={<item.icon className="h-4 w-4" />}
                     title={item.label}
+                  />
+                );
+              })}
+
+              {viewed.length > 0 && (
+                <p className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-white/30">
+                  {t('cmd.recent_viewed')}
+                </p>
+              )}
+              {viewed.map((v) => {
+                cursor += 1;
+                const idx = cursor;
+                return (
+                  <CommandItem
+                    key={`viewed-${v.mediaType}-${v.id}`}
+                    active={active === idx}
+                    onMouseEnter={() => setActive(idx)}
+                    onClick={() => run({ kind: 'result', item: toMediaItem(v) })}
+                    icon={
+                      v.poster ? (
+                        <img src={v.poster} alt="" className="h-10 w-7 rounded object-cover" />
+                      ) : v.mediaType === 'tv' ? (
+                        <Tv className="h-4 w-4" />
+                      ) : (
+                        <Film className="h-4 w-4" />
+                      )
+                    }
+                    title={v.title}
+                    meta={`${v.mediaType === 'tv' ? t('hero.series') : t('hero.movie')}${
+                      v.year ? ` · ${v.year}` : ''
+                    }`}
                   />
                 );
               })}

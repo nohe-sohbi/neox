@@ -62,6 +62,13 @@ Aucun contenu n'est hébergé ni stocké : NEOX agrège des **métadonnées publ
 - **Accessibilité des modales** — fiche, personne, auth et palette ⌘K partagent un hook
   `useModal` : **piège de focus**, restauration du focus à la fermeture, `Escape`, verrou de scroll
   et sémantique `role="dialog"` / `aria-modal`.
+- **Cache de données côté client** — cache mémoire **stale-while-revalidate** avec **dédup des
+  requêtes en vol** (`lib/query.ts` + `useQuery`) : revenir sur l'Accueil ou changer d'onglet
+  repeint instantanément depuis le cache puis revalide en arrière-plan, sans skeleton qui clignote.
+- **« Vu récemment »** — les fiches ouvertes sont mémorisées localement et resurgissent dans un rail
+  Accueil « Reprends où tu en étais » et dans la palette ⌘K (sans compte requis).
+- **Résilience & a11y** — **ErrorBoundary** global (repli localisé + rechargement plutôt qu'un écran
+  blanc), lien **« Aller au contenu »** (skip-link) et respect de **`prefers-reduced-motion`**.
 - **Design system** Tailwind sur-mesure : thème sombre, dégradé de marque, micro-interactions,
   skeletons, responsive mobile-first.
 
@@ -80,10 +87,10 @@ neox/
 │   └── library.js      validation + merge des bibliothèques
 └── project/            Frontend React + TypeScript + Vite + Tailwind
     └── src/
-        ├── lib/        client API typé · i18n (FR/EN/ES/DE/IT) · recherches récentes · library-io (export/import + tri) · seo (meta/OG)
+        ├── lib/        client API typé · query (cache SWR + dédup) · i18n (FR/EN/ES/DE/IT) · recherches récentes · recently-viewed · library-io (export/import + tri) · seo (meta/OG)
         ├── context/    AuthContext · LibraryContext (sync cloud)
-        ├── hooks/      useDebounce · useMyPlatforms · useDetailRoute · useModal (focus trap a11y) · useDocumentMeta (SEO)
-        ├── components/ layout · media · home · auth · ui · command (⌘K)
+        ├── hooks/      useDebounce · useQuery (SWR) · useMyPlatforms · useDetailRoute · useModal (focus trap a11y) · useDocumentMeta (SEO)
+        ├── components/ layout · media · home · auth · ui (+ ErrorBoundary) · command (⌘K)
         └── views/      Home · Discover · Search · Library
 ```
 
@@ -150,7 +157,8 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 
 - **Tests** : `npm test` côté `backend/` (auth + sync via supertest, cache HTTP : headers + 304,
   cache LRU, **single-flight**, **params discover**) et `project/` (logique bibliothèque +
-  export/import/tri, i18n, **SEO/meta** via vitest) — 34 + 39 tests verts.
+  export/import/tri, i18n, **SEO/meta**, **cache SWR + dédup**, **« vu récemment »** via vitest) —
+  34 + 50 tests verts.
 - **Vérifs** : `npm run lint` · `npm run typecheck` · `npm run build`.
 - **CI** : GitHub Actions lance lint + typecheck + tests + build sur chaque PR
   (`.github/workflows/ci.yml`).

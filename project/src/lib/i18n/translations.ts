@@ -34,6 +34,10 @@ const fr: Dict = {
   'api.server': 'Erreur serveur ({status})',
   'error.title': 'Aïe, ça a coincé',
   'error.retry': 'Réessayer',
+  'error.boundary_desc':
+    'Une erreur inattendue est survenue. Recharge la page pour continuer.',
+  'error.reload': 'Recharger la page',
+  'a11y.skip': 'Aller au contenu',
 
   // Home
   'home.row.now_playing': 'À l’affiche en ce moment',
@@ -42,6 +46,7 @@ const fr: Dict = {
   'home.row.top_rated': 'Acclamés par la critique',
   'home.row.popular_tv': 'Séries populaires',
   'home.for_you': 'Pour toi',
+  'home.recent': 'Reprends où tu en étais',
   'home.error_no_key':
     'Le serveur n’a pas de clé TMDB configurée. Ajoute TMDB_API_KEY côté backend.',
 
@@ -181,6 +186,7 @@ const fr: Dict = {
   // Command palette
   'cmd.placeholder': 'Rechercher un film, une série, une page…',
   'cmd.recent': 'Recherches récentes',
+  'cmd.recent_viewed': 'Vu récemment',
   'cmd.clear_recent': 'Effacer',
   'cmd.nav': 'Aller à',
   'cmd.results': 'Résultats',
@@ -215,6 +221,9 @@ const en: Dict = {
   'api.server': 'Server error ({status})',
   'error.title': 'Oops, that broke',
   'error.retry': 'Try again',
+  'error.boundary_desc': 'Something unexpected happened. Reload the page to keep going.',
+  'error.reload': 'Reload the page',
+  'a11y.skip': 'Skip to content',
 
   'home.row.now_playing': 'In theaters now',
   'home.row.trending_tv': 'Trending shows',
@@ -222,6 +231,7 @@ const en: Dict = {
   'home.row.top_rated': 'Critically acclaimed',
   'home.row.popular_tv': 'Popular shows',
   'home.for_you': 'For you',
+  'home.recent': 'Pick up where you left off',
   'home.error_no_key':
     'The server has no TMDB key configured. Add TMDB_API_KEY on the backend.',
 
@@ -349,6 +359,7 @@ const en: Dict = {
 
   'cmd.placeholder': 'Search a movie, a show, a page…',
   'cmd.recent': 'Recent searches',
+  'cmd.recent_viewed': 'Recently viewed',
   'cmd.clear_recent': 'Clear',
   'cmd.nav': 'Jump to',
   'cmd.results': 'Results',
@@ -383,6 +394,9 @@ const es: Dict = {
   'api.server': 'Error del servidor ({status})',
   'error.title': 'Vaya, algo falló',
   'error.retry': 'Reintentar',
+  'error.boundary_desc': 'Ocurrió un error inesperado. Recarga la página para continuar.',
+  'error.reload': 'Recargar la página',
+  'a11y.skip': 'Saltar al contenido',
 
   'home.row.now_playing': 'En cartelera ahora',
   'home.row.trending_tv': 'Series en tendencia',
@@ -390,6 +404,7 @@ const es: Dict = {
   'home.row.top_rated': 'Aclamadas por la crítica',
   'home.row.popular_tv': 'Series populares',
   'home.for_you': 'Para ti',
+  'home.recent': 'Retoma donde lo dejaste',
   'home.error_no_key':
     'El servidor no tiene una clave TMDB configurada. Añade TMDB_API_KEY en el backend.',
 
@@ -517,6 +532,7 @@ const es: Dict = {
 
   'cmd.placeholder': 'Busca una película, una serie, una página…',
   'cmd.recent': 'Búsquedas recientes',
+  'cmd.recent_viewed': 'Visto recientemente',
   'cmd.clear_recent': 'Borrar',
   'cmd.nav': 'Ir a',
   'cmd.results': 'Resultados',
@@ -551,6 +567,10 @@ const de: Dict = {
   'api.server': 'Serverfehler ({status})',
   'error.title': 'Hoppla, da ging was schief',
   'error.retry': 'Erneut versuchen',
+  'error.boundary_desc':
+    'Ein unerwarteter Fehler ist aufgetreten. Lade die Seite neu, um fortzufahren.',
+  'error.reload': 'Seite neu laden',
+  'a11y.skip': 'Zum Inhalt springen',
 
   'home.row.now_playing': 'Jetzt im Kino',
   'home.row.trending_tv': 'Angesagte Serien',
@@ -558,6 +578,7 @@ const de: Dict = {
   'home.row.top_rated': 'Von der Kritik gefeiert',
   'home.row.popular_tv': 'Beliebte Serien',
   'home.for_you': 'Für dich',
+  'home.recent': 'Mach weiter, wo du aufgehört hast',
   'home.error_no_key':
     'Der Server hat keinen TMDB-Schlüssel konfiguriert. Füge TMDB_API_KEY im Backend hinzu.',
 
@@ -685,6 +706,7 @@ const de: Dict = {
 
   'cmd.placeholder': 'Film, Serie oder Seite suchen…',
   'cmd.recent': 'Letzte Suchen',
+  'cmd.recent_viewed': 'Zuletzt angesehen',
   'cmd.clear_recent': 'Löschen',
   'cmd.nav': 'Springe zu',
   'cmd.results': 'Ergebnisse',
@@ -719,6 +741,9 @@ const it: Dict = {
   'api.server': 'Errore del server ({status})',
   'error.title': 'Ops, qualcosa è andato storto',
   'error.retry': 'Riprova',
+  'error.boundary_desc': 'Si è verificato un errore imprevisto. Ricarica la pagina per continuare.',
+  'error.reload': 'Ricarica la pagina',
+  'a11y.skip': 'Vai al contenuto',
 
   'home.row.now_playing': 'Ora al cinema',
   'home.row.trending_tv': 'Serie del momento',
@@ -726,6 +751,7 @@ const it: Dict = {
   'home.row.top_rated': 'Acclamati dalla critica',
   'home.row.popular_tv': 'Serie popolari',
   'home.for_you': 'Per te',
+  'home.recent': 'Riprendi da dove eri rimasto',
   'home.error_no_key':
     'Il server non ha una chiave TMDB configurata. Aggiungi TMDB_API_KEY nel backend.',
 
@@ -853,6 +879,7 @@ const it: Dict = {
 
   'cmd.placeholder': 'Cerca un film, una serie, una pagina…',
   'cmd.recent': 'Ricerche recenti',
+  'cmd.recent_viewed': 'Visti di recente',
   'cmd.clear_recent': 'Cancella',
   'cmd.nav': 'Vai a',
   'cmd.results': 'Risultati',

@@ -1,46 +1,37 @@
-import { useCallback, useEffect, useState } from 'react';
-import { api, ApiError } from '../lib/api';
+import { api, ApiError, getLocale } from '../lib/api';
 import type { HomePayload } from '../lib/types';
 import { Hero } from '../components/home/Hero';
 import { ForYouRow } from '../components/home/ForYouRow';
+import { RecentlyViewedRow } from '../components/home/RecentlyViewedRow';
 import { MediaRow } from '../components/media/MediaRow';
 import { ErrorState } from '../components/ui/States';
 import { useT } from '../lib/i18n';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
+import { useQuery } from '../hooks/useQuery';
 
 export function HomeView() {
   const { t } = useT();
   useDocumentMeta({ path: '/' });
-  const [data, setData] = useState<HomePayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    api
-      .home()
-      .then(setData)
-      .catch((err: unknown) =>
-        setError(
-          err instanceof ApiError
-            ? err.code === 'TMDB_NOT_CONFIGURED'
-              ? t('home.error_no_key')
-              : err.message
-            : t('common.load_error'),
-        ),
-      )
-      .finally(() => setLoading(false));
-  }, [t]);
+  // Cached + stale-while-revalidate: returning to Home repaints instantly
+  // instead of flashing skeletons. Keyed by locale so a region/language switch
+  // doesn't serve the wrong catalogue.
+  const locale = getLocale();
+  const { data, loading, error, refetch } = useQuery<HomePayload>(
+    `home:${locale.region}:${locale.language}`,
+    api.home,
+  );
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  if (error) {
+  if (error && !data) {
+    const message =
+      error instanceof ApiError
+        ? error.code === 'TMDB_NOT_CONFIGURED'
+          ? t('home.error_no_key')
+          : error.message
+        : t('common.load_error');
     return (
       <div className="pt-24">
-        <ErrorState message={error} onRetry={load} />
+        <ErrorState message={message} onRetry={refetch} />
       </div>
     );
   }
@@ -62,6 +53,7 @@ export function HomeView() {
     <div className="animate-fade-in">
       <Hero items={data.hero} />
       <div className="container mx-auto space-y-10 px-6 py-10">
+        <RecentlyViewedRow />
         <ForYouRow />
         {data.rows.map((row) => (
           <MediaRow key={row.id} title={t(`home.row.${row.id}`)} items={row.items} />

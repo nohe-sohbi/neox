@@ -9,6 +9,22 @@
     scroll-behavior: smooth;
   }
 
+  /* Respect users who ask for less motion: kill animations, transitions and
+     smooth scrolling so the UI stays calm and accessible. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
   body {
     @apply bg-ink-950 text-white antialiased font-sans;
     text-rendering: optimizeLegibility;

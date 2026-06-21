@@ -5,6 +5,7 @@ import type { MediaDetails, MediaType } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
 import { useDetailTarget, useOpenDetail, useOpenPerson } from '../../hooks/useDetailRoute';
 import { useModal } from '../../hooks/useModal';
+import { rememberViewed } from '../../lib/recently-viewed';
 import { DocumentMeta } from '../../hooks/useDocumentMeta';
 import { ErrorState, FullSpinner } from '../ui/States';
 import { StarRating } from '../ui/StarRating';
@@ -48,6 +49,19 @@ export function DetailModal() {
     setShowTrailer(false);
     void load(target.mediaType, target.id);
   }, [target, load]);
+
+  // Record successful opens so Home + ⌘K can resurface them.
+  useEffect(() => {
+    if (!details) return;
+    rememberViewed({
+      id: details.id,
+      mediaType: details.mediaType,
+      title: details.title,
+      poster: details.poster,
+      year: details.year,
+      rating: details.rating,
+    });
+  }, [details]);
 
   const dialogRef = useModal<HTMLDivElement>(Boolean(target), close);
 

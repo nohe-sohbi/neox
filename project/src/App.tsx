@@ -10,9 +10,12 @@ import { HomeView } from './views/HomeView';
 import { DiscoverView } from './views/DiscoverView';
 import { SearchView } from './views/SearchView';
 import { LibraryView } from './views/LibraryView';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { initAnalytics } from './lib/analytics';
+import { useT } from './lib/i18n';
 
 function App() {
+  const { t } = useT();
   const [authOpen, setAuthOpen] = useState(false);
 
   useEffect(() => {
@@ -21,19 +24,29 @@ function App() {
 
   return (
     <div className="flex min-h-screen flex-col bg-ink-950 text-white">
+      {/* Keyboard / screen-reader users can jump straight to the content. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-brand-gradient focus:px-4 focus:py-2 focus:font-semibold focus:text-white focus:shadow-glow"
+      >
+        {t('a11y.skip')}
+      </a>
+
       <div className="pointer-events-none fixed inset-0 bg-aurora" />
 
       <Navbar onOpenAuth={() => setAuthOpen(true)} />
 
-      <main className="relative flex-1">
-        <Routes>
-          <Route path="/" element={<HomeView />} />
-          <Route path="/movies" element={<DiscoverView mediaType="movie" />} />
-          <Route path="/tv" element={<DiscoverView mediaType="tv" />} />
-          <Route path="/search" element={<SearchView />} />
-          <Route path="/library" element={<LibraryView onOpenAuth={() => setAuthOpen(true)} />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+      <main id="main-content" tabIndex={-1} className="relative flex-1 outline-none">
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/" element={<HomeView />} />
+            <Route path="/movies" element={<DiscoverView mediaType="movie" />} />
+            <Route path="/tv" element={<DiscoverView mediaType="tv" />} />
+            <Route path="/search" element={<SearchView />} />
+            <Route path="/library" element={<LibraryView onOpenAuth={() => setAuthOpen(true)} />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ErrorBoundary>
       </main>
 
       <Footer />

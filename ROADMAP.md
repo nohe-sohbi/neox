@@ -101,6 +101,25 @@ Trois axes d'amélioration majeurs, toujours sans dépendance ni infra externe :
       canonique. Les overlays restaurent proprement le head à la fermeture (snapshot/restore).
       `robots.txt` + `sitemap.xml` ajoutés. Logique pure et testée (`project/src/lib/seo.ts`).
 
+## ✅ Phase 7 — Perf client, reprise & résilience (LIVRÉ)
+
+Trois axes d'amélioration majeurs, toujours sans dépendance ni infra externe :
+
+- [x] **Cache de données côté client (perf frontend)** — un cache mémoire borné par clé avec
+      **stale-while-revalidate** et **dédup des requêtes en vol** (`lib/query.ts` + hook
+      `useQuery`). Revenir sur l'Accueil ou changer d'onglet Films/Séries **repeint
+      instantanément** depuis le cache (plus de skeleton qui clignote) puis revalide en arrière-plan ;
+      les lectures concurrentes d'une même clé ne déclenchent qu'**un seul appel réseau**. Le cœur
+      (fraîcheur/cache/dédup) est pur et **testé**.
+- [x] **« Vu récemment » / reprise de visionnage (feature)** — les fiches ouvertes sont mémorisées
+      localement (sans compte), **dédupliquées et bornées**, et resurgissent dans un **rail Accueil**
+      « Reprends où tu en étais » ainsi que dans la **palette ⌘K**. Logique pure et **testée**
+      (`lib/recently-viewed.ts`), mise à jour live via un event ; i18n FR·EN·ES·DE·IT.
+- [x] **Résilience & accessibilité (qualité/UX)** — un **ErrorBoundary** global affiche un repli
+      localisé + rechargement au lieu d'un écran blanc quand une vue plante (la coque navbar/footer
+      reste utilisable) ; un lien **« Aller au contenu »** (skip-link) pour le clavier/lecteurs
+      d'écran ; et le respect de **`prefers-reduced-motion`** (animations/transitions/scroll coupés).
+
 ## ⏭️ Reste (nécessite une infra externe — volontairement non codé en dur)
 
 - [ ] **Notifications « ça arrive sur ta plateforme »** — requiert SMTP/push + un scheduler

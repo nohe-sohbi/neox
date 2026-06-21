@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SlidersHorizontal, Star } from 'lucide-react';
-import { api, ApiError } from '../lib/api';
+import { api, ApiError, getLocale } from '../lib/api';
+import { STATIC_TTL, queryCache } from '../lib/query';
 import type { Genre, MediaItem, MediaType, Provider } from '../lib/types';
 import { useMyPlatforms } from '../hooks/useMyPlatforms';
 import { MediaGrid } from '../components/media/MediaGrid';
@@ -64,10 +65,27 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
     setMinRating(0);
   }, [mediaType]);
 
-  // Genres + providers for this media type.
+  // Genres + providers for this media type. These barely change, so they're
+  // cached: switching tabs (or coming back) reuses the data instead of refetching.
   useEffect(() => {
     let cancelled = false;
-    Promise.all([api.genres(mediaType), api.providers(mediaType)])
+    const locale = getLocale();
+    const suffix = `${mediaType}:${locale.region}:${locale.language}`;
+    const genresKey = `genres:${suffix}`;
+    const providersKey = `providers:${suffix}`;
+
+    const cachedGenres = queryCache.getFresh<{ genres: Genre[] }>(genresKey, STATIC_TTL);
+    const cachedProviders = queryCache.getFresh<{ providers: Provider[] }>(providersKey, STATIC_TTL);
+    if (cachedGenres && cachedProviders) {
+      setGenres(cachedGenres.genres);
+      setProviders(cachedProviders.providers);
+      return;
+    }
+
+    Promise.all([
+      queryCache.fetch(genresKey, () => api.genres(mediaType)),
+      queryCache.fetch(providersKey, () => api.providers(mediaType)),
+    ])
       .then(([g, p]) => {
         if (cancelled) return;
         setGenres(g.genres);

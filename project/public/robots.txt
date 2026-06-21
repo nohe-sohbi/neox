@@ -1,0 +1,8 @@
+# NEOX — https://www.themoviedb.org metadata discovery app
+User-agent: *
+Allow: /
+
+# Per-user surfaces carry no public value and shouldn't be indexed.
+Disallow: /library
+
+Sitemap: /sitemap.xml

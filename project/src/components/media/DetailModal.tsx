@@ -5,6 +5,7 @@ import type { MediaDetails, MediaType } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
 import { useDetailTarget, useOpenDetail, useOpenPerson } from '../../hooks/useDetailRoute';
 import { useModal } from '../../hooks/useModal';
+import { DocumentMeta } from '../../hooks/useDocumentMeta';
 import { ErrorState, FullSpinner } from '../ui/States';
 import { StarRating } from '../ui/StarRating';
 import { WatchProviders } from './WatchProviders';
@@ -89,6 +90,13 @@ export function DetailModal() {
 
         {details && !loading && (
           <>
+            <DocumentMeta
+              title={details.year ? `${details.title} (${details.year})` : details.title}
+              description={details.overview || details.tagline}
+              image={details.backdrop || details.poster}
+              type={details.mediaType === 'tv' ? 'video.tv_show' : 'video.movie'}
+              path={`/?watch=${details.mediaType}-${details.id}`}
+            />
             <div className="relative h-56 sm:h-80">
               {showTrailer && details.trailerKey ? (
                 <iframe

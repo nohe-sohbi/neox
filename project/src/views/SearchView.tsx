@@ -7,6 +7,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { MediaGrid } from '../components/media/MediaGrid';
 import { EmptyState, ErrorState } from '../components/ui/States';
 import { useT } from '../lib/i18n';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { rememberSearch } from '../lib/recent-searches';
 
 export function SearchView() {
@@ -14,6 +15,11 @@ export function SearchView() {
   const query = params.get('q') ?? '';
   const debounced = useDebounce(query.trim(), 350);
   const { t, tn, formatNumber } = useT();
+
+  useDocumentMeta({
+    title: debounced ? `${t('search.results_for')} « ${debounced} »` : t('search.title'),
+    path: debounced ? `/search?q=${encodeURIComponent(debounced)}` : '/search',
+  });
 
   const [results, setResults] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(false);

@@ -6,6 +6,7 @@ import { DetailModal } from './components/media/DetailModal';
 import { PersonModal } from './components/media/PersonModal';
 import { AuthModal } from './components/auth/AuthModal';
 import { CommandPalette } from './components/command/CommandPalette';
+import { ToastViewport } from './components/ui/ToastViewport';
 import { HomeView } from './views/HomeView';
 import { DiscoverView } from './views/DiscoverView';
 import { SearchView } from './views/SearchView';
@@ -56,6 +57,9 @@ function App() {
       <PersonModal />
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
       <CommandPalette />
+
+      {/* Global, accessible action feedback */}
+      <ToastViewport />
     </div>
   );
 }

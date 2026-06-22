@@ -13,7 +13,9 @@ import {
   type SortMode,
 } from '../lib/library-io';
 import { MediaGrid } from '../components/media/MediaGrid';
+import { LibraryStats } from '../components/library/LibraryStats';
 import { EmptyState } from '../components/ui/States';
+import { useToast } from '../context/ToastContext';
 import { useT } from '../lib/i18n';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
@@ -42,17 +44,15 @@ function toMediaItem(entry: LibraryEntry): MediaItem {
   };
 }
 
-type Notice = { kind: 'ok' | 'error'; text: string } | null;
-
 export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
   const { t, tn } = useT();
   useDocumentMeta({ title: t('library.title'), path: '/library' });
   const navigate = useNavigate();
   const { user } = useAuth();
+  const toast = useToast();
   const { entries, clear, syncing, importEntries } = useLibrary();
   const [filter, setFilter] = useState<Filter>('all');
   const [sort, setSort] = useState<SortMode>('added_desc');
-  const [notice, setNotice] = useState<Notice>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const counts = {
@@ -74,6 +74,12 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
     a.download = backupFilename();
     a.click();
     URL.revokeObjectURL(url);
+    toast.success(t('toast.exported'));
+  };
+
+  const handleClear = () => {
+    clear();
+    toast.success(t('toast.cleared'));
   };
 
   const handleImport = async (file: File) => {
@@ -81,9 +87,9 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
       const text = await file.text();
       const incoming = parseLibrary(text);
       const added = importEntries(incoming);
-      setNotice({ kind: 'ok', text: t('library.import_ok', { count: added }) });
+      toast.success(t('library.import_ok', { count: added }));
     } catch {
-      setNotice({ kind: 'error', text: t('library.import_error') });
+      toast.error(t('library.import_error'));
     } finally {
       if (fileRef.current) fileRef.current.value = '';
     }
@@ -133,7 +139,7 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
           )}
           {entries.length > 0 && (
             <button
-              onClick={clear}
+              onClick={handleClear}
               className="inline-flex items-center gap-2 text-sm text-white/50 transition-colors hover:text-red-400"
             >
               <Trash2 className="h-4 w-4" />
@@ -143,18 +149,8 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
         </div>
       </div>
 
-      {notice && (
-        <p
-          role="status"
-          className={`mb-6 rounded-xl border px-4 py-3 text-sm ${
-            notice.kind === 'ok'
-              ? 'border-brand-cyan/30 bg-brand-cyan/10 text-brand-cyan'
-              : 'border-red-500/30 bg-red-900/20 text-red-300'
-          }`}
-        >
-          {notice.text}
-        </p>
-      )}
+      {/* Your taste in numbers — collapsible, computed locally. */}
+      {entries.length > 0 && <LibraryStats entries={entries} />}
 
       {/* Sync banner for logged-out users */}
       {!user && entries.length > 0 && (

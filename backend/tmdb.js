@@ -10,6 +10,7 @@
 const fetch = require('node-fetch');
 const { TtlLruCache } = require('./cache');
 const { SingleFlight } = require('./single-flight');
+const { CircuitBreaker } = require('./circuit-breaker');
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const IMG_BASE = 'https://image.tmdb.org/t/p';
@@ -37,6 +38,14 @@ const cache = new TtlLruCache({
 // Collapses concurrent identical cache-misses into a single upstream fetch.
 const inflight = new SingleFlight();
 
+// Trips after a streak of upstream failures so a durable TMDB outage fails fast
+// (serving stale cache when possible) instead of draining the retry budget on
+// every request. Tunable via env for ops.
+const breaker = new CircuitBreaker({
+    failureThreshold: Number(process.env.TMDB_BREAKER_THRESHOLD) || 5,
+    cooldownMs: Number(process.env.TMDB_BREAKER_COOLDOWN_MS) || 30000,
+});
+
 function isConfigured() {
     return Boolean(API_KEY || READ_TOKEN);
 }
@@ -47,7 +56,7 @@ function img(path, size) {
 
 /** Cache diagnostics surfaced via /api/health. */
 function cacheStats() {
-    return { ...cache.stats(), inflight: inflight.stats() };
+    return { ...cache.stats(), inflight: inflight.stats(), breaker: breaker.stats() };
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -88,6 +97,19 @@ async function tmdbGet(path, params = {}) {
         const fresh = cache.get(cacheKey);
         if (fresh && !fresh.stale) return fresh.value;
 
+        // Upstream circuit is open: don't pile onto a failing TMDB. Serve
+        // slightly-stale cache if we have it, otherwise fail fast with 503.
+        if (!breaker.allow()) {
+            if (cached) {
+                cache.recordStaleServe();
+                return cached.value;
+            }
+            const err = new Error('TMDB upstream temporarily unavailable (circuit open).');
+            err.status = 503;
+            err.code = 'TMDB_CIRCUIT_OPEN';
+            throw err;
+        }
+
         const headers = { accept: 'application/json' };
         if (READ_TOKEN) headers.Authorization = `Bearer ${READ_TOKEN}`;
 
@@ -112,15 +134,22 @@ async function tmdbGet(path, params = {}) {
                     throw err;
                 }
 
+                breaker.recordSuccess();
                 cache.set(cacheKey, data);
                 return data;
             } catch (error) {
                 lastError = error;
-                // Don't retry deterministic client errors.
+                // Deterministic client errors (bad id, unsupported type) say
+                // nothing about TMDB's health: surface them without retrying and
+                // without tripping the breaker.
                 if (error.status && error.status >= 400 && error.status < 500) throw error;
                 if (attempt < maxAttempts) await sleep(2 ** attempt * 250);
             }
         }
+
+        // Every attempt failed on a transient/5xx/timeout error: this counts
+        // against upstream health and may trip the breaker for the next caller.
+        breaker.recordFailure();
 
         // Upstream is failing — serve slightly-stale data rather than erroring out.
         if (cached) {

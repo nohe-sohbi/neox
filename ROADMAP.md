@@ -120,6 +120,29 @@ Trois axes d'amélioration majeurs, toujours sans dépendance ni infra externe :
       reste utilisable) ; un lien **« Aller au contenu »** (skip-link) pour le clavier/lecteurs
       d'écran ; et le respect de **`prefers-reduced-motion`** (animations/transitions/scroll coupés).
 
+## ✅ Phase 8 — Disjoncteur, insights & feedback (LIVRÉ)
+
+Trois axes d'amélioration majeurs, toujours sans dépendance ni infra externe :
+
+- [x] **Disjoncteur (circuit breaker) TMDB (perf & résilience backend)** — au-delà du
+      cache LRU+TTL et du single-flight, une **machine à états** ouvre le circuit après une série
+      d'échecs amont (réseau/timeout/5xx/retries épuisés) : les appels suivants **échouent vite**
+      (cache périmé servi si dispo, sinon 503 immédiat) au lieu de vider le budget de retry sur un
+      TMDB mort. Passage en **half-open** après cooldown avec une requête sonde ; un succès referme,
+      un échec rouvre. Les **erreurs client 4xx ne font jamais sauter le disjoncteur**. Module isolé
+      et testé (`backend/circuit-breaker.js`), métriques (`state`/`trips`/`shortCircuits`…) exposées
+      dans `/api/health`.
+- [x] **Statistiques de la bibliothèque (feature)** — un panneau « Statistiques » repliable dans
+      Ma liste calcule **localement** (sans compte, sans appel TMDB) : total, vus/à voir &
+      progression, répartition films/séries, ta **note moyenne**, l'**histogramme de tes notes**
+      (1→10) et tes **décennies de prédilection**. Logique pure et **testée**
+      (`project/src/lib/library-stats.ts`), i18n FR·EN·ES·DE·IT.
+- [x] **Notifications toast accessibles (qualité/UX)** — les actions silencieuses (ajout/retrait,
+      import/export, vidage) donnent désormais un retour clair via un système de toasts : **région
+      `aria-live`** toujours montée (annonce lecteur d'écran), `role="alert"` pour les erreurs,
+      auto-dismiss, dédup, file bornée, et animations qui respectent `prefers-reduced-motion`. Cœur
+      pur et **testé** (`project/src/lib/toast.ts`).
+
 ## ⏭️ Reste (nécessite une infra externe — volontairement non codé en dur)
 
 - [ ] **Notifications « ça arrive sur ta plateforme »** — requiert SMTP/push + un scheduler

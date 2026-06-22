@@ -53,6 +53,17 @@ Aucun contenu n'est hébergé ni stocké : NEOX agrège des **métadonnées publ
   ne déclenchent qu'**un seul appel amont** (le premier appelant travaille, les autres attendent la
   même promesse) : protection thundering-herd, quota TMDB préservé sous charge. Compteurs
   `coalesced` / `flights` / `inFlight` exposés sur `/api/health`.
+- **Disjoncteur (circuit breaker) TMDB** — après une série d'échecs amont, le circuit s'**ouvre** et
+  les appels suivants **échouent vite** (cache périmé servi si dispo, sinon 503 immédiat) plutôt que
+  de vider le budget de retry sur un TMDB en panne ; **half-open** + requête sonde après cooldown
+  pour se refermer automatiquement. Les erreurs client 4xx ne le déclenchent jamais. État et
+  compteurs (`state` / `trips` / `shortCircuits`…) exposés sur `/api/health`.
+- **Statistiques de la bibliothèque** — un panneau « Statistiques » repliable dans Ma liste calcule
+  **localement** ta progression (vus/à voir), la répartition films/séries, ta **note moyenne**,
+  l'**histogramme de tes notes** et tes **décennies de prédilection** — sans compte ni appel TMDB.
+- **Notifications toast accessibles** — chaque action (ajout/retrait, import/export, vidage) donne un
+  retour clair via une **région `aria-live`** (annoncée aux lecteurs d'écran, `role="alert"` pour les
+  erreurs), avec auto-dismiss et respect de `prefers-reduced-motion`.
 - **SEO dynamique & cartes sociales** — chaque route et chaque fiche/personne pilote le `<head>`
   (`title`, `description`, **Open Graph + Twitter Card** avec poster, URL canonique) ; les overlays
   restaurent le head à la fermeture. `robots.txt` + `sitemap.xml` inclus.

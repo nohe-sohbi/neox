@@ -1,6 +1,7 @@
 import { Bookmark, Check, Film, Tv } from 'lucide-react';
 import type { MediaItem } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
+import { useToast } from '../../context/ToastContext';
 import { useOpenDetail } from '../../hooks/useDetailRoute';
 import { RatingBadge } from '../ui/RatingBadge';
 import { useT } from '../../lib/i18n';
@@ -9,6 +10,7 @@ export function MediaCard({ item }: { item: MediaItem }) {
   const { t } = useT();
   const openDetail = useOpenDetail();
   const { isSaved, statusOf, toggle } = useLibrary();
+  const toast = useToast();
   const saved = isSaved(item);
   const watched = statusOf(item) === 'watched';
 
@@ -58,7 +60,8 @@ export function MediaCard({ item }: { item: MediaItem }) {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            toggle(item);
+            const added = toggle(item);
+            toast.success(added ? t('toast.added') : t('toast.removed'));
           }}
           aria-label={saved ? t('card.remove') : t('card.add')}
           className={`absolute bottom-2 right-2 flex h-9 w-9 translate-y-2 items-center justify-center rounded-full backdrop-blur-md transition-all duration-300 group-hover:translate-y-0 ${

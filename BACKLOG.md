@@ -16,7 +16,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
 
 ## 🔴 À réparer (cassé / incohérent / mort)
 
-- [ ] **R1 — Fuite de bibliothèque entre comptes au logout** · P1 · S
+- [x] **R1 — Fuite de bibliothèque entre comptes au logout** · P1 · S
   `context/AuthContext.tsx:52` + `context/LibraryContext.tsx:86`. `logout()` efface le token
   et `user` mais **ni `entries` ni `localStorage['neox.library.v1']`**. Sur un appareil partagé :
   A se déconnecte → B se connecte → l'effet de merge envoie **la watchlist de A dans le compte

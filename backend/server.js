@@ -184,10 +184,10 @@ app.post(
     route(async (req, res) => {
         const { email, password } = req.body || {};
         const validationError = auth.validateCredentials({ email, password });
-        if (validationError) return res.status(400).json({ error: validationError });
+        if (validationError) return res.status(400).json(validationError);
 
         if (store.findUserByEmail(email)) {
-            return res.status(409).json({ error: 'Un compte existe déjà avec cet e-mail.' });
+            return res.status(409).json({ error: 'Un compte existe déjà avec cet e-mail.', code: 'AUTH_EMAIL_TAKEN' });
         }
 
         const passwordHash = await auth.hashPassword(password);
@@ -201,12 +201,12 @@ app.post(
     route(async (req, res) => {
         const { email, password } = req.body || {};
         if (!email || !password) {
-            return res.status(400).json({ error: 'E-mail et mot de passe requis.' });
+            return res.status(400).json({ error: 'E-mail et mot de passe requis.', code: 'AUTH_CREDENTIALS_REQUIRED' });
         }
         const user = store.findUserByEmail(email);
         const ok = user && (await auth.verifyPassword(password, user.passwordHash));
         if (!ok) {
-            return res.status(401).json({ error: 'E-mail ou mot de passe incorrect.' });
+            return res.status(401).json({ error: 'E-mail ou mot de passe incorrect.', code: 'AUTH_INVALID_CREDENTIALS' });
         }
         res.json({ token: auth.signToken(user), user: store.publicUser(user) });
     }),
@@ -214,7 +214,7 @@ app.post(
 
 app.get('/api/auth/me', auth.requireAuth, (req, res) => {
     const user = store.getUserById(req.userId);
-    if (!user) return res.status(404).json({ error: 'Compte introuvable.' });
+    if (!user) return res.status(404).json({ error: 'Compte introuvable.', code: 'AUTH_ACCOUNT_NOT_FOUND' });
     res.json({ user: store.publicUser(user) });
 });
 

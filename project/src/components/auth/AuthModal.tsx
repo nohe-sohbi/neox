@@ -10,6 +10,17 @@ interface AuthModalProps {
   onClose: () => void;
 }
 
+// Backend error codes → i18n keys, so auth errors follow the UI language
+// instead of the server's hardcoded French. Unknown codes fall back to the
+// (localized) server message, then to a generic error.
+const ERROR_CODE_KEYS: Record<string, string> = {
+  AUTH_EMAIL_INVALID: 'auth.err.email_invalid',
+  AUTH_PASSWORD_TOO_SHORT: 'auth.err.password_short',
+  AUTH_EMAIL_TAKEN: 'auth.err.email_taken',
+  AUTH_CREDENTIALS_REQUIRED: 'auth.err.credentials_required',
+  AUTH_INVALID_CREDENTIALS: 'auth.err.invalid_credentials',
+};
+
 export function AuthModal({ open, onClose }: AuthModalProps) {
   const { t } = useT();
   const { login, register } = useAuth();
@@ -39,7 +50,12 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
       else await register(email, password);
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('auth.generic_error'));
+      if (err instanceof ApiError) {
+        const key = err.code ? ERROR_CODE_KEYS[err.code] : undefined;
+        setError(key ? t(key) : err.message);
+      } else {
+        setError(t('auth.generic_error'));
+      }
     } finally {
       setSubmitting(false);
     }

@@ -29,7 +29,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   cache frais → la SWR (Home/Discover/Search) refait un appel réseau à chaque frappe/filtre.
   *Fix : rendre le forçage one-shot (comparer à un nonce déjà consommé).*
 
-- [ ] **R3 — Messages d'erreur backend codés en dur en français** · P2 · M
+- [x] **R3 — Messages d'erreur backend codés en dur en français** · P2 · M
   `backend/auth.js` + `backend/server.js` renvoient « E-mail ou mot de passe incorrect. »,
   « Adresse e-mail invalide. », etc. `AuthModal` affiche `err.message` tel quel → un utilisateur
   EN/ES/DE/IT voit des erreurs **en français** sur le flow login/register.

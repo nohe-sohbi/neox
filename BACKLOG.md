@@ -23,7 +23,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   de B**. Et hors multi-compte, la liste de A reste visible après déconnexion.
   *Fix : réinitialiser la bibliothèque (state + localStorage) sur la transition user→null.*
 
-- [ ] **R2 — `useQuery` : le flag de revalidation forcée ne se réarme jamais** · P2 · S
+- [x] **R2 — `useQuery` : le flag de revalidation forcée ne se réarme jamais** · P2 · S
   `hooks/useQuery.ts:52`. `force = nonce > 0` et `nonce` ne fait qu'incrémenter. Après un seul
   `refetch()` (bouton « Réessayer »), **tous** les fetch suivants du même hook contournent le
   cache frais → la SWR (Home/Discover/Search) refait un appel réseau à chaque frappe/filtre.

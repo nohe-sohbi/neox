@@ -57,7 +57,6 @@ export interface Paginated<T> {
 
 export interface HomeRow {
   id: string;
-  title: string;
   items: MediaItem[];
 }
 

@@ -41,7 +41,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   renvoie **413** avant même `sanitizeLibrary`, échec silencieux de la sync.
   *Fix : aligner la limite du body sur le cap (ex. `1mb`).*
 
-- [ ] **R5 — `/api/home` expose un champ `title` mort** · P2 · S
+- [x] **R5 — `/api/home` expose un champ `title` mort** · P2 · S
   `backend/tmdb.js:398` calcule des titres de rails en français ; le front les ignore
   (`HomeView.tsx:59` traduit via `t('home.row.${row.id}')`). Champ mort + trompeur.
   *Fix : retirer `title` du payload backend et de `HomeRow` (`types.ts`).*

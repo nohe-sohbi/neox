@@ -394,12 +394,14 @@ async function home(region = DEFAULT_REGION, opts = {}) {
     const heroPool = (trendingAll.results || []).filter((m) => m.backdrop && m.overview);
     const hero = heroPool.slice(0, 5);
 
+    // Row labels are localized client-side by id (t('home.row.<id>')), so the
+    // payload only carries the id + items — no server-side title.
     const rows = [
-        { id: 'now_playing', title: 'À l’affiche en ce moment', items: nowPlaying.results },
-        { id: 'trending_tv', title: 'Séries qui cartonnent', items: trendingTv.results },
-        { id: 'popular_movies', title: 'Les films du moment', items: popularMovies.results },
-        { id: 'top_rated', title: 'Acclamés par la critique', items: topRatedMovies.results },
-        { id: 'popular_tv', title: 'Séries populaires', items: popularTv.results },
+        { id: 'now_playing', items: nowPlaying.results },
+        { id: 'trending_tv', items: trendingTv.results },
+        { id: 'popular_movies', items: popularMovies.results },
+        { id: 'top_rated', items: topRatedMovies.results },
+        { id: 'popular_tv', items: popularTv.results },
     ].filter((row) => row.items && row.items.length > 0);
 
     return { hero, rows, region };

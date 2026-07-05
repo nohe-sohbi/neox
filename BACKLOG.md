@@ -86,7 +86,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   `components/media/DetailModal.tsx:320`. Si `rec.poster` est null, rien n'est rendu (vs icône
   de repli dans `MediaCard`/casting). *Fix : icône de repli Film/Tv.*
 
-- [ ] **C5 — « Tout effacer » sans confirmation** · P2 · S
+- [x] **C5 — « Tout effacer » sans confirmation** · P2 · S
   `views/LibraryView.tsx:80`. Un clic vide toute la bibliothèque (juste un toast). Action
   destructive irréversible. *Fix : confirmation avant `clear()`.*
 

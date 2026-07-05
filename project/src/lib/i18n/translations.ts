@@ -99,6 +99,7 @@ const fr: Dict = {
   'library.count_other': '{count} titres dans ta collection.',
   'library.subtitle_empty': 'Ta sélection perso, sauvegardée et synchronisée.',
   'library.clear_all': 'Tout effacer',
+  'library.clear_confirm': 'Vider toute ta bibliothèque ? Cette action est irréversible.',
   'library.sync_cta_title': 'Sauvegarde ta liste dans le cloud',
   'library.sync_cta_desc':
     'Crée un compte gratuit pour retrouver ta collection sur tous tes appareils.',
@@ -317,6 +318,7 @@ const en: Dict = {
   'library.count_other': '{count} titles in your collection.',
   'library.subtitle_empty': 'Your personal picks, saved and synced.',
   'library.clear_all': 'Clear all',
+  'library.clear_confirm': 'Clear your entire library? This cannot be undone.',
   'library.sync_cta_title': 'Back up your list to the cloud',
   'library.sync_cta_desc':
     'Create a free account to find your collection on all your devices.',
@@ -524,6 +526,7 @@ const es: Dict = {
   'library.count_other': '{count} títulos en tu colección.',
   'library.subtitle_empty': 'Tu selección personal, guardada y sincronizada.',
   'library.clear_all': 'Borrar todo',
+  'library.clear_confirm': '¿Vaciar toda tu biblioteca? Esta acción no se puede deshacer.',
   'library.sync_cta_title': 'Guarda tu lista en la nube',
   'library.sync_cta_desc':
     'Crea una cuenta gratis para recuperar tu colección en todos tus dispositivos.',
@@ -732,6 +735,7 @@ const de: Dict = {
   'library.count_other': '{count} Titel in deiner Sammlung.',
   'library.subtitle_empty': 'Deine persönliche Auswahl, gespeichert und synchronisiert.',
   'library.clear_all': 'Alles löschen',
+  'library.clear_confirm': 'Deine gesamte Bibliothek leeren? Das kann nicht rückgängig gemacht werden.',
   'library.sync_cta_title': 'Sichere deine Liste in der Cloud',
   'library.sync_cta_desc':
     'Erstelle ein kostenloses Konto, um deine Sammlung auf allen Geräten wiederzufinden.',
@@ -939,6 +943,7 @@ const it: Dict = {
   'library.count_other': '{count} titoli nella tua collezione.',
   'library.subtitle_empty': 'La tua selezione personale, salvata e sincronizzata.',
   'library.clear_all': 'Cancella tutto',
+  'library.clear_confirm': 'Svuotare tutta la tua libreria? L’azione è irreversibile.',
   'library.sync_cta_title': 'Salva la tua lista nel cloud',
   'library.sync_cta_desc':
     'Crea un account gratuito per ritrovare la tua collezione su tutti i dispositivi.',

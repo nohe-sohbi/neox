@@ -78,6 +78,7 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
   };
 
   const handleClear = () => {
+    if (!window.confirm(t('library.clear_confirm'))) return;
     clear();
     toast.success(t('toast.cleared'));
   };

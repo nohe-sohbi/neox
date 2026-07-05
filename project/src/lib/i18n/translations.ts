@@ -139,6 +139,8 @@ const fr: Dict = {
   // Toasts
   'toast.added': 'Ajouté à ta liste',
   'toast.removed': 'Retiré de ta liste',
+  'toast.marked_want': 'Ajouté à « À voir »',
+  'toast.marked_watched': 'Marqué comme vu',
   'toast.exported': 'Liste exportée',
   'toast.cleared': 'Liste vidée',
 
@@ -347,6 +349,8 @@ const en: Dict = {
 
   'toast.added': 'Added to your list',
   'toast.removed': 'Removed from your list',
+  'toast.marked_want': 'Added to your watchlist',
+  'toast.marked_watched': 'Marked as watched',
   'toast.exported': 'List exported',
   'toast.cleared': 'List cleared',
 
@@ -546,6 +550,8 @@ const es: Dict = {
 
   'toast.added': 'Añadido a tu lista',
   'toast.removed': 'Quitado de tu lista',
+  'toast.marked_want': 'Añadido a « Por ver »',
+  'toast.marked_watched': 'Marcado como visto',
   'toast.exported': 'Lista exportada',
   'toast.cleared': 'Lista vaciada',
 
@@ -746,6 +752,8 @@ const de: Dict = {
 
   'toast.added': 'Zu deiner Liste hinzugefügt',
   'toast.removed': 'Aus deiner Liste entfernt',
+  'toast.marked_want': 'Zu „Ansehen“ hinzugefügt',
+  'toast.marked_watched': 'Als gesehen markiert',
   'toast.exported': 'Liste exportiert',
   'toast.cleared': 'Liste geleert',
 
@@ -945,6 +953,8 @@ const it: Dict = {
 
   'toast.added': 'Aggiunto alla tua lista',
   'toast.removed': 'Rimosso dalla tua lista',
+  'toast.marked_want': 'Aggiunto a « Da vedere »',
+  'toast.marked_watched': 'Segnato come visto',
   'toast.exported': 'Lista esportata',
   'toast.cleared': 'Lista svuotata',
 

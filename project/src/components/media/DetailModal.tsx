@@ -3,6 +3,7 @@ import { Bookmark, Calendar, Check, Clock, Eye, Play, Star, Trash2, Tv, X } from
 import { api, ApiError } from '../../lib/api';
 import type { MediaDetails, MediaType } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
+import { useToast } from '../../context/ToastContext';
 import { useDetailTarget, useOpenDetail, useOpenPerson } from '../../hooks/useDetailRoute';
 import { useModal } from '../../hooks/useModal';
 import { rememberViewed } from '../../lib/recently-viewed';
@@ -25,6 +26,7 @@ export function DetailModal() {
   const openDetail = useOpenDetail();
   const openPerson = useOpenPerson();
   const { statusOf, ratingOf, isSaved, setStatus, setRating, remove } = useLibrary();
+  const toast = useToast();
 
   const [details, setDetails] = useState<MediaDetails | null>(null);
   const [loading, setLoading] = useState(false);
@@ -215,7 +217,10 @@ export function DetailModal() {
                   </button>
                 )}
                 <button
-                  onClick={() => setStatus(details, 'want')}
+                  onClick={() => {
+                    setStatus(details, 'want');
+                    toast.success(t('toast.marked_want'));
+                  }}
                   className={
                     status === 'want'
                       ? 'btn-primary'
@@ -226,7 +231,10 @@ export function DetailModal() {
                   {t('filter.want')}
                 </button>
                 <button
-                  onClick={() => setStatus(details, 'watched')}
+                  onClick={() => {
+                    setStatus(details, 'watched');
+                    toast.success(t('toast.marked_watched'));
+                  }}
                   className={status === 'watched' ? 'btn-primary' : 'btn-ghost'}
                 >
                   {status === 'watched' ? (
@@ -238,7 +246,10 @@ export function DetailModal() {
                 </button>
                 {saved && (
                   <button
-                    onClick={() => remove(details)}
+                    onClick={() => {
+                      remove(details);
+                      toast.success(t('toast.removed'));
+                    }}
                     aria-label={t('detail.remove')}
                     className="flex h-10 w-10 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-red-500/10 hover:text-red-400"
                   >

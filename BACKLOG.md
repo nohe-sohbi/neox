@@ -66,7 +66,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
 
 ## 🟢 Contenu à compléter (feedback, i18n, empty states)
 
-- [ ] **C1 — Toasts d'ajout/retrait absents depuis Hero et la fiche** · P2 · S
+- [x] **C1 — Toasts d'ajout/retrait absents depuis Hero et la fiche** · P2 · S
   `components/home/Hero.tsx:82` et `components/media/DetailModal.tsx:218,229,241` : `toggle`/
   `setStatus`/`remove` **sans toast**, alors que `MediaCard` en émet. Le README promet un retour
   sur « chaque ajout/retrait ». *Fix : émettre un toast cohérent depuis ces deux surfaces.*

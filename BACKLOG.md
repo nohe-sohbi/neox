@@ -71,7 +71,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   `setStatus`/`remove` **sans toast**, alors que `MediaCard` en émet. Le README promet un retour
   sur « chaque ajout/retrait ». *Fix : émettre un toast cohérent depuis ces deux surfaces.*
 
-- [ ] **C2 — Chaînes UI codées en dur hors i18n** · P2 · S
+- [x] **C2 — Chaînes UI codées en dur hors i18n** · P2 · S
   `components/layout/Logo.tsx:8` (`aria-label="NEOX — accueil"`, FR pour tous),
   `components/auth/AuthModal.tsx:87` (placeholder e-mail),
   guillemets `« »` figés autour du terme recherché pour toutes les langues

@@ -18,6 +18,7 @@ const fr: Dict = {
   'nav.library': 'Ma liste',
   'nav.account': 'Mon compte',
   'nav.primary': 'Navigation principale',
+  'nav.home_aria': 'NEOX — accueil',
   'nav.logged_as': 'Connecté en tant que',
   'nav.logout': 'Se déconnecter',
   'nav.login': 'Connexion',
@@ -53,6 +54,7 @@ const fr: Dict = {
 
   // Search view
   'search.results_for': 'Résultats pour',
+  'search.quoted': '« {term} »',
   'search.title': 'Recherche',
   'search.count_one': '{count} résultat',
   'search.count_other': '{count} résultats',
@@ -163,6 +165,7 @@ const fr: Dict = {
   'auth.err.email_taken': 'Un compte existe déjà avec cet e-mail.',
   'auth.err.credentials_required': 'E-mail et mot de passe requis.',
   'auth.err.invalid_credentials': 'E-mail ou mot de passe incorrect.',
+  'auth.email_placeholder': 'vous@email.com',
 
   // Detail modal
   'detail.loading': 'On récupère les infos…',
@@ -237,6 +240,7 @@ const en: Dict = {
   'nav.library': 'My list',
   'nav.account': 'My account',
   'nav.primary': 'Primary navigation',
+  'nav.home_aria': 'NEOX — home',
   'nav.logged_as': 'Signed in as',
   'nav.logout': 'Sign out',
   'nav.login': 'Sign in',
@@ -267,6 +271,7 @@ const en: Dict = {
     'The server has no TMDB key configured. Add TMDB_API_KEY on the backend.',
 
   'search.results_for': 'Results for',
+  'search.quoted': '“{term}”',
   'search.title': 'Search',
   'search.count_one': '{count} result',
   'search.count_other': '{count} results',
@@ -372,6 +377,7 @@ const en: Dict = {
   'auth.err.email_taken': 'An account already exists with this email.',
   'auth.err.credentials_required': 'Email and password are required.',
   'auth.err.invalid_credentials': 'Incorrect email or password.',
+  'auth.email_placeholder': 'you@email.com',
 
   'detail.loading': 'Fetching the details…',
   'detail.trailer': 'Trailer',
@@ -438,6 +444,7 @@ const es: Dict = {
   'nav.library': 'Mi lista',
   'nav.account': 'Mi cuenta',
   'nav.primary': 'Navegación principal',
+  'nav.home_aria': 'NEOX — inicio',
   'nav.logged_as': 'Conectado como',
   'nav.logout': 'Cerrar sesión',
   'nav.login': 'Iniciar sesión',
@@ -468,6 +475,7 @@ const es: Dict = {
     'El servidor no tiene una clave TMDB configurada. Añade TMDB_API_KEY en el backend.',
 
   'search.results_for': 'Resultados para',
+  'search.quoted': '« {term} »',
   'search.title': 'Buscar',
   'search.count_one': '{count} resultado',
   'search.count_other': '{count} resultados',
@@ -573,6 +581,7 @@ const es: Dict = {
   'auth.err.email_taken': 'Ya existe una cuenta con este correo.',
   'auth.err.credentials_required': 'Correo y contraseña obligatorios.',
   'auth.err.invalid_credentials': 'Correo o contraseña incorrectos.',
+  'auth.email_placeholder': 'tu@email.com',
 
   'detail.loading': 'Obteniendo la información…',
   'detail.trailer': 'Tráiler',
@@ -639,6 +648,7 @@ const de: Dict = {
   'nav.library': 'Meine Liste',
   'nav.account': 'Mein Konto',
   'nav.primary': 'Hauptnavigation',
+  'nav.home_aria': 'NEOX — Startseite',
   'nav.logged_as': 'Angemeldet als',
   'nav.logout': 'Abmelden',
   'nav.login': 'Anmelden',
@@ -670,6 +680,7 @@ const de: Dict = {
     'Der Server hat keinen TMDB-Schlüssel konfiguriert. Füge TMDB_API_KEY im Backend hinzu.',
 
   'search.results_for': 'Ergebnisse für',
+  'search.quoted': '„{term}“',
   'search.title': 'Suche',
   'search.count_one': '{count} Ergebnis',
   'search.count_other': '{count} Ergebnisse',
@@ -775,6 +786,7 @@ const de: Dict = {
   'auth.err.email_taken': 'Mit dieser E-Mail existiert bereits ein Konto.',
   'auth.err.credentials_required': 'E-Mail und Passwort sind erforderlich.',
   'auth.err.invalid_credentials': 'E-Mail oder Passwort ist falsch.',
+  'auth.email_placeholder': 'du@email.com',
 
   'detail.loading': 'Infos werden geladen…',
   'detail.trailer': 'Trailer',
@@ -841,6 +853,7 @@ const it: Dict = {
   'nav.library': 'La mia lista',
   'nav.account': 'Il mio account',
   'nav.primary': 'Navigazione principale',
+  'nav.home_aria': 'NEOX — home',
   'nav.logged_as': 'Connesso come',
   'nav.logout': 'Esci',
   'nav.login': 'Accedi',
@@ -871,6 +884,7 @@ const it: Dict = {
     'Il server non ha una chiave TMDB configurata. Aggiungi TMDB_API_KEY nel backend.',
 
   'search.results_for': 'Risultati per',
+  'search.quoted': '« {term} »',
   'search.title': 'Cerca',
   'search.count_one': '{count} risultato',
   'search.count_other': '{count} risultati',
@@ -976,6 +990,7 @@ const it: Dict = {
   'auth.err.email_taken': 'Esiste già un account con questa e-mail.',
   'auth.err.credentials_required': 'E-mail e password obbligatorie.',
   'auth.err.invalid_credentials': 'E-mail o password non corretti.',
+  'auth.email_placeholder': 'tu@email.com',
 
   'detail.loading': 'Recupero le informazioni…',
   'detail.trailer': 'Trailer',

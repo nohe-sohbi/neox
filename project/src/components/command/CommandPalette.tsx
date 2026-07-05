@@ -250,7 +250,7 @@ export function CommandPalette() {
                     onMouseEnter={() => setActive(idx)}
                     onClick={() => run({ kind: 'search', query: query.trim() })}
                     icon={<Search className="h-4 w-4" />}
-                    title={`${t('search.results_for')} « ${query.trim()} »`}
+                    title={`${t('search.results_for')} ${t('search.quoted', { term: query.trim() })}`}
                   />
                 );
               })()}

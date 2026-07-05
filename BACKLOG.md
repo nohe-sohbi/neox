@@ -78,7 +78,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   (`views/SearchView.tsx:20,68` + `components/command/CommandPalette.tsx:253`, faux en EN/DE).
   *Fix : passer par `t()` / des guillemets dépendants de la langue.*
 
-- [ ] **C3 — Titre/description SEO par défaut figés en français** · P2 · S
+- [x] **C3 — Titre/description SEO par défaut figés en français** · P2 · S
   `lib/seo.ts:24-26`. Sur la page d'accueil (sans `title`), l'onglet du navigateur affiche
   toujours « NEOX — Ton radar cinéma & séries » quelle que soit la langue. *Fix : localiser les défauts.*
 

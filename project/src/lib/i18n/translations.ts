@@ -32,6 +32,9 @@ const fr: Dict = {
   // Shared
   'common.close': 'Fermer',
   'common.load_error': 'Chargement impossible.',
+  'seo.default_title': 'NEOX — Ton radar cinéma & séries',
+  'seo.default_description':
+    'Découvre les films et séries du moment, regarde les bandes-annonces et trouve instantanément où les voir en streaming légal. Crée ta watchlist en un clic.',
   'api.network': 'Impossible de joindre le serveur. Vérifie ta connexion.',
   'api.server': 'Erreur serveur ({status})',
   'error.title': 'Aïe, ça a coincé',
@@ -252,6 +255,9 @@ const en: Dict = {
 
   'common.close': 'Close',
   'common.load_error': 'Something went wrong while loading.',
+  'seo.default_title': 'NEOX — Your movie & TV radar',
+  'seo.default_description':
+    'Discover trending movies and shows, watch trailers, and instantly find where to stream them legally. Build your watchlist in one click.',
   'api.network': 'Couldn’t reach the server. Check your connection.',
   'api.server': 'Server error ({status})',
   'error.title': 'Oops, that broke',
@@ -456,6 +462,9 @@ const es: Dict = {
 
   'common.close': 'Cerrar',
   'common.load_error': 'No se pudo cargar.',
+  'seo.default_title': 'NEOX — Tu radar de cine y series',
+  'seo.default_description':
+    'Descubre las películas y series del momento, mira los tráilers y encuentra al instante dónde verlas en streaming legal. Crea tu lista en un clic.',
   'api.network': 'No se pudo conectar con el servidor. Revisa tu conexión.',
   'api.server': 'Error del servidor ({status})',
   'error.title': 'Vaya, algo falló',
@@ -660,6 +669,9 @@ const de: Dict = {
 
   'common.close': 'Schließen',
   'common.load_error': 'Laden fehlgeschlagen.',
+  'seo.default_title': 'NEOX — Dein Film- & Serienradar',
+  'seo.default_description':
+    'Entdecke aktuelle Filme und Serien, sieh dir Trailer an und finde sofort, wo du sie legal streamen kannst. Erstelle deine Watchlist mit einem Klick.',
   'api.network': 'Server nicht erreichbar. Prüfe deine Verbindung.',
   'api.server': 'Serverfehler ({status})',
   'error.title': 'Hoppla, da ging was schief',
@@ -865,6 +877,9 @@ const it: Dict = {
 
   'common.close': 'Chiudi',
   'common.load_error': 'Caricamento non riuscito.',
+  'seo.default_title': 'NEOX — Il tuo radar per film e serie',
+  'seo.default_description':
+    'Scopri i film e le serie del momento, guarda i trailer e trova subito dove vederli in streaming legale. Crea la tua watchlist con un clic.',
   'api.network': 'Impossibile raggiungere il server. Controlla la connessione.',
   'api.server': 'Errore del server ({status})',
   'error.title': 'Ops, qualcosa è andato storto',

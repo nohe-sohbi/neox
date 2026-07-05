@@ -54,13 +54,20 @@ export function truncate(text: string, max = MAX_DESCRIPTION): string {
   return `${clean.slice(0, max - 1).trimEnd()}…`;
 }
 
+/** Site-level fallbacks for title/description, overridable per call (e.g. to
+ * localize them from the active UI language). */
+export interface MetaDefaults {
+  title?: string;
+  description?: string;
+}
+
 /** Resolve a partial meta input into a complete, defaulted set of tags. */
-export function buildMeta(input: MetaInput = {}): ResolvedMeta {
+export function buildMeta(input: MetaInput = {}, defaults: MetaDefaults = {}): ResolvedMeta {
   const rawTitle = input.title?.trim();
-  const title = rawTitle ? `${rawTitle} · ${SITE_NAME}` : DEFAULT_TITLE;
+  const title = rawTitle ? `${rawTitle} · ${SITE_NAME}` : defaults.title || DEFAULT_TITLE;
 
   const rawDescription = input.description?.trim();
-  const description = truncate(rawDescription || DEFAULT_DESCRIPTION);
+  const description = truncate(rawDescription || defaults.description || DEFAULT_DESCRIPTION);
 
   const image = input.image?.trim() || DEFAULT_IMAGE;
   const type = input.type?.trim() || 'website';

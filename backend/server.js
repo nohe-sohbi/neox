@@ -26,7 +26,9 @@ app.set('etag', 'strong'); // strong ETags → cheap 304s on unchanged payloads
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(compression());
 app.use(cors());
-app.use(express.json({ limit: '256kb' }));
+// Sized to fit a full library (sanitizeLibrary caps at 2000 entries, ~400 KB
+// serialized) so PUT/POST /api/library never 413 before validation runs.
+app.use(express.json({ limit: '1mb' }));
 
 // Generous global limiter + a strict one for auth to blunt brute force.
 const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 600, standardHeaders: true, legacyHeaders: false });

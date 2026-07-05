@@ -35,7 +35,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   EN/ES/DE/IT voit des erreurs **en français** sur le flow login/register.
   *Fix : le backend renvoie un `code` d'erreur ; le client mappe code→clé i18n (message backend en fallback).*
 
-- [ ] **R4 — Limites contradictoires : body 256 KB vs cap 2000 entrées** · P2 · S
+- [x] **R4 — Limites contradictoires : body 256 KB vs cap 2000 entrées** · P2 · S
   `backend/server.js:29` (`express.json({ limit: '256kb' })`) vs `backend/library.js:41`
   (`slice(0, 2000)`). Une biblio ≳1300 titres sérialise à >256 KB → `PUT/POST /api/library`
   renvoie **413** avant même `sanitizeLibrary`, échec silencieux de la sync.

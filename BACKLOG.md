@@ -82,7 +82,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   `lib/seo.ts:24-26`. Sur la page d'accueil (sans `title`), l'onglet du navigateur affiche
   toujours « NEOX — Ton radar cinéma & séries » quelle que soit la langue. *Fix : localiser les défauts.*
 
-- [ ] **C4 — Reco « Similaires » sans affiche = case grise vide** · P2 · S
+- [x] **C4 — Reco « Similaires » sans affiche = case grise vide** · P2 · S
   `components/media/DetailModal.tsx:320`. Si `rec.poster` est null, rien n'est rendu (vs icône
   de repli dans `MediaCard`/casting). *Fix : icône de repli Film/Tv.*
 

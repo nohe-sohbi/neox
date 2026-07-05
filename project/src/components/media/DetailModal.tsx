@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Bookmark, Calendar, Check, Clock, Eye, Play, Star, Trash2, Tv, X } from 'lucide-react';
+import { Bookmark, Calendar, Check, Clock, Eye, Film, Play, Star, Trash2, Tv, X } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import type { MediaDetails, MediaType } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
@@ -328,7 +328,7 @@ export function DetailModal() {
                         onClick={() => openDetail(rec)}
                         className="group w-28 shrink-0 text-left"
                       >
-                        <div className="aspect-[2/3] overflow-hidden rounded-lg bg-ink-700 ring-1 ring-white/5 transition-transform group-hover:scale-[1.03]">
+                        <div className="flex aspect-[2/3] items-center justify-center overflow-hidden rounded-lg bg-ink-700 text-white/30 ring-1 ring-white/5 transition-transform group-hover:scale-[1.03]">
                           {rec.poster ? (
                             <img
                               src={rec.poster}
@@ -336,7 +336,11 @@ export function DetailModal() {
                               loading="lazy"
                               className="h-full w-full object-cover"
                             />
-                          ) : null}
+                          ) : rec.mediaType === 'tv' ? (
+                            <Tv className="h-8 w-8" />
+                          ) : (
+                            <Film className="h-8 w-8" />
+                          )}
                         </div>
                         <p className="mt-1.5 truncate text-xs font-medium text-white/80">
                           {rec.title}

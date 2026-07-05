@@ -121,6 +121,9 @@ async function tmdbGet(path, params = {}) {
                 const response = await fetch(url, { headers, timeout: 12000 });
 
                 if (response.status === 429) {
+                    // Record it so a run that 429s on every attempt reports a real
+                    // reason instead of "...: undefined".
+                    lastError = new Error('TMDB rate limited (HTTP 429)');
                     const retryAfter = Number(response.headers.get('retry-after')) || attempt;
                     await sleep(retryAfter * 1000);
                     continue;

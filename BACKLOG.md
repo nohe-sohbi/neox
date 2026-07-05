@@ -46,7 +46,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   (`HomeView.tsx:59` traduit via `t('home.row.${row.id}')`). Champ mort + trompeur.
   *Fix : retirer `title` du payload backend et de `HomeRow` (`types.ts`).*
 
-- [ ] **R6 — Message d'erreur TMDB « … : undefined »** · P2 · S
+- [x] **R6 — Message d'erreur TMDB « … : undefined »** · P2 · S
   `backend/tmdb.js:124`. Si les 4 tentatives renvoient 429, `lastError` n'est jamais affecté →
   `TMDB request failed after 4 attempts: undefined`. Cosmétique (statut/breaker corrects).
   *Fix : renseigner `lastError` sur la branche 429.*

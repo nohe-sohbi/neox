@@ -55,7 +55,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
 
 ## 🟡 Essentiel manquant
 
-- [ ] **E1 — Aucune navigation mobile vers Films / Séries** · P1 · M
+- [x] **E1 — Aucune navigation mobile vers Films / Séries** · P1 · M
   `components/layout/Navbar.tsx:75`. La nav (`Accueil/Films/Séries`) est `hidden md:flex`, le
   bouton ⌘K est `hidden sm:inline-flex`, **aucun menu hamburger**. Sur téléphone (<768 px), il
   n'existe **aucun moyen tactile d'atteindre `/movies` ou `/tv`** — les deux pages de découverte

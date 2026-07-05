@@ -17,6 +17,8 @@ const fr: Dict = {
   'nav.clear_search': 'Effacer la recherche',
   'nav.library': 'Ma liste',
   'nav.account': 'Mon compte',
+  'nav.primary': 'Navigation principale',
+  'nav.home_aria': 'NEOX — accueil',
   'nav.logged_as': 'Connecté en tant que',
   'nav.logout': 'Se déconnecter',
   'nav.login': 'Connexion',
@@ -30,6 +32,9 @@ const fr: Dict = {
   // Shared
   'common.close': 'Fermer',
   'common.load_error': 'Chargement impossible.',
+  'seo.default_title': 'NEOX — Ton radar cinéma & séries',
+  'seo.default_description':
+    'Découvre les films et séries du moment, regarde les bandes-annonces et trouve instantanément où les voir en streaming légal. Crée ta watchlist en un clic.',
   'api.network': 'Impossible de joindre le serveur. Vérifie ta connexion.',
   'api.server': 'Erreur serveur ({status})',
   'error.title': 'Aïe, ça a coincé',
@@ -52,6 +57,7 @@ const fr: Dict = {
 
   // Search view
   'search.results_for': 'Résultats pour',
+  'search.quoted': '« {term} »',
   'search.title': 'Recherche',
   'search.count_one': '{count} résultat',
   'search.count_other': '{count} résultats',
@@ -93,6 +99,7 @@ const fr: Dict = {
   'library.count_other': '{count} titres dans ta collection.',
   'library.subtitle_empty': 'Ta sélection perso, sauvegardée et synchronisée.',
   'library.clear_all': 'Tout effacer',
+  'library.clear_confirm': 'Vider toute ta bibliothèque ? Cette action est irréversible.',
   'library.sync_cta_title': 'Sauvegarde ta liste dans le cloud',
   'library.sync_cta_desc':
     'Crée un compte gratuit pour retrouver ta collection sur tous tes appareils.',
@@ -138,6 +145,8 @@ const fr: Dict = {
   // Toasts
   'toast.added': 'Ajouté à ta liste',
   'toast.removed': 'Retiré de ta liste',
+  'toast.marked_want': 'Ajouté à « À voir »',
+  'toast.marked_watched': 'Marqué comme vu',
   'toast.exported': 'Liste exportée',
   'toast.cleared': 'Liste vidée',
 
@@ -155,6 +164,12 @@ const fr: Dict = {
   'auth.signup_link': 'Inscris-toi',
   'auth.login_link': 'Connecte-toi',
   'auth.generic_error': 'Une erreur est survenue.',
+  'auth.err.email_invalid': 'Adresse e-mail invalide.',
+  'auth.err.password_short': 'Le mot de passe doit faire au moins 8 caractères.',
+  'auth.err.email_taken': 'Un compte existe déjà avec cet e-mail.',
+  'auth.err.credentials_required': 'E-mail et mot de passe requis.',
+  'auth.err.invalid_credentials': 'E-mail ou mot de passe incorrect.',
+  'auth.email_placeholder': 'vous@email.com',
 
   // Detail modal
   'detail.loading': 'On récupère les infos…',
@@ -228,6 +243,8 @@ const en: Dict = {
   'nav.clear_search': 'Clear search',
   'nav.library': 'My list',
   'nav.account': 'My account',
+  'nav.primary': 'Primary navigation',
+  'nav.home_aria': 'NEOX — home',
   'nav.logged_as': 'Signed in as',
   'nav.logout': 'Sign out',
   'nav.login': 'Sign in',
@@ -239,6 +256,9 @@ const en: Dict = {
 
   'common.close': 'Close',
   'common.load_error': 'Something went wrong while loading.',
+  'seo.default_title': 'NEOX — Your movie & TV radar',
+  'seo.default_description':
+    'Discover trending movies and shows, watch trailers, and instantly find where to stream them legally. Build your watchlist in one click.',
   'api.network': 'Couldn’t reach the server. Check your connection.',
   'api.server': 'Server error ({status})',
   'error.title': 'Oops, that broke',
@@ -258,6 +278,7 @@ const en: Dict = {
     'The server has no TMDB key configured. Add TMDB_API_KEY on the backend.',
 
   'search.results_for': 'Results for',
+  'search.quoted': '“{term}”',
   'search.title': 'Search',
   'search.count_one': '{count} result',
   'search.count_other': '{count} results',
@@ -297,6 +318,7 @@ const en: Dict = {
   'library.count_other': '{count} titles in your collection.',
   'library.subtitle_empty': 'Your personal picks, saved and synced.',
   'library.clear_all': 'Clear all',
+  'library.clear_confirm': 'Clear your entire library? This cannot be undone.',
   'library.sync_cta_title': 'Back up your list to the cloud',
   'library.sync_cta_desc':
     'Create a free account to find your collection on all your devices.',
@@ -340,6 +362,8 @@ const en: Dict = {
 
   'toast.added': 'Added to your list',
   'toast.removed': 'Removed from your list',
+  'toast.marked_want': 'Added to your watchlist',
+  'toast.marked_watched': 'Marked as watched',
   'toast.exported': 'List exported',
   'toast.cleared': 'List cleared',
 
@@ -356,6 +380,12 @@ const en: Dict = {
   'auth.signup_link': 'Sign up',
   'auth.login_link': 'Sign in',
   'auth.generic_error': 'Something went wrong.',
+  'auth.err.email_invalid': 'Invalid email address.',
+  'auth.err.password_short': 'Password must be at least 8 characters.',
+  'auth.err.email_taken': 'An account already exists with this email.',
+  'auth.err.credentials_required': 'Email and password are required.',
+  'auth.err.invalid_credentials': 'Incorrect email or password.',
+  'auth.email_placeholder': 'you@email.com',
 
   'detail.loading': 'Fetching the details…',
   'detail.trailer': 'Trailer',
@@ -421,6 +451,8 @@ const es: Dict = {
   'nav.clear_search': 'Borrar búsqueda',
   'nav.library': 'Mi lista',
   'nav.account': 'Mi cuenta',
+  'nav.primary': 'Navegación principal',
+  'nav.home_aria': 'NEOX — inicio',
   'nav.logged_as': 'Conectado como',
   'nav.logout': 'Cerrar sesión',
   'nav.login': 'Iniciar sesión',
@@ -432,6 +464,9 @@ const es: Dict = {
 
   'common.close': 'Cerrar',
   'common.load_error': 'No se pudo cargar.',
+  'seo.default_title': 'NEOX — Tu radar de cine y series',
+  'seo.default_description':
+    'Descubre las películas y series del momento, mira los tráilers y encuentra al instante dónde verlas en streaming legal. Crea tu lista en un clic.',
   'api.network': 'No se pudo conectar con el servidor. Revisa tu conexión.',
   'api.server': 'Error del servidor ({status})',
   'error.title': 'Vaya, algo falló',
@@ -451,6 +486,7 @@ const es: Dict = {
     'El servidor no tiene una clave TMDB configurada. Añade TMDB_API_KEY en el backend.',
 
   'search.results_for': 'Resultados para',
+  'search.quoted': '« {term} »',
   'search.title': 'Buscar',
   'search.count_one': '{count} resultado',
   'search.count_other': '{count} resultados',
@@ -490,6 +526,7 @@ const es: Dict = {
   'library.count_other': '{count} títulos en tu colección.',
   'library.subtitle_empty': 'Tu selección personal, guardada y sincronizada.',
   'library.clear_all': 'Borrar todo',
+  'library.clear_confirm': '¿Vaciar toda tu biblioteca? Esta acción no se puede deshacer.',
   'library.sync_cta_title': 'Guarda tu lista en la nube',
   'library.sync_cta_desc':
     'Crea una cuenta gratis para recuperar tu colección en todos tus dispositivos.',
@@ -533,6 +570,8 @@ const es: Dict = {
 
   'toast.added': 'Añadido a tu lista',
   'toast.removed': 'Quitado de tu lista',
+  'toast.marked_want': 'Añadido a « Por ver »',
+  'toast.marked_watched': 'Marcado como visto',
   'toast.exported': 'Lista exportada',
   'toast.cleared': 'Lista vaciada',
 
@@ -549,6 +588,12 @@ const es: Dict = {
   'auth.signup_link': 'Regístrate',
   'auth.login_link': 'Inicia sesión',
   'auth.generic_error': 'Ha ocurrido un error.',
+  'auth.err.email_invalid': 'Dirección de correo no válida.',
+  'auth.err.password_short': 'La contraseña debe tener al menos 8 caracteres.',
+  'auth.err.email_taken': 'Ya existe una cuenta con este correo.',
+  'auth.err.credentials_required': 'Correo y contraseña obligatorios.',
+  'auth.err.invalid_credentials': 'Correo o contraseña incorrectos.',
+  'auth.email_placeholder': 'tu@email.com',
 
   'detail.loading': 'Obteniendo la información…',
   'detail.trailer': 'Tráiler',
@@ -614,6 +659,8 @@ const de: Dict = {
   'nav.clear_search': 'Suche löschen',
   'nav.library': 'Meine Liste',
   'nav.account': 'Mein Konto',
+  'nav.primary': 'Hauptnavigation',
+  'nav.home_aria': 'NEOX — Startseite',
   'nav.logged_as': 'Angemeldet als',
   'nav.logout': 'Abmelden',
   'nav.login': 'Anmelden',
@@ -625,6 +672,9 @@ const de: Dict = {
 
   'common.close': 'Schließen',
   'common.load_error': 'Laden fehlgeschlagen.',
+  'seo.default_title': 'NEOX — Dein Film- & Serienradar',
+  'seo.default_description':
+    'Entdecke aktuelle Filme und Serien, sieh dir Trailer an und finde sofort, wo du sie legal streamen kannst. Erstelle deine Watchlist mit einem Klick.',
   'api.network': 'Server nicht erreichbar. Prüfe deine Verbindung.',
   'api.server': 'Serverfehler ({status})',
   'error.title': 'Hoppla, da ging was schief',
@@ -645,6 +695,7 @@ const de: Dict = {
     'Der Server hat keinen TMDB-Schlüssel konfiguriert. Füge TMDB_API_KEY im Backend hinzu.',
 
   'search.results_for': 'Ergebnisse für',
+  'search.quoted': '„{term}“',
   'search.title': 'Suche',
   'search.count_one': '{count} Ergebnis',
   'search.count_other': '{count} Ergebnisse',
@@ -684,6 +735,7 @@ const de: Dict = {
   'library.count_other': '{count} Titel in deiner Sammlung.',
   'library.subtitle_empty': 'Deine persönliche Auswahl, gespeichert und synchronisiert.',
   'library.clear_all': 'Alles löschen',
+  'library.clear_confirm': 'Deine gesamte Bibliothek leeren? Das kann nicht rückgängig gemacht werden.',
   'library.sync_cta_title': 'Sichere deine Liste in der Cloud',
   'library.sync_cta_desc':
     'Erstelle ein kostenloses Konto, um deine Sammlung auf allen Geräten wiederzufinden.',
@@ -727,6 +779,8 @@ const de: Dict = {
 
   'toast.added': 'Zu deiner Liste hinzugefügt',
   'toast.removed': 'Aus deiner Liste entfernt',
+  'toast.marked_want': 'Zu „Ansehen“ hinzugefügt',
+  'toast.marked_watched': 'Als gesehen markiert',
   'toast.exported': 'Liste exportiert',
   'toast.cleared': 'Liste geleert',
 
@@ -743,6 +797,12 @@ const de: Dict = {
   'auth.signup_link': 'Registrieren',
   'auth.login_link': 'Anmelden',
   'auth.generic_error': 'Ein Fehler ist aufgetreten.',
+  'auth.err.email_invalid': 'Ungültige E-Mail-Adresse.',
+  'auth.err.password_short': 'Das Passwort muss mindestens 8 Zeichen lang sein.',
+  'auth.err.email_taken': 'Mit dieser E-Mail existiert bereits ein Konto.',
+  'auth.err.credentials_required': 'E-Mail und Passwort sind erforderlich.',
+  'auth.err.invalid_credentials': 'E-Mail oder Passwort ist falsch.',
+  'auth.email_placeholder': 'du@email.com',
 
   'detail.loading': 'Infos werden geladen…',
   'detail.trailer': 'Trailer',
@@ -808,6 +868,8 @@ const it: Dict = {
   'nav.clear_search': 'Cancella ricerca',
   'nav.library': 'La mia lista',
   'nav.account': 'Il mio account',
+  'nav.primary': 'Navigazione principale',
+  'nav.home_aria': 'NEOX — home',
   'nav.logged_as': 'Connesso come',
   'nav.logout': 'Esci',
   'nav.login': 'Accedi',
@@ -819,6 +881,9 @@ const it: Dict = {
 
   'common.close': 'Chiudi',
   'common.load_error': 'Caricamento non riuscito.',
+  'seo.default_title': 'NEOX — Il tuo radar per film e serie',
+  'seo.default_description':
+    'Scopri i film e le serie del momento, guarda i trailer e trova subito dove vederli in streaming legale. Crea la tua watchlist con un clic.',
   'api.network': 'Impossibile raggiungere il server. Controlla la connessione.',
   'api.server': 'Errore del server ({status})',
   'error.title': 'Ops, qualcosa è andato storto',
@@ -838,6 +903,7 @@ const it: Dict = {
     'Il server non ha una chiave TMDB configurata. Aggiungi TMDB_API_KEY nel backend.',
 
   'search.results_for': 'Risultati per',
+  'search.quoted': '« {term} »',
   'search.title': 'Cerca',
   'search.count_one': '{count} risultato',
   'search.count_other': '{count} risultati',
@@ -877,6 +943,7 @@ const it: Dict = {
   'library.count_other': '{count} titoli nella tua collezione.',
   'library.subtitle_empty': 'La tua selezione personale, salvata e sincronizzata.',
   'library.clear_all': 'Cancella tutto',
+  'library.clear_confirm': 'Svuotare tutta la tua libreria? L’azione è irreversibile.',
   'library.sync_cta_title': 'Salva la tua lista nel cloud',
   'library.sync_cta_desc':
     'Crea un account gratuito per ritrovare la tua collezione su tutti i dispositivi.',
@@ -920,6 +987,8 @@ const it: Dict = {
 
   'toast.added': 'Aggiunto alla tua lista',
   'toast.removed': 'Rimosso dalla tua lista',
+  'toast.marked_want': 'Aggiunto a « Da vedere »',
+  'toast.marked_watched': 'Segnato come visto',
   'toast.exported': 'Lista esportata',
   'toast.cleared': 'Lista svuotata',
 
@@ -936,6 +1005,12 @@ const it: Dict = {
   'auth.signup_link': 'Registrati',
   'auth.login_link': 'Accedi',
   'auth.generic_error': 'Si è verificato un errore.',
+  'auth.err.email_invalid': 'Indirizzo e-mail non valido.',
+  'auth.err.password_short': 'La password deve contenere almeno 8 caratteri.',
+  'auth.err.email_taken': 'Esiste già un account con questa e-mail.',
+  'auth.err.credentials_required': 'E-mail e password obbligatorie.',
+  'auth.err.invalid_credentials': 'E-mail o password non corretti.',
+  'auth.email_placeholder': 'tu@email.com',
 
   'detail.loading': 'Recupero le informazioni…',
   'detail.trailer': 'Trailer',

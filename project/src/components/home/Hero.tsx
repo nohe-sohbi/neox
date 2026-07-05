@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Bookmark, Info, Star } from 'lucide-react';
 import type { MediaItem } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
+import { useToast } from '../../context/ToastContext';
 import { useOpenDetail } from '../../hooks/useDetailRoute';
 import { useT } from '../../lib/i18n';
 
@@ -9,6 +10,7 @@ export function Hero({ items }: { items: MediaItem[] }) {
   const { t } = useT();
   const openDetail = useOpenDetail();
   const { isSaved, toggle } = useLibrary();
+  const toast = useToast();
   const [active, setActive] = useState(0);
 
   // Auto-advance.
@@ -79,7 +81,13 @@ export function Hero({ items }: { items: MediaItem[] }) {
                 <Info className="h-5 w-5" />
                 {t('hero.details')}
               </button>
-              <button onClick={() => toggle(current)} className="btn-ghost">
+              <button
+                onClick={() => {
+                  const added = toggle(current);
+                  toast.success(added ? t('toast.added') : t('toast.removed'));
+                }}
+                className="btn-ghost"
+              >
                 <Bookmark className={`h-5 w-5 ${saved ? 'fill-current' : ''}`} />
                 {saved ? t('hero.in_list') : t('hero.add_list')}
               </button>

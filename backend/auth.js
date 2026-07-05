@@ -27,25 +27,27 @@ function requireAuth(req, res, next) {
     const header = req.headers.authorization || '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : null;
     if (!token) {
-        return res.status(401).json({ error: 'Authentification requise.' });
+        return res.status(401).json({ error: 'Authentification requise.', code: 'AUTH_REQUIRED' });
     }
     try {
         const payload = jwt.verify(token, SECRET);
         req.userId = payload.sub;
         next();
     } catch {
-        res.status(401).json({ error: 'Session expirée ou invalide.' });
+        res.status(401).json({ error: 'Session expirée ou invalide.', code: 'AUTH_SESSION_INVALID' });
     }
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Returns { error, code } on failure (so clients can localize by code, with the
+// message as a fallback), or null when the credentials are well-formed.
 function validateCredentials({ email, password }) {
     if (!email || !EMAIL_RE.test(String(email))) {
-        return 'Adresse e-mail invalide.';
+        return { error: 'Adresse e-mail invalide.', code: 'AUTH_EMAIL_INVALID' };
     }
     if (!password || String(password).length < 8) {
-        return 'Le mot de passe doit faire au moins 8 caractères.';
+        return { error: 'Le mot de passe doit faire au moins 8 caractères.', code: 'AUTH_PASSWORD_TOO_SHORT' };
     }
     return null;
 }

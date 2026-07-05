@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Navbar } from './components/layout/Navbar';
+import { MobileNav } from './components/layout/MobileNav';
 import { Footer } from './components/layout/Footer';
 import { DetailModal } from './components/media/DetailModal';
 import { PersonModal } from './components/media/PersonModal';
@@ -24,7 +25,7 @@ function App() {
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col bg-ink-950 text-white">
+    <div className="flex min-h-screen flex-col bg-ink-950 text-white pb-16 md:pb-0">
       {/* Keyboard / screen-reader users can jump straight to the content. */}
       <a
         href="#main-content"
@@ -51,6 +52,9 @@ function App() {
       </main>
 
       <Footer />
+
+      {/* Touch-device primary navigation (the top navbar links are md-only) */}
+      <MobileNav />
 
       {/* Global overlays — deep-link driven detail, person, auth, and ⌘K palette */}
       <DetailModal />

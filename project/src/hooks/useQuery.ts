@@ -46,10 +46,16 @@ export function useQuery<T>(
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
 
+  // A refetch() bumps `nonce`; forcing a revalidation must be one-shot. We
+  // remember the nonce we last acted on so subsequent runs (key/ttl changes)
+  // fall back to the normal freshness check instead of always hitting network.
+  const forcedNonce = useRef(0);
+
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
-    const force = nonce > 0;
+    const force = nonce !== forcedNonce.current;
+    forcedNonce.current = nonce;
     const entry = queryCache.get<T>(key);
 
     if (entry) {

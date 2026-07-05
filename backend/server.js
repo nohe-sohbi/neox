@@ -26,7 +26,9 @@ app.set('etag', 'strong'); // strong ETags → cheap 304s on unchanged payloads
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(compression());
 app.use(cors());
-app.use(express.json({ limit: '256kb' }));
+// Sized to fit a full library (sanitizeLibrary caps at 2000 entries, ~400 KB
+// serialized) so PUT/POST /api/library never 413 before validation runs.
+app.use(express.json({ limit: '1mb' }));
 
 // Generous global limiter + a strict one for auth to blunt brute force.
 const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 600, standardHeaders: true, legacyHeaders: false });
@@ -184,10 +186,10 @@ app.post(
     route(async (req, res) => {
         const { email, password } = req.body || {};
         const validationError = auth.validateCredentials({ email, password });
-        if (validationError) return res.status(400).json({ error: validationError });
+        if (validationError) return res.status(400).json(validationError);
 
         if (store.findUserByEmail(email)) {
-            return res.status(409).json({ error: 'Un compte existe déjà avec cet e-mail.' });
+            return res.status(409).json({ error: 'Un compte existe déjà avec cet e-mail.', code: 'AUTH_EMAIL_TAKEN' });
         }
 
         const passwordHash = await auth.hashPassword(password);
@@ -201,12 +203,12 @@ app.post(
     route(async (req, res) => {
         const { email, password } = req.body || {};
         if (!email || !password) {
-            return res.status(400).json({ error: 'E-mail et mot de passe requis.' });
+            return res.status(400).json({ error: 'E-mail et mot de passe requis.', code: 'AUTH_CREDENTIALS_REQUIRED' });
         }
         const user = store.findUserByEmail(email);
         const ok = user && (await auth.verifyPassword(password, user.passwordHash));
         if (!ok) {
-            return res.status(401).json({ error: 'E-mail ou mot de passe incorrect.' });
+            return res.status(401).json({ error: 'E-mail ou mot de passe incorrect.', code: 'AUTH_INVALID_CREDENTIALS' });
         }
         res.json({ token: auth.signToken(user), user: store.publicUser(user) });
     }),
@@ -214,7 +216,7 @@ app.post(
 
 app.get('/api/auth/me', auth.requireAuth, (req, res) => {
     const user = store.getUserById(req.userId);
-    if (!user) return res.status(404).json({ error: 'Compte introuvable.' });
+    if (!user) return res.status(404).json({ error: 'Compte introuvable.', code: 'AUTH_ACCOUNT_NOT_FOUND' });
     res.json({ user: store.publicUser(user) });
 });
 

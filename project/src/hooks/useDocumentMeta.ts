@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { applyMeta, buildMeta, restoreMeta, snapshotMeta, type MetaInput } from '../lib/seo';
+import { t } from '../lib/i18n';
 
 /**
  * Drive the document head from React. On mount (and whenever the input changes)
@@ -15,7 +16,14 @@ export function useDocumentMeta(input: MetaInput): void {
   useEffect(() => {
     if (typeof document === 'undefined') return;
     const snapshot = snapshotMeta();
-    applyMeta(buildMeta(input));
+    // Localize the site-level fallbacks (used on views without their own title,
+    // e.g. Home). A language switch hard-reloads, so reading `t` here is safe.
+    applyMeta(
+      buildMeta(input, {
+        title: t('seo.default_title'),
+        description: t('seo.default_description'),
+      }),
+    );
     return () => restoreMeta(snapshot);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);

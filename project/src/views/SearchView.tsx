@@ -17,7 +17,9 @@ export function SearchView() {
   const { t, tn, formatNumber } = useT();
 
   useDocumentMeta({
-    title: debounced ? `${t('search.results_for')} « ${debounced} »` : t('search.title'),
+    title: debounced
+      ? `${t('search.results_for')} ${t('search.quoted', { term: debounced })}`
+      : t('search.title'),
     path: debounced ? `/search?q=${encodeURIComponent(debounced)}` : '/search',
   });
 
@@ -65,7 +67,7 @@ export function SearchView() {
         {debounced ? (
           <>
             {t('search.results_for')}{' '}
-            <span className="text-gradient">«&nbsp;{debounced}&nbsp;»</span>
+            <span className="text-gradient">{t('search.quoted', { term: debounced })}</span>
           </>
         ) : (
           t('search.title')

@@ -452,7 +452,13 @@ async function getPerson(id, opts = {}) {
  */
 async function recommend(seeds = [], opts = {}) {
     const valid = seeds
-        .filter((s) => (s.mediaType === 'movie' || s.mediaType === 'tv') && Number(s.id) > 0)
+        .filter(
+            (s) =>
+                s &&
+                typeof s === 'object' &&
+                (s.mediaType === 'movie' || s.mediaType === 'tv') &&
+                Number(s.id) > 0,
+        )
         .slice(0, 12);
     if (valid.length === 0) return { results: [] };
 

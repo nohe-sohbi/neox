@@ -32,7 +32,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   *Fix : rejeter en 400 quand `entries` n'est pas un tableau (un `[]` explicite = vidage
   légitime reste autorisé).*
 
-- [ ] **R3 — `recommend()` crashe (500) sur des seeds malformés** · P2 · S
+- [x] **R3 — `recommend()` crashe (500) sur des seeds malformés** · P2 · S
   `backend/tmdb.js:454-456`. Le filtre déréférence `s.mediaType` avant de valider que `s` est
   un objet, **avant** le garde `valid.length === 0`. `POST /api/recommendations` avec
   `{"seeds":[null]}` → `TypeError` → 500 au lieu d'ignorer l'élément.

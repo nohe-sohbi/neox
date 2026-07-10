@@ -230,7 +230,16 @@ app.put(
     '/api/library',
     auth.requireAuth,
     route(async (req, res) => {
-        const entries = sanitizeLibrary(req.body?.entries);
+        // Reject a missing/non-array `entries` outright: treating it as an empty
+        // library would silently wipe the account's synced list on a malformed
+        // request. An explicit `[]` is still a legitimate "clear".
+        if (!Array.isArray(req.body?.entries)) {
+            const err = new Error('Field "entries" must be an array.');
+            err.status = 400;
+            err.code = 'LIBRARY_INVALID_BODY';
+            throw err;
+        }
+        const entries = sanitizeLibrary(req.body.entries);
         await store.setLibrary(req.userId, entries);
         res.json({ entries });
     }),

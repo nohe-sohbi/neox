@@ -16,7 +16,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
 
 ## 🔴 À réparer (cassé / incohérent / mort)
 
-- [ ] **R1 — `store.js` avale les erreurs d'écriture → 200 sur une sauvegarde ratée** · P1 · M
+- [x] **R1 — `store.js` avale les erreurs d'écriture → 200 sur une sauvegarde ratée** · P1 · M
   `backend/store.js:31-55`. `persist()` appelle `resolve()` (jamais `reject`) dans **toutes**
   les branches d'erreur (mkdir/write/rename). Donc `await store.setLibrary(...)` et
   `await store.createUser(...)` réussissent même quand rien n'a été écrit sur disque.
@@ -25,7 +25,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   *Fix : découpler la chaîne de sérialisation (qui doit rester vivante) du résultat par appel
   (qui doit rejeter en cas d'échec) → la route renvoie 500 au lieu d'un faux succès.*
 
-- [ ] **R2 — `PUT /api/library` efface la biblio cloud sur un body malformé** · P2 · S
+- [x] **R2 — `PUT /api/library` efface la biblio cloud sur un body malformé** · P2 · S
   `backend/server.js:229-237`. `sanitizeLibrary(req.body?.entries)` renvoie `[]` pour un
   `entries` absent/non-tableau, puis `setLibrary(userId, [])` **remplace toute la biblio** et
   renvoie 200. Un bug client ou un champ manquant détruit silencieusement les données synchronisées.

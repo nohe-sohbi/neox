@@ -29,29 +29,31 @@ function load() {
 }
 
 function persist() {
-    writeQueue = writeQueue.then(
+    // The write runs after any previously-queued write (serialized so concurrent
+    // requests can't interleave and corrupt the file). It *rejects* on failure so
+    // the caller — and therefore the API route — learns the data was not saved
+    // instead of reporting a false success.
+    const run = writeQueue.then(
         () =>
-            new Promise((resolve) => {
+            new Promise((resolve, reject) => {
                 fs.mkdir(DATA_DIR, { recursive: true }, (mkErr) => {
-                    if (mkErr) {
-                        console.error('store mkdir error:', mkErr.message);
-                        return resolve();
-                    }
+                    if (mkErr) return reject(mkErr);
                     const tmp = `${FILE}.${process.pid}.tmp`;
                     fs.writeFile(tmp, JSON.stringify(state), (wErr) => {
-                        if (wErr) {
-                            console.error('store write error:', wErr.message);
-                            return resolve();
-                        }
+                        if (wErr) return reject(wErr);
                         fs.rename(tmp, FILE, (rErr) => {
-                            if (rErr) console.error('store rename error:', rErr.message);
+                            if (rErr) return reject(rErr);
                             resolve();
                         });
                     });
                 });
             }),
     );
-    return writeQueue;
+    // Keep the serialization chain alive regardless of this write's outcome: a
+    // single failed write must not break every subsequent one. Errors surface
+    // through the returned `run`, not through the queue.
+    writeQueue = run.catch(() => {});
+    return run;
 }
 
 load();
@@ -68,10 +70,21 @@ function getUserById(id) {
 }
 
 async function createUser({ email, passwordHash }) {
+    const normalizedEmail = email.trim().toLowerCase();
+    // Atomic uniqueness backstop: this check and the state mutation below run
+    // synchronously (no await between them), so two concurrent registrations for
+    // the same email — which can both clear the route-level check while awaiting
+    // bcrypt — can't both create an account. The second one loses here.
+    if (findUserByEmail(normalizedEmail)) {
+        const err = new Error('Un compte existe déjà avec cet e-mail.');
+        err.status = 409;
+        err.code = 'AUTH_EMAIL_TAKEN';
+        throw err;
+    }
     const id = crypto.randomUUID();
     const user = {
         id,
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         passwordHash,
         createdAt: Date.now(),
     };

@@ -19,6 +19,9 @@ const ERROR_CODE_KEYS: Record<string, string> = {
   AUTH_EMAIL_TAKEN: 'auth.err.email_taken',
   AUTH_CREDENTIALS_REQUIRED: 'auth.err.credentials_required',
   AUTH_INVALID_CREDENTIALS: 'auth.err.invalid_credentials',
+  AUTH_ACCOUNT_NOT_FOUND: 'auth.err.account_not_found',
+  AUTH_REQUIRED: 'auth.err.required',
+  AUTH_SESSION_INVALID: 'auth.err.session_invalid',
 };
 
 export function AuthModal({ open, onClose }: AuthModalProps) {

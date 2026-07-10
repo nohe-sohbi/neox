@@ -92,10 +92,10 @@ async function tmdbGet(path, params = {}) {
     // TMDB, the rest await the same flight. Keyed by URL so different params
     // (locale, page…) never share a result.
     return inflight.run(cacheKey, async () => {
-        // Re-check the cache inside the flight: an earlier flight may have just
-        // populated it while we were queued behind the single-flight lock.
-        const fresh = cache.get(cacheKey);
-        if (fresh && !fresh.stale) return fresh.value;
+        // No second cache.get() here: single-flight only runs this body for the
+        // first caller (the rest await the same promise), so the outer lookup
+        // above is still authoritative. Re-reading would just double-count the
+        // miss in the /api/health cache metrics.
 
         // Upstream circuit is open: don't pile onto a failing TMDB. Serve
         // slightly-stale cache if we have it, otherwise fail fast with 503.
@@ -452,7 +452,13 @@ async function getPerson(id, opts = {}) {
  */
 async function recommend(seeds = [], opts = {}) {
     const valid = seeds
-        .filter((s) => (s.mediaType === 'movie' || s.mediaType === 'tv') && Number(s.id) > 0)
+        .filter(
+            (s) =>
+                s &&
+                typeof s === 'object' &&
+                (s.mediaType === 'movie' || s.mediaType === 'tv') &&
+                Number(s.id) > 0,
+        )
         .slice(0, 12);
     if (valid.length === 0) return { results: [] };
 

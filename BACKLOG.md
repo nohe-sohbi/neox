@@ -45,7 +45,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   d'abord (résultats faux/vides), aussitôt remplacé par la requête correcte.
   *Fix : remonter la vue par `key={mediaType}` (état de filtre réinitialisé, une seule requête).*
 
-- [ ] **R5 — Un 401 laisse l'UI en état « connecté » périmé** · P2 · S
+- [x] **R5 — Un 401 laisse l'UI en état « connecté » périmé** · P2 · S
   `lib/api.ts:106` efface le token sur tout 401, mais rien ne réinitialise `user` dans
   `context/AuthContext.tsx` (seul le `me()` du boot le fait). Après expiration du token en
   cours de session : la navbar garde l'avatar + « Connecté en tant que », et

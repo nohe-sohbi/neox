@@ -64,6 +64,11 @@ export class ApiError extends Error {
   }
 }
 
+// Dispatched when an authenticated request comes back 401 (token expired or
+// revoked). AuthContext listens for it to clear `user` and stop background
+// syncs, so the UI doesn't stay "logged in" until the next reload.
+export const UNAUTHORIZED_EVENT = 'neox:unauthorized';
+
 // Auth token is held in module scope and mirrored to localStorage so every
 // request picks it up without prop drilling.
 const TOKEN_KEY = 'neox.token';
@@ -103,7 +108,15 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   if (!response.ok) {
     const data = body as { error?: string; code?: string } | null;
-    if (response.status === 401) setAuthToken(null);
+    if (response.status === 401) {
+      // A 401 on a login attempt (no token yet) is not a session drop, so only
+      // broadcast when we actually had a token that just became invalid.
+      const wasAuthed = Boolean(authToken);
+      setAuthToken(null);
+      if (wasAuthed && typeof window !== 'undefined') {
+        window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+      }
+    }
     throw new ApiError(
       data?.error || tApi('api.server', { status: response.status }),
       response.status,

@@ -263,7 +263,15 @@ export function DetailModal() {
                 <p className="mb-2 text-sm font-bold uppercase tracking-wider text-white/50">
                   {t('detail.your_rating')}
                 </p>
-                <StarRating value={personalRating} onChange={(r) => setRating(details, r)} />
+                <StarRating
+                  value={personalRating}
+                  onChange={(r) => {
+                    setRating(details, r);
+                    // Rating implies "watched", so give the same feedback the
+                    // other library mutations do instead of a silent status flip.
+                    toast.success(r != null ? t('toast.rated') : t('toast.rating_cleared'));
+                  }}
+                />
               </div>
 
               {details.overview && (

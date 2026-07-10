@@ -147,6 +147,8 @@ const fr: Dict = {
   'toast.removed': 'Retiré de ta liste',
   'toast.marked_want': 'Ajouté à « À voir »',
   'toast.marked_watched': 'Marqué comme vu',
+  'toast.rated': 'Note enregistrée — ajouté à « Vus »',
+  'toast.rating_cleared': 'Note retirée',
   'toast.exported': 'Liste exportée',
   'toast.cleared': 'Liste vidée',
 
@@ -377,6 +379,8 @@ const en: Dict = {
   'toast.removed': 'Removed from your list',
   'toast.marked_want': 'Added to your watchlist',
   'toast.marked_watched': 'Marked as watched',
+  'toast.rated': 'Rating saved — added to “Watched”',
+  'toast.rating_cleared': 'Rating cleared',
   'toast.exported': 'List exported',
   'toast.cleared': 'List cleared',
 
@@ -597,6 +601,8 @@ const es: Dict = {
   'toast.removed': 'Quitado de tu lista',
   'toast.marked_want': 'Añadido a « Por ver »',
   'toast.marked_watched': 'Marcado como visto',
+  'toast.rated': 'Puntuación guardada — añadido a «Vistos»',
+  'toast.rating_cleared': 'Puntuación eliminada',
   'toast.exported': 'Lista exportada',
   'toast.cleared': 'Lista vaciada',
 
@@ -818,6 +824,8 @@ const de: Dict = {
   'toast.removed': 'Aus deiner Liste entfernt',
   'toast.marked_want': 'Zu „Ansehen“ hinzugefügt',
   'toast.marked_watched': 'Als gesehen markiert',
+  'toast.rated': 'Bewertung gespeichert — zu „Gesehen“ hinzugefügt',
+  'toast.rating_cleared': 'Bewertung entfernt',
   'toast.exported': 'Liste exportiert',
   'toast.cleared': 'Liste geleert',
 
@@ -1038,6 +1046,8 @@ const it: Dict = {
   'toast.removed': 'Rimosso dalla tua lista',
   'toast.marked_want': 'Aggiunto a « Da vedere »',
   'toast.marked_watched': 'Segnato come visto',
+  'toast.rated': 'Voto salvato — aggiunto a «Visti»',
+  'toast.rating_cleared': 'Voto rimosso',
   'toast.exported': 'Lista esportata',
   'toast.cleared': 'Lista svuotata',
 

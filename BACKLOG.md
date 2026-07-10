@@ -90,7 +90,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   le protocole exige une **URL absolue**.
   *Fix : corriger le namespace + rendre l'URL du sitemap absolue.*
 
-- [ ] **C3 — Noter un titre bascule À voir→Vu en silence, sans toast** · P2 · S
+- [x] **C3 — Noter un titre bascule À voir→Vu en silence, sans toast** · P2 · S
   `components/media/DetailModal.tsx:266` → `StarRating.onChange` → `setRating`, qui force
   `status: 'watched'` (`LibraryContext.tsx:144-149`) **sans toast**, alors que le bouton
   « Marquer comme vu » en émet un et que toutes les autres mutations de biblio donnent un retour.

@@ -83,7 +83,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   soit la langue UI. Fuite i18n sur un ensemble fini et mappable de départements.
   *Fix : mapper le département vers une clé i18n (fallback = valeur brute).*
 
-- [ ] **C2 — `sitemap.xml` a un namespace invalide + `robots.txt` pointe un sitemap relatif** · P2 · S
+- [x] **C2 — `sitemap.xml` a un namespace invalide + `robots.txt` pointe un sitemap relatif** · P2 · S
   `project/public/sitemap.xml:7` déclare `xmlns="http://www.sitemap.org/..."` (au lieu de
   **`sitemaps.org`**, pluriel) → namespace du protocole invalide, sitemap rejeté par les
   validateurs. `project/public/robots.txt` déclare `Sitemap: /sitemap.xml` (relatif) alors que

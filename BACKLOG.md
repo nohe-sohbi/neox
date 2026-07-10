@@ -77,7 +77,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
 
 ## 🟢 Contenu à compléter (feedback, i18n, SEO)
 
-- [ ] **C1 — `person.knownFor` (métier) toujours en anglais** · P2 · S
+- [x] **C1 — `person.knownFor` (métier) toujours en anglais** · P2 · S
   `backend/tmdb.js:441` renvoie `known_for_department` tel quel (« Acting », « Directing »…),
   affiché en évidence sous le nom dans `PersonModal.tsx:103` + la meta description, quelle que
   soit la langue UI. Fuite i18n sur un ensemble fini et mappable de départements.

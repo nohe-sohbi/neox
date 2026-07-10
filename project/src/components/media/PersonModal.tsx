@@ -8,13 +8,25 @@ import { DocumentMeta } from '../../hooks/useDocumentMeta';
 import { ErrorState, FullSpinner } from '../ui/States';
 import { MediaGrid } from './MediaGrid';
 import { useT, activeLang } from '../../lib/i18n';
-import { localeTag } from '../../lib/i18n/core';
+import { localeTag, type Translator } from '../../lib/i18n/core';
 
 function age(birthday: string | null): number | null {
   if (!birthday) return null;
   const diff = Date.now() - new Date(birthday).getTime();
   const years = Math.floor(diff / (365.25 * 24 * 3600 * 1000));
   return years > 0 && years < 130 ? years : null;
+}
+
+/**
+ * TMDB's `known_for_department` is always English ("Acting", "Directing"…).
+ * Map it to the UI language, falling back to the raw value for any department
+ * we don't have a translation for (t() returns the key when it's missing).
+ */
+function departmentLabel(t: Translator, dept: string): string {
+  if (!dept) return '';
+  const key = `person.dept.${dept}`;
+  const label = t(key);
+  return label === key ? dept : label;
 }
 
 export function PersonModal() {
@@ -50,6 +62,7 @@ export function PersonModal() {
   if (!personId) return null;
 
   const years = person ? age(person.birthday) : null;
+  const knownFor = person ? departmentLabel(t, person.knownFor) : '';
 
   return (
     <div
@@ -80,7 +93,7 @@ export function PersonModal() {
           <>
             <DocumentMeta
               title={person.name}
-              description={person.biography || `${person.name} — ${person.knownFor}`}
+              description={person.biography || `${person.name} — ${knownFor}`}
               image={person.photo}
               type="profile"
               path={`/?person=${person.id}`}
@@ -99,8 +112,8 @@ export function PersonModal() {
               )}
               <div className="flex-1">
                 <h2 className="text-2xl font-extrabold text-white sm:text-3xl">{person.name}</h2>
-                {person.knownFor && (
-                  <p className="mt-1 text-sm font-medium text-brand-cyan">{person.knownFor}</p>
+                {knownFor && (
+                  <p className="mt-1 text-sm font-medium text-brand-cyan">{knownFor}</p>
                 )}
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/60">
                   {person.birthday && (

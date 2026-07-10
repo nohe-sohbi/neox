@@ -38,7 +38,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   `{"seeds":[null]}` → `TypeError` → 500 au lieu d'ignorer l'élément.
   *Fix : `s && typeof s === 'object' && ...` dans le filtre.*
 
-- [ ] **R4 — `DiscoverView` double-fetch (et mauvais genre) au changement d'onglet Films↔Séries** · P2 · S
+- [x] **R4 — `DiscoverView` double-fetch (et mauvais genre) au changement d'onglet Films↔Séries** · P2 · S
   `views/DiscoverView.tsx:61-66` (reset) et `:133-136` (fetch) réagissent tous deux au même
   changement de `mediaType`. Au render où `mediaType` bascule, l'état de filtre porte encore
   les valeurs de l'onglet précédent → un `api.discover('tv', { genre: <id film> })` part

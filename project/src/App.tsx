@@ -42,8 +42,11 @@ function App() {
         <ErrorBoundary>
           <Routes>
             <Route path="/" element={<HomeView />} />
-            <Route path="/movies" element={<DiscoverView mediaType="movie" />} />
-            <Route path="/tv" element={<DiscoverView mediaType="tv" />} />
+            {/* Keyed so a Movies↔Séries switch remounts the view with fresh
+                filter state, instead of firing one request with the previous
+                tab's filters (e.g. a movie genre id on /tv) before the reset. */}
+            <Route path="/movies" element={<DiscoverView key="movie" mediaType="movie" />} />
+            <Route path="/tv" element={<DiscoverView key="tv" mediaType="tv" />} />
             <Route path="/search" element={<SearchView />} />
             <Route path="/library" element={<LibraryView onOpenAuth={() => setAuthOpen(true)} />} />
             <Route path="*" element={<Navigate to="/" replace />} />

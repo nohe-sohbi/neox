@@ -59,7 +59,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   estimé dans `/api/health`. Aucun impact fonctionnel, diagnostics faussés seulement.
   *Fix : réutiliser le résultat de la ligne 88 dans le flight au lieu de re-appeler `get`.*
 
-- [ ] **R7 — Race check-then-act à l'inscription → doublons d'e-mail** · P2 · S
+- [x] **R7 — Race check-then-act à l'inscription → doublons d'e-mail** · P2 · S
   `backend/server.js:191-197`. `findUserByEmail` (sync) puis `await hashPassword(...)` rend la
   main avant `createUser`. Deux `register` concurrents pour le même e-mail passent tous deux le
   contrôle → deux comptes, même e-mail, UUID différents ; le second est orphelin.

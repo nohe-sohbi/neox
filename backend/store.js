@@ -70,10 +70,21 @@ function getUserById(id) {
 }
 
 async function createUser({ email, passwordHash }) {
+    const normalizedEmail = email.trim().toLowerCase();
+    // Atomic uniqueness backstop: this check and the state mutation below run
+    // synchronously (no await between them), so two concurrent registrations for
+    // the same email — which can both clear the route-level check while awaiting
+    // bcrypt — can't both create an account. The second one loses here.
+    if (findUserByEmail(normalizedEmail)) {
+        const err = new Error('Un compte existe déjà avec cet e-mail.');
+        err.status = 409;
+        err.code = 'AUTH_EMAIL_TAKEN';
+        throw err;
+    }
     const id = crypto.randomUUID();
     const user = {
         id,
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         passwordHash,
         createdAt: Date.now(),
     };

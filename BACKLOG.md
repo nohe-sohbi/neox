@@ -53,7 +53,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   qu'au reload.
   *Fix : sur un 401 « authentifié », émettre un event que `AuthProvider` écoute pour vider `user`.*
 
-- [ ] **R6 — Les métriques de cache double-comptent les miss** · P2 · S
+- [x] **R6 — Les métriques de cache double-comptent les miss** · P2 · S
   `backend/tmdb.js:88 & 97`. Sur chaque miss/stale, `cache.get(cacheKey)` tourne ligne 88 (hors
   flight) **puis** ligne 97 (dans le flight), incrémentant `misses` deux fois → `hitRate` sous-
   estimé dans `/api/health`. Aucun impact fonctionnel, diagnostics faussés seulement.

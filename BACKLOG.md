@@ -96,7 +96,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   « Marquer comme vu » en émet un et que toutes les autres mutations de biblio donnent un retour.
   *Fix : émettre un toast de confirmation à la notation.*
 
-- [ ] **C4 — `AuthModal` ne mappe pas tous les codes d'erreur auth** · P2 · S
+- [x] **C4 — `AuthModal` ne mappe pas tous les codes d'erreur auth** · P2 · S
   `components/auth/AuthModal.tsx:16-22` couvre 5 codes mais pas `AUTH_ACCOUNT_NOT_FOUND`,
   `AUTH_REQUIRED`, `AUTH_SESSION_INVALID` → sur ces chemins (rares) le message backend en
   **français** est affiché en fallback. Complète l'intention du cycle 1 (R3).

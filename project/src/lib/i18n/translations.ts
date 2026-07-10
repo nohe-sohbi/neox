@@ -171,6 +171,9 @@ const fr: Dict = {
   'auth.err.email_taken': 'Un compte existe déjà avec cet e-mail.',
   'auth.err.credentials_required': 'E-mail et mot de passe requis.',
   'auth.err.invalid_credentials': 'E-mail ou mot de passe incorrect.',
+  'auth.err.account_not_found': 'Compte introuvable.',
+  'auth.err.required': 'Authentification requise.',
+  'auth.err.session_invalid': 'Session expirée ou invalide. Reconnecte-toi.',
   'auth.email_placeholder': 'vous@email.com',
 
   // Detail modal
@@ -402,6 +405,9 @@ const en: Dict = {
   'auth.err.email_taken': 'An account already exists with this email.',
   'auth.err.credentials_required': 'Email and password are required.',
   'auth.err.invalid_credentials': 'Incorrect email or password.',
+  'auth.err.account_not_found': 'Account not found.',
+  'auth.err.required': 'Authentication required.',
+  'auth.err.session_invalid': 'Session expired or invalid. Please sign in again.',
   'auth.email_placeholder': 'you@email.com',
 
   'detail.loading': 'Fetching the details…',
@@ -624,6 +630,9 @@ const es: Dict = {
   'auth.err.email_taken': 'Ya existe una cuenta con este correo.',
   'auth.err.credentials_required': 'Correo y contraseña obligatorios.',
   'auth.err.invalid_credentials': 'Correo o contraseña incorrectos.',
+  'auth.err.account_not_found': 'Cuenta no encontrada.',
+  'auth.err.required': 'Autenticación requerida.',
+  'auth.err.session_invalid': 'Sesión caducada o no válida. Vuelve a iniciar sesión.',
   'auth.email_placeholder': 'tu@email.com',
 
   'detail.loading': 'Obteniendo la información…',
@@ -847,6 +856,9 @@ const de: Dict = {
   'auth.err.email_taken': 'Mit dieser E-Mail existiert bereits ein Konto.',
   'auth.err.credentials_required': 'E-Mail und Passwort sind erforderlich.',
   'auth.err.invalid_credentials': 'E-Mail oder Passwort ist falsch.',
+  'auth.err.account_not_found': 'Konto nicht gefunden.',
+  'auth.err.required': 'Anmeldung erforderlich.',
+  'auth.err.session_invalid': 'Sitzung abgelaufen oder ungültig. Bitte erneut anmelden.',
   'auth.email_placeholder': 'du@email.com',
 
   'detail.loading': 'Infos werden geladen…',
@@ -1069,6 +1081,9 @@ const it: Dict = {
   'auth.err.email_taken': 'Esiste già un account con questa e-mail.',
   'auth.err.credentials_required': 'E-mail e password obbligatorie.',
   'auth.err.invalid_credentials': 'E-mail o password non corretti.',
+  'auth.err.account_not_found': 'Account non trovato.',
+  'auth.err.required': 'Autenticazione richiesta.',
+  'auth.err.session_invalid': 'Sessione scaduta o non valida. Accedi di nuovo.',
   'auth.email_placeholder': 'tu@email.com',
 
   'detail.loading': 'Recupero le informazioni…',

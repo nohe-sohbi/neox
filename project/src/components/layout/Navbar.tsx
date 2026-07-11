@@ -21,7 +21,7 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [params] = useSearchParams();
-  const { user, logout } = useAuth();
+  const { user, ready, logout } = useAuth();
   const { count } = useLibrary();
   const { t } = useT();
 
@@ -130,7 +130,11 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
             )}
           </NavLink>
 
-          {user ? (
+          {!ready ? (
+            // Auth still resolving on boot: hold a neutral slot instead of flashing
+            // the logged-out "Sign in" control before a valid token is confirmed.
+            <div className="h-10 w-10 shrink-0 rounded-full bg-white/5" aria-hidden="true" />
+          ) : user ? (
             <div ref={menuRef} className="relative">
               <button
                 onClick={() => setMenuOpen((o) => !o)}

@@ -17,7 +17,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
 
 ## 🔴 À réparer (cassé / incohérent / mort)
 
-- [ ] **R1 — Le disjoncteur TMDB ne respecte pas sa « sonde unique » en half-open** · P1 · M
+- [x] **R1 — Le disjoncteur TMDB ne respecte pas sa « sonde unique » en half-open** · P1 · M
   `backend/circuit-breaker.js` + `backend/tmdb.js`. En `half-open`, `allow()` renvoie `true`
   pour **tous** les appelants concurrents (rien ne marque une sonde « en vol ») — alors que
   les commentaires (`circuit-breaker.js:18-19,62`) affirment « lets a single probe through ».
@@ -33,7 +33,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   un 4xx amont compte comme succès breaker (amont vivant), et check `breaker.allow()`
   **avant** le single-flight (plus de flight fantôme).*
 
-- [ ] **R2 — `AuthContext.ready` est calculé/exposé mais jamais consommé → flash « déconnecté » au boot** · P2 · S
+- [x] **R2 — `AuthContext.ready` est calculé/exposé mais jamais consommé → flash « déconnecté » au boot** · P2 · S
   `context/AuthContext.tsx:15,25,67`. Le flag `ready` (censé masquer l'état transitoire
   pendant la validation du token au boot) n'est lu **nulle part**. Un utilisateur avec token
   valide qui recharge voit `user === null` tant que `me()` est en vol → la navbar affiche

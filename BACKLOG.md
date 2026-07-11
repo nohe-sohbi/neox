@@ -70,7 +70,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   *Fix : aligner `document.documentElement.lang` sur la langue UI active au boot (+ balise
   `og:locale`). Un switch de langue hard-reload, donc la valeur est stable par session.*
 
-- [ ] **C2 — Recherche sans résultat : double message « 0 résultats » + empty state** · P2 · S
+- [x] **C2 — Recherche sans résultat : double message « 0 résultats » + empty state** · P2 · S
   `views/SearchView.tsx:76-80` affiche la ligne de comptage dès que `debounced && !loading
   && !error` (vrai pour une recherche finie à 0 résultat), tandis que le ternaire principal
   (`:92-97`) affiche déjà l'empty state « Aucun résultat ». Sur une requête vide de résultats,

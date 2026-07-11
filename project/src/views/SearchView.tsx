@@ -73,7 +73,7 @@ export function SearchView() {
           t('search.title')
         )}
       </h1>
-      {debounced && !loading && !error && (
+      {debounced && !loading && !error && results.length > 0 && (
         <p className="mb-6 text-sm text-white/50">
           {tn('search.count', total, { count: formatNumber(total) })}
         </p>

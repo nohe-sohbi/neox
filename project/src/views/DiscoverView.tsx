@@ -58,13 +58,6 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
     path: mediaType === 'tv' ? '/tv' : '/movies',
   });
 
-  useEffect(() => {
-    setActiveGenre(undefined);
-    setSort('popularity.desc');
-    setYear(undefined);
-    setMinRating(0);
-  }, [mediaType]);
-
   // Genres + providers for this media type. These barely change, so they're
   // cached: switching tabs (or coming back) reuses the data instead of refetching.
   useEffect(() => {

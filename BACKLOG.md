@@ -41,7 +41,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   *Fix : consommer `ready` dans la navbar (placeholder neutre du slot compte tant que
   `!ready`) pour supprimer le flash — c'est l'intention d'origine, à moitié câblée.*
 
-- [ ] **R3 — `DiscoverView` : effet de reset mort/redondant (et incomplet)** · P2 · S
+- [x] **R3 — `DiscoverView` : effet de reset mort/redondant (et incomplet)** · P2 · S
   `views/DiscoverView.tsx:61-66`. Depuis le fix cycle 2, `App.tsx:48-49` remonte la vue via
   `key="movie"`/`key="tv"` : `mediaType` est donc **constant** dans une instance, et cet
   `useEffect([mediaType])` ne tourne qu'une fois au montage en réassignant des valeurs déjà

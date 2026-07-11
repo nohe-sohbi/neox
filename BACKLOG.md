@@ -62,7 +62,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
 
 ## 🟢 Contenu à compléter (SEO / a11y / feedback)
 
-- [ ] **C1 — `<html lang>` et `og:locale` figés « fr » quelle que soit la langue active** · P2 · S
+- [x] **C1 — `<html lang>` et `og:locale` figés « fr » quelle que soit la langue active** · P2 · S
   `project/index.html:2` déclare `lang="fr"` en dur ; `lib/seo.ts` pilote titre/description/OG
   mais ne touche jamais `document.documentElement.lang` (aucune écriture dans tout le repo).
   Sur une locale US/GB/ES/DE/IT le chrome est traduit mais le document annonce `lang="fr"` →

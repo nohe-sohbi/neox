@@ -88,28 +88,27 @@ async function tmdbGet(path, params = {}) {
     const cached = cache.get(cacheKey);
     if (cached && !cached.stale) return cached.value;
 
+    // Upstream circuit open (or a half-open probe already in flight): don't pile
+    // onto a failing TMDB. Serve slightly-stale cache if we have it, otherwise
+    // fail fast with 503. Checked *before* the single-flight so a short-circuited
+    // request never counts as an upstream flight in the /api/health metrics.
+    if (!breaker.allow()) {
+        if (cached) {
+            cache.recordStaleServe();
+            return cached.value;
+        }
+        const err = new Error('TMDB upstream temporarily unavailable (circuit open).');
+        err.status = 503;
+        err.code = 'TMDB_CIRCUIT_OPEN';
+        throw err;
+    }
+
     // Coalesce concurrent misses for this exact URL: only the first caller hits
     // TMDB, the rest await the same flight. Keyed by URL so different params
-    // (locale, page…) never share a result.
+    // (locale, page…) never share a result. No second cache.get() inside: the
+    // outer lookup above is authoritative and re-reading would double-count the
+    // miss in the /api/health cache metrics.
     return inflight.run(cacheKey, async () => {
-        // No second cache.get() here: single-flight only runs this body for the
-        // first caller (the rest await the same promise), so the outer lookup
-        // above is still authoritative. Re-reading would just double-count the
-        // miss in the /api/health cache metrics.
-
-        // Upstream circuit is open: don't pile onto a failing TMDB. Serve
-        // slightly-stale cache if we have it, otherwise fail fast with 503.
-        if (!breaker.allow()) {
-            if (cached) {
-                cache.recordStaleServe();
-                return cached.value;
-            }
-            const err = new Error('TMDB upstream temporarily unavailable (circuit open).');
-            err.status = 503;
-            err.code = 'TMDB_CIRCUIT_OPEN';
-            throw err;
-        }
-
         const headers = { accept: 'application/json' };
         if (READ_TOKEN) headers.Authorization = `Bearer ${READ_TOKEN}`;
 
@@ -143,9 +142,13 @@ async function tmdbGet(path, params = {}) {
             } catch (error) {
                 lastError = error;
                 // Deterministic client errors (bad id, unsupported type) say
-                // nothing about TMDB's health: surface them without retrying and
-                // without tripping the breaker.
-                if (error.status && error.status >= 400 && error.status < 500) throw error;
+                // nothing about TMDB's health — but TMDB *did* answer, so the
+                // upstream is alive: record a success (which closes a half-open
+                // probe) and surface the error without retrying or tripping.
+                if (error.status && error.status >= 400 && error.status < 500) {
+                    breaker.recordSuccess();
+                    throw error;
+                }
                 if (attempt < maxAttempts) await sleep(2 ** attempt * 250);
             }
         }

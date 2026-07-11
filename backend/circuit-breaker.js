@@ -37,6 +37,9 @@ class CircuitBreaker {
     this.state = 'closed'; // 'closed' | 'open' | 'half-open'
     this.consecutiveFailures = 0;
     this.openedAt = 0;
+    // In half-open, exactly one probe is allowed upstream; concurrent callers are
+    // short-circuited until that probe records a success (close) or failure (re-open).
+    this.halfOpenProbing = false;
 
     // Diagnostics surfaced via /api/health.
     this.trips = 0; // closed/half-open -> open transitions
@@ -53,6 +56,7 @@ class CircuitBreaker {
   _refresh() {
     if (this.state === 'open' && this._now() - this.openedAt >= this.cooldownMs) {
       this.state = 'half-open';
+      this.halfOpenProbing = false; // a fresh cooldown earns a fresh single probe
     }
     return this.state;
   }
@@ -63,9 +67,19 @@ class CircuitBreaker {
    * open rejects it and bumps the short-circuit counter.
    */
   allow() {
-    if (this._refresh() === 'open') {
+    const state = this._refresh();
+    if (state === 'open') {
       this.shortCircuits += 1;
       return false;
+    }
+    if (state === 'half-open') {
+      // Let a single probe through; reject the rest so a durable outage isn't
+      // stampeded by every concurrent caller the moment the cooldown lapses.
+      if (this.halfOpenProbing) {
+        this.shortCircuits += 1;
+        return false;
+      }
+      this.halfOpenProbing = true;
     }
     return true;
   }
@@ -75,6 +89,7 @@ class CircuitBreaker {
     this.successes += 1;
     this.consecutiveFailures = 0;
     this.state = 'closed';
+    this.halfOpenProbing = false;
   }
 
   /** An upstream-health failure — count it and trip if we've hit the threshold. */
@@ -88,9 +103,15 @@ class CircuitBreaker {
   }
 
   _trip() {
-    if (this.state !== 'open') this.trips += 1;
-    this.state = 'open';
-    this.openedAt = this._now();
+    // Only a closed/half-open -> open transition (re)starts the cooldown clock. A
+    // straggler failure arriving while already open must not push openedAt forward
+    // and extend the open window past the configured cooldown.
+    if (this.state !== 'open') {
+      this.trips += 1;
+      this.state = 'open';
+      this.openedAt = this._now();
+    }
+    this.halfOpenProbing = false;
   }
 
   stats() {

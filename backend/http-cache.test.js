@@ -25,10 +25,10 @@ describe('cacheControl', () => {
         expect(cc).toContain('stale-while-revalidate=');
     });
 
-    it('never advertises caching for error responses', async () => {
+    it('marks error responses as explicitly non-cacheable (no-store)', async () => {
         const res = await request(makeApp()).get('/boom');
         expect(res.status).toBe(503);
-        expect(res.headers['cache-control']).toBeUndefined();
+        expect(res.headers['cache-control']).toBe('no-store');
     });
 
     it('serves a 304 when the ETag still matches', async () => {

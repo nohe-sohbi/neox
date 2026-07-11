@@ -77,7 +77,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
   l'UI montre **« 0 résultats »** ET **« Rien trouvé pour … »** — messages redondants/contradictoires.
   *Fix : n'afficher le comptage que lorsqu'il y a des résultats.*
 
-- [ ] **C3 — `cacheControl` : la garantie « errors never cached » n'est pas appliquée** · P2 · S
+- [x] **C3 — `cacheControl` : la garantie « errors never cached » n'est pas appliquée** · P2 · S
   `backend/http-cache.js:36-40`. Le commentaire promet « never cache 4xx/5xx », mais le
   middleware ne **pose aucun** en-tête sur les réponses non-2xx et s'appuie sur l'absence
   d'en-tête. Or un cache partagé (CDN — on annonce `s-maxage`) peut mettre en cache

@@ -33,10 +33,14 @@ function cacheControl(maxAge, opts = {}) {
     return (_req, res, next) => {
         const json = res.json.bind(res);
         res.json = (body) => {
-            // Only advertise cacheability for successful responses; never cache
-            // 4xx/5xx (e.g. a transient TMDB outage or a 503 for a missing key).
             if (res.statusCode >= 200 && res.statusCode < 300) {
                 res.set('Cache-Control', header);
+            } else {
+                // Never cache errors (a transient TMDB outage, a 503 for a missing
+                // key, a 404 for an unknown title). Be *explicit*: with no header a
+                // shared cache may still heuristically cache some statuses (404/410,
+                // RFC 7234 §4.2.2), and these routes advertise s-maxage (a CDN).
+                res.set('Cache-Control', 'no-store');
             }
             return json(body);
         };

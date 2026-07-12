@@ -58,4 +58,61 @@ describe('TtlLruCache', () => {
     expect(stats.hitRate).toBeGreaterThan(0);
     expect(stats.size).toBe(1);
   });
+
+  describe('snapshot / hydrate (warm-start persistence)', () => {
+    it('round-trips entries and preserves freshness across the restart', () => {
+      const a = new TtlLruCache({ ttlMs: 1000, staleMs: 5000 });
+      a.set('x', { n: 1 });
+      vi.advanceTimersByTime(1500); // 'x' is now stale but still within staleMs
+      a.set('y', { n: 2 }); // 'y' is fresh
+
+      const b = new TtlLruCache({ ttlMs: 1000, staleMs: 5000 });
+      expect(b.hydrate(a.snapshot())).toBe(2);
+
+      // Fresh/stale state is derived from the original storedAt, not the reload.
+      expect(b.get('x')).toEqual({ value: { n: 1 }, stale: true });
+      expect(b.get('y')).toEqual({ value: { n: 2 }, stale: false });
+    });
+
+    it('omits fully-expired entries from the snapshot', () => {
+      const cache = new TtlLruCache({ ttlMs: 1000, staleMs: 2000 });
+      cache.set('gone', 1);
+      vi.advanceTimersByTime(2500); // past the stale window
+      cache.set('kept', 2);
+      const snap = cache.snapshot();
+      expect(snap.map((e) => e.key)).toEqual(['kept']);
+    });
+
+    it('drops entries that fell out of the stale window while persisted', () => {
+      const a = new TtlLruCache({ ttlMs: 1000, staleMs: 2000 });
+      a.set('a', 1);
+      const snap = a.snapshot();
+      vi.advanceTimersByTime(3000); // snapshot ages past staleMs before reload
+
+      const b = new TtlLruCache({ ttlMs: 1000, staleMs: 2000 });
+      expect(b.hydrate(snap)).toBe(0);
+      expect(b.get('a')).toBeNull();
+    });
+
+    it('respects the size cap and ignores malformed entries', () => {
+      const cache = new TtlLruCache({ max: 2, ttlMs: 10000, staleMs: 10000 });
+      const restored = cache.hydrate([
+        { key: 'a', value: 1, storedAt: Date.now() },
+        { key: 'b', value: 2, storedAt: Date.now() },
+        { key: 'c', value: 3, storedAt: Date.now() },
+        null,
+        { key: 'd' }, // missing value/storedAt → skipped
+      ]);
+      expect(restored).toBe(3);
+      expect(cache.stats().size).toBe(2); // LRU cap enforced
+      expect(cache.get('a')).toBeNull(); // oldest evicted
+      expect(cache.get('c')).toEqual({ value: 3, stale: false });
+    });
+
+    it('is a no-op on non-array input', () => {
+      const cache = new TtlLruCache();
+      expect(cache.hydrate(undefined)).toBe(0);
+      expect(cache.hydrate(null)).toBe(0);
+    });
+  });
 });

@@ -35,6 +35,9 @@ Aucun contenu n'est hébergé ni stocké : NEOX agrège des **métadonnées publ
   Prime, Max…), préférence mémorisée.
 - **Fiche détaillée** — bande-annonce YouTube intégrée, synopsis, casting, genres, durée, et la
   section **« Où regarder (légalement) »**.
+- **Saisons & épisodes (séries)** — un **navigateur par saison** dans la fiche d'une série : sélecteur
+  de saisons (spéciaux en fin), puis la **liste des épisodes** (vignette, code SxEx, date, durée, note),
+  chargée **à la demande** et mise en cache côté composant — aucun re-fetch en changeant d'onglet.
 - **Bibliothèque perso** — statut **À voir / Vu**, **note personnelle 1–10**, filtres par statut,
   **tri** (ajout, titre, note TMDB, ta note, année) et **export / import JSON** (sauvegarde et
   restauration portables, sans compte requis).
@@ -70,6 +73,13 @@ Aucun contenu n'est hébergé ni stocké : NEOX agrège des **métadonnées publ
 - **Cache HTTP** — en plus du cache mémoire, les endpoints de lecture envoient `Cache-Control`
   (`max-age` + `stale-while-revalidate`) et des **ETags forts** → navigateurs et CDN réutilisent les
   réponses et obtiennent des **304** quand rien n'a changé ; les routes privées sont en `no-store`.
+- **Démarrage à chaud & arrêt gracieux** — sur `SIGTERM`/`SIGINT`, le serveur cesse d'accepter, laisse
+  les requêtes en vol se terminer, **snapshote le cache TMDB sur disque** (écriture atomique) puis sort ;
+  au boot il **réhydrate** les entrées encore fraîches. Un redéploiement ne repart plus cache vide →
+  pas de thundering-herd sur TMDB. Timeout d'arrêt dur pour ne jamais bloquer l'orchestrateur.
+- **Images responsives** — l'app dérive un **`srcset`** côté client à partir de l'URL TMDB (posters,
+  backdrops, vignettes d'épisodes) : le navigateur télécharge la bonne résolution selon le viewport et le
+  DPR (`decoding="async"`), sans changer le contrat d'API. Moins de bande passante sur mobile, meilleur LCP.
 - **Accessibilité des modales** — fiche, personne, auth et palette ⌘K partagent un hook
   `useModal` : **piège de focus**, restauration du focus à la fermeture, `Escape`, verrou de scroll
   et sémantique `role="dialog"` / `aria-modal`.
@@ -90,7 +100,7 @@ neox/
 ├── backend/            API Node/Express — proxy TMDB + comptes + sync
 │   ├── server.js       routes + validation + gestion d'erreurs centralisée
 │   ├── tmdb.js         client TMDB (retry/backoff, normalisation)
-│   ├── cache.js        cache borné LRU + TTL + stale-while-revalidate (testé)
+│   ├── cache.js        cache borné LRU + TTL + stale-while-revalidate + snapshot/hydrate (testé)
 │   ├── single-flight.js coalescing des requêtes amont concurrentes (testé)
 │   ├── http-cache.js   middlewares Cache-Control + ETag/304 + no-store (testé)
 │   ├── auth.js         bcrypt + JWT, middleware requireAuth
@@ -98,7 +108,7 @@ neox/
 │   └── library.js      validation + merge des bibliothèques
 └── project/            Frontend React + TypeScript + Vite + Tailwind
     └── src/
-        ├── lib/        client API typé · query (cache SWR + dédup) · i18n (FR/EN/ES/DE/IT) · recherches récentes · recently-viewed · library-io (export/import + tri) · seo (meta/OG)
+        ├── lib/        client API typé · query (cache SWR + dédup) · i18n (FR/EN/ES/DE/IT) · recherches récentes · recently-viewed · library-io (export/import + tri) · seo (meta/OG) · seasons (ordre/format, testé) · img (srcset TMDB, testé)
         ├── context/    AuthContext · LibraryContext (sync cloud)
         ├── hooks/      useDebounce · useQuery (SWR) · useMyPlatforms · useDetailRoute · useModal (focus trap a11y) · useDocumentMeta (SEO)
         ├── components/ layout · media · home · auth · ui (+ ErrorBoundary) · command (⌘K)
@@ -153,7 +163,8 @@ cd project && npm install && npm run dev
 | GET | `/api/providers/:type?region=` | Plateformes de streaming d'une région |
 | GET | `/api/person/:id` | Profil + filmographie d'une personne |
 | POST | `/api/recommendations` | « Pour toi » à partir de `{ seeds: [...] }` |
-| GET | `/api/:type/:id` | Fiche complète + providers + casting + reco |
+| GET | `/api/:type/:id` | Fiche complète + providers + casting + reco (+ saisons pour `tv`) |
+| GET | `/api/tv/:id/season/:season` | Épisodes d'une saison (vignette, date, durée, note) |
 | POST | `/api/auth/register` | Création de compte → `{ token, user }` |
 | POST | `/api/auth/login` | Connexion → `{ token, user }` |
 | GET | `/api/auth/me` 🔒 | Profil du token courant |
@@ -167,9 +178,9 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 ## ✅ Qualité
 
 - **Tests** : `npm test` côté `backend/` (auth + sync via supertest, cache HTTP : headers + 304,
-  cache LRU, **single-flight**, **params discover**) et `project/` (logique bibliothèque +
-  export/import/tri, i18n, **SEO/meta**, **cache SWR + dédup**, **« vu récemment »** via vitest) —
-  34 + 50 tests verts.
+  cache LRU + **snapshot/hydrate**, **single-flight**, **params discover**, **saisons/épisodes**) et
+  `project/` (logique bibliothèque + export/import/tri, i18n, **SEO/meta**, **cache SWR + dédup**,
+  **« vu récemment »**, **saisons**, **srcset images** via vitest) — 59 + 75 tests verts.
 - **Vérifs** : `npm run lint` · `npm run typecheck` · `npm run build`.
 - **CI** : GitHub Actions lance lint + typecheck + tests + build sur chaque PR
   (`.github/workflows/ci.yml`).

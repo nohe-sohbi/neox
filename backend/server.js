@@ -257,6 +257,22 @@ app.post(
 );
 
 app.get(
+    '/api/tv/:id/season/:season',
+    cacheControl(TTL.details),
+    route(async (req, res) => {
+        const id = Number(req.params.id);
+        const season = Number(req.params.season);
+        // Season 0 (specials) is legitimate, so the floor is 0 here (unlike ids).
+        if (!Number.isInteger(id) || id <= 0 || !Number.isInteger(season) || season < 0) {
+            const err = new Error('Invalid tv id or season number.');
+            err.status = 400;
+            throw err;
+        }
+        res.json(await tmdb.getSeason(id, season, localeFrom(req)));
+    }),
+);
+
+app.get(
     '/api/:mediaType/:id',
     cacheControl(TTL.details),
     route(async (req, res) => {
@@ -288,7 +304,7 @@ app.use((err, _req, res, _next) => {
 
 // Only start listening when run directly — tests import `app` via supertest.
 if (require.main === module) {
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
         console.log(`NEOX API running on port ${PORT}`);
         if (!tmdb.isConfigured()) {
             console.warn('⚠  TMDB_API_KEY is not set — TMDB requests will return 503 until configured.');
@@ -297,6 +313,30 @@ if (require.main === module) {
             console.warn('⚠  JWT_SECRET is not set — using an insecure default. Set it in production.');
         }
     });
+
+    // Graceful shutdown: on a deploy/restart signal, stop accepting new
+    // connections, let in-flight requests finish, snapshot the cache for a warm
+    // restart, then exit. A hard timeout guarantees we never hang the
+    // orchestrator if a connection refuses to drain.
+    let shuttingDown = false;
+    const shutdown = (signal) => {
+        if (shuttingDown) return;
+        shuttingDown = true;
+        console.log(`${signal} received — shutting down gracefully…`);
+        const forced = setTimeout(() => {
+            console.warn('Shutdown timed out — forcing exit.');
+            process.exit(1);
+        }, 10000);
+        forced.unref();
+        server.close(async () => {
+            await tmdb.persistCache();
+            clearTimeout(forced);
+            console.log('Shutdown complete.');
+            process.exit(0);
+        });
+    };
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 module.exports = app;

@@ -4,6 +4,7 @@ import type { MediaItem } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
 import { useToast } from '../../context/ToastContext';
 import { useOpenDetail } from '../../hooks/useDetailRoute';
+import { backdropImg } from '../../lib/img';
 import { useT } from '../../lib/i18n';
 
 export function Hero({ items }: { items: MediaItem[] }) {
@@ -36,18 +37,28 @@ export function Hero({ items }: { items: MediaItem[] }) {
 
   return (
     <section className="relative h-[70vh] min-h-[460px] w-full overflow-hidden">
-      {items.map((item, i) => (
-        <div
-          key={item.id}
-          className={`absolute inset-0 transition-opacity duration-1000 ${
-            i === active ? 'opacity-100' : 'opacity-0'
-          }`}
-        >
-          {item.backdrop && (
-            <img src={item.backdrop} alt="" className="h-full w-full object-cover object-top" />
-          )}
-        </div>
-      ))}
+      {items.map((item, i) => {
+        const bd = item.backdrop ? backdropImg(item.backdrop) : null;
+        return (
+          <div
+            key={item.id}
+            className={`absolute inset-0 transition-opacity duration-1000 ${
+              i === active ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            {bd && (
+              <img
+                src={bd.src}
+                srcSet={bd.srcSet}
+                sizes={bd.sizes}
+                alt=""
+                decoding="async"
+                className="h-full w-full object-cover object-top"
+              />
+            )}
+          </div>
+        );
+      })}
 
       <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/40 to-transparent" />
       <div className="absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/60 to-transparent" />

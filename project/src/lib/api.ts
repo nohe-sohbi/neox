@@ -10,6 +10,7 @@ import type {
   Paginated,
   Person,
   Provider,
+  SeasonDetail,
   User,
 } from './types';
 import { createTranslator, langFromLocale } from './i18n/core';
@@ -163,6 +164,9 @@ export const api = {
 
   details: (mediaType: MediaType, id: number) =>
     request<MediaDetails>(withLocale(`/api/${mediaType}/${id}`)),
+
+  season: (tvId: number, seasonNumber: number) =>
+    request<SeasonDetail>(withLocale(`/api/tv/${tvId}/season/${seasonNumber}`)),
 
   person: (id: number) => request<Person>(withLocale(`/api/person/${id}`)),
 

@@ -90,6 +90,50 @@ class TtlLruCache {
     this.store.clear();
   }
 
+  /**
+   * Serializable view of the live entries, newest-inserted last so a later
+   * hydrate() replays them in the same LRU order. Fully-expired entries (past
+   * the stale window) are dropped — no point persisting dead data.
+   */
+  snapshot() {
+    const now = Date.now();
+    const out = [];
+    for (const [key, entry] of this.store) {
+      if (now - entry.storedAt <= this.staleMs) {
+        out.push({ key, value: entry.value, storedAt: entry.storedAt });
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Loads persisted entries (from snapshot()), preserving each entry's original
+   * `storedAt` so TTL/stale semantics survive the restart. Anything already past
+   * the stale window is skipped, and LRU eviction still caps the total. Returns
+   * the number of entries actually restored.
+   */
+  hydrate(entries) {
+    if (!Array.isArray(entries)) return 0;
+    const now = Date.now();
+    let restored = 0;
+    for (const entry of entries) {
+      if (
+        !entry ||
+        typeof entry.key !== 'string' ||
+        typeof entry.storedAt !== 'number' ||
+        !('value' in entry)
+      ) {
+        continue;
+      }
+      if (now - entry.storedAt > this.staleMs) continue;
+      if (this.store.has(entry.key)) this.store.delete(entry.key);
+      this.store.set(entry.key, { value: entry.value, storedAt: entry.storedAt });
+      restored += 1;
+    }
+    this._evictIfNeeded();
+    return restored;
+  }
+
   stats() {
     const total = this.hits + this.misses;
     return {

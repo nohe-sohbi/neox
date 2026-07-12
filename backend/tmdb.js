@@ -7,6 +7,8 @@
  * - Normalizes TMDB payloads into the compact shape the frontend consumes,
  *   so the React layer never has to know about TMDB field names.
  */
+const fs = require('fs');
+const path = require('path');
 const fetch = require('node-fetch');
 const { TtlLruCache } = require('./cache');
 const { SingleFlight } = require('./single-flight');
@@ -19,6 +21,7 @@ const POSTER_SIZE = 'w500';
 const BACKDROP_SIZE = 'w1280';
 const PROFILE_SIZE = 'w185';
 const LOGO_SIZE = 'w92';
+const STILL_SIZE = 'w300';
 
 const API_KEY = process.env.TMDB_API_KEY;
 const READ_TOKEN = process.env.TMDB_READ_TOKEN; // optional v4 bearer token
@@ -34,6 +37,48 @@ const cache = new TtlLruCache({
     ttlMs: CACHE_TTL_MS,
     staleMs: CACHE_STALE_MS,
 });
+
+// Warm-start persistence: on a clean shutdown the cache is snapshotted to disk
+// and re-hydrated on boot, so a restart/redeploy doesn't cold-start into a
+// thundering herd against TMDB. Best-effort and dependency-free (plain JSON,
+// same DATA_DIR as the user store). Set TMDB_CACHE_PERSIST=0 to disable.
+const CACHE_PERSIST = process.env.TMDB_CACHE_PERSIST !== '0';
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+const CACHE_SNAPSHOT_FILE = path.join(DATA_DIR, 'tmdb-cache.json');
+
+function hydrateCacheFromDisk() {
+    if (!CACHE_PERSIST) return 0;
+    try {
+        if (!fs.existsSync(CACHE_SNAPSHOT_FILE)) return 0;
+        const parsed = JSON.parse(fs.readFileSync(CACHE_SNAPSHOT_FILE, 'utf8'));
+        return cache.hydrate(parsed.entries);
+    } catch (err) {
+        console.error('Could not restore TMDB cache snapshot:', err.message);
+        return 0;
+    }
+}
+
+/**
+ * Writes the current cache to disk atomically (tmp + rename). Called on a clean
+ * shutdown. Never throws — a failed snapshot must not block process exit.
+ */
+async function persistCache() {
+    if (!CACHE_PERSIST) return false;
+    try {
+        const entries = cache.snapshot();
+        await fs.promises.mkdir(DATA_DIR, { recursive: true });
+        const tmp = `${CACHE_SNAPSHOT_FILE}.${process.pid}.tmp`;
+        await fs.promises.writeFile(tmp, JSON.stringify({ version: 1, entries }));
+        await fs.promises.rename(tmp, CACHE_SNAPSHOT_FILE);
+        return true;
+    } catch (err) {
+        console.error('Could not persist TMDB cache snapshot:', err.message);
+        return false;
+    }
+}
+
+const restored = hydrateCacheFromDisk();
+if (restored > 0) console.log(`Restored ${restored} TMDB cache entries from disk.`);
 
 // Collapses concurrent identical cache-misses into a single upstream fetch.
 const inflight = new SingleFlight();
@@ -237,6 +282,53 @@ function normalizeProviders(payload, region) {
     };
 }
 
+/**
+ * A TV season summary as it appears inside a `/tv/{id}` payload. Only seasons
+ * that actually have episodes are kept (TMDB sometimes lists empty upcoming
+ * seasons). Specials (season 0) are preserved — the client decides how to
+ * order them.
+ */
+function normalizeSeasons(seasons) {
+    return (seasons || [])
+        .filter((s) => s && typeof s.season_number === 'number' && (s.episode_count || 0) > 0)
+        .map((s) => ({
+            seasonNumber: s.season_number,
+            name: s.name || '',
+            overview: s.overview || '',
+            poster: img(s.poster_path, POSTER_SIZE),
+            episodeCount: s.episode_count || 0,
+            airYear: s.air_date ? s.air_date.slice(0, 4) : '',
+        }))
+        .sort((a, b) => a.seasonNumber - b.seasonNumber);
+}
+
+function normalizeEpisode(ep) {
+    return {
+        episodeNumber: ep.episode_number,
+        name: ep.name || '',
+        overview: ep.overview || '',
+        still: img(ep.still_path, STILL_SIZE),
+        airDate: ep.air_date || '',
+        runtime: ep.runtime || null,
+        rating: typeof ep.vote_average === 'number' && ep.vote_average > 0
+            ? Math.round(ep.vote_average * 10) / 10
+            : null,
+        voteCount: ep.vote_count || 0,
+    };
+}
+
+/** A full season payload (`/tv/{id}/season/{n}`) → compact episode list. */
+function normalizeSeason(data, seasonNumber) {
+    return {
+        seasonNumber: typeof data.season_number === 'number' ? data.season_number : seasonNumber,
+        name: data.name || '',
+        overview: data.overview || '',
+        poster: img(data.poster_path, POSTER_SIZE),
+        airDate: data.air_date || '',
+        episodes: (data.episodes || []).map(normalizeEpisode),
+    };
+}
+
 /* ------------------------------- queries ------------------------------- */
 
 /** Builds region/language overrides; only includes keys that were provided. */
@@ -365,11 +457,26 @@ async function details(mediaType, id, region = DEFAULT_REGION, opts = {}) {
         releaseDate: data.release_date || data.first_air_date || '',
         numberOfSeasons: data.number_of_seasons || null,
         numberOfEpisodes: data.number_of_episodes || null,
+        // Season index for TV (empty for movies) so the client can offer a
+        // per-season episode browser without a second details round trip.
+        seasons: mediaType === 'tv' ? normalizeSeasons(data.seasons) : [],
         trailerKey: pickTrailer(data.videos),
         cast,
         providers: normalizeProviders(data['watch/providers'], region),
         recommendations: normalizeList(data.recommendations || {}, mediaType).results.slice(0, 12),
     };
+}
+
+/**
+ * Episodes of a single TV season. Fetched lazily by the client when a user
+ * expands a season, so the (potentially large) episode lists never bloat the
+ * initial details payload.
+ */
+async function getSeason(tvId, seasonNumber, opts = {}) {
+    return normalizeSeason(
+        await tmdbGet(`/tv/${tvId}/season/${seasonNumber}`, locale(opts)),
+        seasonNumber,
+    );
 }
 
 /**
@@ -508,6 +615,7 @@ async function recommend(seeds = [], opts = {}) {
 module.exports = {
     isConfigured,
     cacheStats,
+    persistCache,
     getGenres,
     getProviders,
     getPerson,
@@ -518,6 +626,10 @@ module.exports = {
     list,
     search,
     details,
+    getSeason,
     home,
     DEFAULT_REGION,
+    // Exported for unit tests (pure, no network).
+    normalizeSeasons,
+    normalizeSeason,
 };

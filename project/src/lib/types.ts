@@ -34,6 +34,35 @@ export interface CastMember {
   photo: string | null;
 }
 
+export interface SeasonSummary {
+  seasonNumber: number;
+  name: string;
+  overview: string;
+  poster: string | null;
+  episodeCount: number;
+  airYear: string;
+}
+
+export interface Episode {
+  episodeNumber: number;
+  name: string;
+  overview: string;
+  still: string | null;
+  airDate: string;
+  runtime: number | null;
+  rating: number | null;
+  voteCount: number;
+}
+
+export interface SeasonDetail {
+  seasonNumber: number;
+  name: string;
+  overview: string;
+  poster: string | null;
+  airDate: string;
+  episodes: Episode[];
+}
+
 export interface MediaDetails extends MediaItem {
   tagline: string;
   runtime: number | null;
@@ -42,6 +71,7 @@ export interface MediaDetails extends MediaItem {
   releaseDate: string;
   numberOfSeasons: number | null;
   numberOfEpisodes: number | null;
+  seasons: SeasonSummary[];
   trailerKey: string | null;
   cast: CastMember[];
   providers: WatchProviders;

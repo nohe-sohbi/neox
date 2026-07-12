@@ -3,6 +3,7 @@ import type { MediaItem } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
 import { useToast } from '../../context/ToastContext';
 import { useOpenDetail } from '../../hooks/useDetailRoute';
+import { posterImg } from '../../lib/img';
 import { RatingBadge } from '../ui/RatingBadge';
 import { useT } from '../../lib/i18n';
 
@@ -13,6 +14,7 @@ export function MediaCard({ item }: { item: MediaItem }) {
   const toast = useToast();
   const saved = isSaved(item);
   const watched = statusOf(item) === 'watched';
+  const poster = item.poster ? posterImg(item.poster) : null;
 
   return (
     <article
@@ -28,11 +30,14 @@ export function MediaCard({ item }: { item: MediaItem }) {
       }}
     >
       <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-ink-800 shadow-card ring-1 ring-white/5 transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-glow group-hover:ring-brand-violet/40">
-        {item.poster ? (
+        {poster ? (
           <img
-            src={item.poster}
+            src={poster.src}
+            srcSet={poster.srcSet}
+            sizes={poster.sizes}
             alt={item.title}
             loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (

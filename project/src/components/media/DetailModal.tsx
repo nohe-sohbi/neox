@@ -11,6 +11,8 @@ import { DocumentMeta } from '../../hooks/useDocumentMeta';
 import { ErrorState, FullSpinner } from '../ui/States';
 import { StarRating } from '../ui/StarRating';
 import { WatchProviders } from './WatchProviders';
+import { SeasonBrowser } from './SeasonBrowser';
+import { backdropImg, posterImg } from '../../lib/img';
 import { useT } from '../../lib/i18n';
 
 function runtimeLabel(minutes: number | null): string | null {
@@ -73,6 +75,8 @@ export function DetailModal() {
   const saved = details ? isSaved(details) : false;
   const personalRating = details ? ratingOf(details) : null;
   const runtime = details ? runtimeLabel(details.runtime) : null;
+  const backdrop = details?.backdrop ? backdropImg(details.backdrop) : null;
+  const poster = details?.poster ? posterImg(details.poster, '112px') : null;
 
   return (
     <div
@@ -124,10 +128,13 @@ export function DetailModal() {
                 />
               ) : (
                 <>
-                  {details.backdrop ? (
+                  {backdrop ? (
                     <img
-                      src={details.backdrop}
+                      src={backdrop.src}
+                      srcSet={backdrop.srcSet}
+                      sizes={backdrop.sizes}
                       alt=""
+                      decoding="async"
                       className="h-full w-full object-cover object-top"
                     />
                   ) : (
@@ -151,10 +158,13 @@ export function DetailModal() {
 
             <div className="relative -mt-16 space-y-7 px-5 pb-8 sm:px-8">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
-                {details.poster && (
+                {poster && (
                   <img
-                    src={details.poster}
+                    src={poster.src}
+                    srcSet={poster.srcSet}
+                    sizes={poster.sizes}
                     alt={details.title}
+                    decoding="async"
                     className="hidden w-28 shrink-0 rounded-xl shadow-card ring-1 ring-white/10 sm:block"
                   />
                 )}
@@ -283,6 +293,10 @@ export function DetailModal() {
                 </div>
               )}
 
+              {details.mediaType === 'tv' && details.seasons.length > 0 && (
+                <SeasonBrowser key={details.id} tvId={details.id} seasons={details.seasons} />
+              )}
+
               <div>
                 <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-white/50">
                   {t('detail.where_watch')}
@@ -330,18 +344,23 @@ export function DetailModal() {
                     {t('detail.similar')}
                   </h3>
                   <div className="no-scrollbar flex gap-4 overflow-x-auto pb-2">
-                    {details.recommendations.map((rec) => (
+                    {details.recommendations.map((rec) => {
+                      const recImg = rec.poster ? posterImg(rec.poster, '112px') : null;
+                      return (
                       <button
                         key={`${rec.mediaType}-${rec.id}`}
                         onClick={() => openDetail(rec)}
                         className="group w-28 shrink-0 text-left"
                       >
                         <div className="flex aspect-[2/3] items-center justify-center overflow-hidden rounded-lg bg-ink-700 text-white/30 ring-1 ring-white/5 transition-transform group-hover:scale-[1.03]">
-                          {rec.poster ? (
+                          {recImg ? (
                             <img
-                              src={rec.poster}
+                              src={recImg.src}
+                              srcSet={recImg.srcSet}
+                              sizes={recImg.sizes}
                               alt={rec.title}
                               loading="lazy"
+                              decoding="async"
                               className="h-full w-full object-cover"
                             />
                           ) : rec.mediaType === 'tv' ? (
@@ -354,7 +373,8 @@ export function DetailModal() {
                           {rec.title}
                         </p>
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

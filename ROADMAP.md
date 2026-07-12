@@ -143,6 +143,31 @@ Trois axes d'amélioration majeurs, toujours sans dépendance ni infra externe :
       auto-dismiss, dédup, file bornée, et animations qui respectent `prefers-reduced-motion`. Cœur
       pur et **testé** (`project/src/lib/toast.ts`).
 
+## ✅ Phase 9 — Séries, démarrage à chaud & images responsives (LIVRÉ)
+
+Trois axes d'amélioration majeurs, toujours sans dépendance ni infra externe :
+
+- [x] **Saisons & épisodes des séries (feature)** — la fiche d'une série expose désormais un
+      **navigateur saison par saison** : sélecteur de saisons (spéciaux relégués en fin), puis la
+      **liste des épisodes** (vignette, code SxEx, titre, date de diffusion, durée, note) chargée
+      **à la demande** et mise en cache côté composant (aucun re-fetch en changeant d'onglet). Backend :
+      endpoint `GET /api/tv/:id/season/:season` + index des saisons dans la fiche, normaliseurs purs et
+      **testés** (`backend/tmdb-seasons.test.js`) ; frontend : `SeasonBrowser`, helper pur `lib/seasons.ts`
+      **testé**, i18n FR·EN·ES·DE·IT.
+- [x] **Persistance du cache & arrêt gracieux (perf & résilience backend)** — au redémarrage/redéploiement,
+      le cache TMDB ne repart plus **à froid** : sur un `SIGTERM`/`SIGINT`, le serveur **cesse d'accepter**,
+      laisse les requêtes en vol se terminer, **snapshote le cache sur disque** (écriture atomique, même
+      `DATA_DIR` que le store) puis sort ; au boot il **réhydrate** les entrées encore fraîches (le `storedAt`
+      d'origine est conservé, les entrées périmées sont écartées, le cap LRU respecté). Protège TMDB du
+      thundering-herd post-déploiement. Cœur `snapshot()`/`hydrate()` pur et **testé** (`backend/cache.test.js`) ;
+      un timeout d'arrêt dur garantit qu'on ne bloque jamais l'orchestrateur.
+- [x] **Livraison d'images responsives (perf/UX)** — un builder pur `lib/img.ts` dérive un **`srcset`**
+      côté client à partir de l'URL TMDB unique renvoyée par l'API (le navigateur choisit la résolution
+      selon le viewport et le DPR). Appliqué aux **posters** (grilles, recommandations, fiche), aux
+      **backdrops** (hero, fiche) et aux **vignettes d'épisodes**, avec `decoding="async"`. Une grille de
+      posters sur mobile ne télécharge plus une image `w500` pour l'afficher à ~150 px : bande passante en
+      moins, meilleur LCP, **contrat d'API inchangé**. Logique pure et **testée** (`project/src/lib/img.test.ts`).
+
 ## ⏭️ Reste (nécessite une infra externe — volontairement non codé en dur)
 
 - [ ] **Notifications « ça arrive sur ta plateforme »** — requiert SMTP/push + un scheduler

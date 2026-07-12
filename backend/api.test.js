@@ -78,3 +78,23 @@ describe('auth + library sync', () => {
     expect(res.body.status).toBe('ok');
   });
 });
+
+describe('tv season endpoint', () => {
+  it('rejects a non-numeric tv id', async () => {
+    const res = await request(app).get('/api/tv/abc/season/1');
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects a negative season number', async () => {
+    const res = await request(app).get('/api/tv/1399/season/-1');
+    expect(res.status).toBe(400);
+  });
+
+  it('accepts a valid request and delegates upstream (503 without a TMDB key)', async () => {
+    // Validation passed, so the route reached the TMDB client, which reports it
+    // is unconfigured in the test env rather than a 400/404 routing miss.
+    const res = await request(app).get('/api/tv/1399/season/1');
+    expect(res.status).toBe(503);
+    expect(res.body.code).toBe('TMDB_NOT_CONFIGURED');
+  });
+});

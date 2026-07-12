@@ -95,4 +95,49 @@ describe('CircuitBreaker', () => {
     expect(s.successes).toBe(2);
     expect(s.failures).toBe(1);
   });
+
+  it('lets only a single probe through in half-open; concurrent callers short-circuit', () => {
+    const { breaker, clock } = makeBreaker();
+    breaker.recordFailure();
+    breaker.recordFailure();
+    breaker.recordFailure();
+    clock.t += 1000; // cooldown elapsed → half-open on next touch
+
+    expect(breaker.allow()).toBe(true); // the one probe
+    expect(breaker.allow()).toBe(false); // everyone else waits
+    expect(breaker.allow()).toBe(false);
+    expect(breaker.stats().state).toBe('half-open');
+    expect(breaker.stats().shortCircuits).toBe(2);
+  });
+
+  it('earns a fresh probe after each cooldown once a probe re-opens the circuit', () => {
+    const { breaker, clock } = makeBreaker();
+    breaker.recordFailure();
+    breaker.recordFailure();
+    breaker.recordFailure();
+
+    clock.t += 1000;
+    expect(breaker.allow()).toBe(true); // first probe
+    breaker.recordFailure(); // probe fails → re-open
+    expect(breaker.allow()).toBe(false); // still cooling down
+
+    clock.t += 1000;
+    expect(breaker.allow()).toBe(true); // a brand-new probe is allowed
+    expect(breaker.allow()).toBe(false); // still just one
+  });
+
+  it('a straggler failure while already open does not extend the cooldown', () => {
+    const { breaker, clock } = makeBreaker();
+    breaker.recordFailure();
+    breaker.recordFailure();
+    breaker.recordFailure(); // opens at t=0
+    expect(breaker.stats().state).toBe('open');
+
+    clock.t += 500; // half-way through the cooldown
+    breaker.recordFailure(); // a late failure from an in-flight request
+    expect(breaker.stats().trips).toBe(1); // no new trip while already open
+
+    clock.t += 500; // reaches the *original* openedAt + cooldown
+    expect(breaker.stats().state).toBe('half-open'); // window was not pushed forward
+  });
 });

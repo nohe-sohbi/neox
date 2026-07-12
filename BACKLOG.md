@@ -1,14 +1,15 @@
-# 🧾 NEOX — Backlog d'audit & sprint (cycle 2)
+# 🧾 NEOX — Backlog d'audit & sprint (cycle 3)
 
-> État constaté (2026-07-10) : le repo **build, lint, typecheck et passe ses 103 tests**
-> (backend 41 · frontend 62). C'est une base **très aboutie** (8 phases + un premier
-> cycle d'audit déjà livrés) — le backlog du cycle 1 est entièrement coché.
+> État constaté (2026-07-11) : le repo **build, lint, typecheck et passe ses 103 tests**
+> (backend 41 · frontend 62). Base **très aboutie** (8 phases + 2 cycles d'audit livrés,
+> backlogs cycles 1 & 2 entièrement cochés).
 >
-> Ce second passage est donc un audit **frais et sceptique** : relecture manuelle de
+> Ce troisième passage est un audit **frais et sceptique** : relecture manuelle de
 > l'intégralité du code + 2 audits parallèles (backend / frontend), chaque trouvaille
-> revérifiée dans le code avant d'être listée. Il n'y a **aucun bug bloquant (P0)** ;
-> ce qui reste est de la **robustesse d'intégrité de données**, quelques **incohérences
-> d'état** et des **fuites d'i18n / SEO** résiduelles.
+> revérifiée dans le code avant d'être listée. **Aucun bug bloquant (P0)** ; aucune
+> feature essentielle manquante. Ce qui reste : une **incohérence de comportement du
+> disjoncteur** (le code contredit ses propres commentaires), quelques **incohérences
+> d'état UI** et des **fuites SEO/a11y** résiduelles sur la langue du document.
 
 Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — Effort : **S/M/L**
 
@@ -16,108 +17,88 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
 
 ## 🔴 À réparer (cassé / incohérent / mort)
 
-- [x] **R1 — `store.js` avale les erreurs d'écriture → 200 sur une sauvegarde ratée** · P1 · M
-  `backend/store.js:31-55`. `persist()` appelle `resolve()` (jamais `reject`) dans **toutes**
-  les branches d'erreur (mkdir/write/rename). Donc `await store.setLibrary(...)` et
-  `await store.createUser(...)` réussissent même quand rien n'a été écrit sur disque.
-  *Scénario : disque plein ou `DATA_DIR` non inscriptible → `PUT /api/library` renvoie **200**
-  avec les entrées, mais la sync n'a rien persisté ; au redémarrage la biblio est perdue.*
-  *Fix : découpler la chaîne de sérialisation (qui doit rester vivante) du résultat par appel
-  (qui doit rejeter en cas d'échec) → la route renvoie 500 au lieu d'un faux succès.*
+- [x] **R1 — Le disjoncteur TMDB ne respecte pas sa « sonde unique » en half-open** · P1 · M
+  `backend/circuit-breaker.js` + `backend/tmdb.js`. En `half-open`, `allow()` renvoie `true`
+  pour **tous** les appelants concurrents (rien ne marque une sonde « en vol ») — alors que
+  les commentaires (`circuit-breaker.js:18-19,62`) affirment « lets a single probe through ».
+  Sous panne TMDB durable, après le cooldown une rafale de requêtes **d'URLs distinctes**
+  (le single-flight ne coalesce que les URLs identiques) stampede l'amont mort, chacune
+  vidant son budget de retry — exactement ce que le breaker doit empêcher. Amplification :
+  `_trip()` réécrit `openedAt` même déjà ouvert → les traînards **rallongent la fenêtre
+  open** au-delà du cooldown. Corollaires : (a) une sonde qui reçoit un **4xx** ne déclenche
+  ni `recordSuccess` ni `recordFailure` → breaker figé en half-open ; (b) `flights`
+  (`single-flight`) est **incrémenté même quand le breaker court-circuite** sans fetch →
+  `/api/health` rapporte des « appels amont » fictifs pendant une panne.
+  *Fix : garde `halfOpenProbing` (une seule sonde), `openedAt` non réécrit si déjà open,
+  un 4xx amont compte comme succès breaker (amont vivant), et check `breaker.allow()`
+  **avant** le single-flight (plus de flight fantôme).*
 
-- [x] **R2 — `PUT /api/library` efface la biblio cloud sur un body malformé** · P2 · S
-  `backend/server.js:229-237`. `sanitizeLibrary(req.body?.entries)` renvoie `[]` pour un
-  `entries` absent/non-tableau, puis `setLibrary(userId, [])` **remplace toute la biblio** et
-  renvoie 200. Un bug client ou un champ manquant détruit silencieusement les données synchronisées.
-  *Fix : rejeter en 400 quand `entries` n'est pas un tableau (un `[]` explicite = vidage
-  légitime reste autorisé).*
+- [x] **R2 — `AuthContext.ready` est calculé/exposé mais jamais consommé → flash « déconnecté » au boot** · P2 · S
+  `context/AuthContext.tsx:15,25,67`. Le flag `ready` (censé masquer l'état transitoire
+  pendant la validation du token au boot) n'est lu **nulle part**. Un utilisateur avec token
+  valide qui recharge voit `user === null` tant que `me()` est en vol → la navbar affiche
+  « Connexion » puis bascule sur l'avatar (flash logged-out → logged-in à chaque chargement).
+  *Fix : consommer `ready` dans la navbar (placeholder neutre du slot compte tant que
+  `!ready`) pour supprimer le flash — c'est l'intention d'origine, à moitié câblée.*
 
-- [x] **R3 — `recommend()` crashe (500) sur des seeds malformés** · P2 · S
-  `backend/tmdb.js:454-456`. Le filtre déréférence `s.mediaType` avant de valider que `s` est
-  un objet, **avant** le garde `valid.length === 0`. `POST /api/recommendations` avec
-  `{"seeds":[null]}` → `TypeError` → 500 au lieu d'ignorer l'élément.
-  *Fix : `s && typeof s === 'object' && ...` dans le filtre.*
-
-- [x] **R4 — `DiscoverView` double-fetch (et mauvais genre) au changement d'onglet Films↔Séries** · P2 · S
-  `views/DiscoverView.tsx:61-66` (reset) et `:133-136` (fetch) réagissent tous deux au même
-  changement de `mediaType`. Au render où `mediaType` bascule, l'état de filtre porte encore
-  les valeurs de l'onglet précédent → un `api.discover('tv', { genre: <id film> })` part
-  d'abord (résultats faux/vides), aussitôt remplacé par la requête correcte.
-  *Fix : remonter la vue par `key={mediaType}` (état de filtre réinitialisé, une seule requête).*
-
-- [x] **R5 — Un 401 laisse l'UI en état « connecté » périmé** · P2 · S
-  `lib/api.ts:106` efface le token sur tout 401, mais rien ne réinitialise `user` dans
-  `context/AuthContext.tsx` (seul le `me()` du boot le fait). Après expiration du token en
-  cours de session : la navbar garde l'avatar + « Connecté en tant que », et
-  `LibraryContext.schedulePush` continue des `putLibrary` qui 401 en silence. Ne se corrige
-  qu'au reload.
-  *Fix : sur un 401 « authentifié », émettre un event que `AuthProvider` écoute pour vider `user`.*
-
-- [x] **R6 — Les métriques de cache double-comptent les miss** · P2 · S
-  `backend/tmdb.js:88 & 97`. Sur chaque miss/stale, `cache.get(cacheKey)` tourne ligne 88 (hors
-  flight) **puis** ligne 97 (dans le flight), incrémentant `misses` deux fois → `hitRate` sous-
-  estimé dans `/api/health`. Aucun impact fonctionnel, diagnostics faussés seulement.
-  *Fix : réutiliser le résultat de la ligne 88 dans le flight au lieu de re-appeler `get`.*
-
-- [x] **R7 — Race check-then-act à l'inscription → doublons d'e-mail** · P2 · S
-  `backend/server.js:191-197`. `findUserByEmail` (sync) puis `await hashPassword(...)` rend la
-  main avant `createUser`. Deux `register` concurrents pour le même e-mail passent tous deux le
-  contrôle → deux comptes, même e-mail, UUID différents ; le second est orphelin.
-  *Fix : re-contrôler l'unicité **dans** `createUser` (chemin d'écriture) et rejeter atomiquement.*
+- [x] **R3 — `DiscoverView` : effet de reset mort/redondant (et incomplet)** · P2 · S
+  `views/DiscoverView.tsx:61-66`. Depuis le fix cycle 2, `App.tsx:48-49` remonte la vue via
+  `key="movie"`/`key="tv"` : `mediaType` est donc **constant** dans une instance, et cet
+  `useEffect([mediaType])` ne tourne qu'une fois au montage en réassignant des valeurs déjà
+  par défaut. Deux mécanismes font le même travail ; pire, l'effet est trompeur (il ne reset
+  ni `items`/`page`/`showPlatforms`, contrairement au remount).
+  *Fix : supprimer l'effet redondant (le remount clavé couvre déjà tout le reset).*
 
 ---
 
 ## 🟡 Essentiel manquant
 
-- _(Rien.)_ Les parcours principaux sont complets : nav mobile, recherche, explorer (filtres +
-  scroll infini), fiche, biblio, comptes/sync, i18n, PWA, ⌘K. Aucune absence ne bloque un usage
-  évident du produit — pas de scope inventé ici.
+- _(Rien.)_ Tous les parcours cœur sont présents et câblés de bout en bout : recherche,
+  explorer (filtres + scroll infini), fiche (BA/providers/casting/reco), notation, biblio
+  (import/export/stats/tri/filtre), comptes + sync, « vu récemment », « pour toi », ⌘K,
+  i18n 5 langues. Aucune absence ne bloque un usage évident — pas de scope inventé.
 
 ---
 
-## 🟢 Contenu à compléter (feedback, i18n, SEO)
+## 🟢 Contenu à compléter (SEO / a11y / feedback)
 
-- [x] **C1 — `person.knownFor` (métier) toujours en anglais** · P2 · S
-  `backend/tmdb.js:441` renvoie `known_for_department` tel quel (« Acting », « Directing »…),
-  affiché en évidence sous le nom dans `PersonModal.tsx:103` + la meta description, quelle que
-  soit la langue UI. Fuite i18n sur un ensemble fini et mappable de départements.
-  *Fix : mapper le département vers une clé i18n (fallback = valeur brute).*
+- [x] **C1 — `<html lang>` et `og:locale` figés « fr » quelle que soit la langue active** · P2 · S
+  `project/index.html:2` déclare `lang="fr"` en dur ; `lib/seo.ts` pilote titre/description/OG
+  mais ne touche jamais `document.documentElement.lang` (aucune écriture dans tout le repo).
+  Sur une locale US/GB/ES/DE/IT le chrome est traduit mais le document annonce `lang="fr"` →
+  prononciation lecteur d'écran erronée + mauvaise détection de langue par les crawlers.
+  *Fix : aligner `document.documentElement.lang` sur la langue UI active au boot (+ balise
+  `og:locale`). Un switch de langue hard-reload, donc la valeur est stable par session.*
 
-- [x] **C2 — `sitemap.xml` a un namespace invalide + `robots.txt` pointe un sitemap relatif** · P2 · S
-  `project/public/sitemap.xml:7` déclare `xmlns="http://www.sitemap.org/..."` (au lieu de
-  **`sitemaps.org`**, pluriel) → namespace du protocole invalide, sitemap rejeté par les
-  validateurs. `project/public/robots.txt` déclare `Sitemap: /sitemap.xml` (relatif) alors que
-  le protocole exige une **URL absolue**.
-  *Fix : corriger le namespace + rendre l'URL du sitemap absolue.*
+- [x] **C2 — Recherche sans résultat : double message « 0 résultats » + empty state** · P2 · S
+  `views/SearchView.tsx:76-80` affiche la ligne de comptage dès que `debounced && !loading
+  && !error` (vrai pour une recherche finie à 0 résultat), tandis que le ternaire principal
+  (`:92-97`) affiche déjà l'empty state « Aucun résultat ». Sur une requête vide de résultats,
+  l'UI montre **« 0 résultats »** ET **« Rien trouvé pour … »** — messages redondants/contradictoires.
+  *Fix : n'afficher le comptage que lorsqu'il y a des résultats.*
 
-- [x] **C3 — Noter un titre bascule À voir→Vu en silence, sans toast** · P2 · S
-  `components/media/DetailModal.tsx:266` → `StarRating.onChange` → `setRating`, qui force
-  `status: 'watched'` (`LibraryContext.tsx:144-149`) **sans toast**, alors que le bouton
-  « Marquer comme vu » en émet un et que toutes les autres mutations de biblio donnent un retour.
-  *Fix : émettre un toast de confirmation à la notation.*
-
-- [x] **C4 — `AuthModal` ne mappe pas tous les codes d'erreur auth** · P2 · S
-  `components/auth/AuthModal.tsx:16-22` couvre 5 codes mais pas `AUTH_ACCOUNT_NOT_FOUND`,
-  `AUTH_REQUIRED`, `AUTH_SESSION_INVALID` → sur ces chemins (rares) le message backend en
-  **français** est affiché en fallback. Complète l'intention du cycle 1 (R3).
-  *Fix : ajouter les 3 clés i18n manquantes au mapping.*
+- [x] **C3 — `cacheControl` : la garantie « errors never cached » n'est pas appliquée** · P2 · S
+  `backend/http-cache.js:36-40`. Le commentaire promet « never cache 4xx/5xx », mais le
+  middleware ne **pose aucun** en-tête sur les réponses non-2xx et s'appuie sur l'absence
+  d'en-tête. Or un cache partagé (CDN — on annonce `s-maxage`) peut mettre en cache
+  **heuristiquement** certains statuts (404/410, RFC 7234 §4.2.2). Un `GET /api/:type/:id`
+  d'un titre inexistant renvoie un vrai 404 qu'un CDN pourrait figer.
+  *Fix : poser explicitement `Cache-Control: no-store` sur les réponses non-2xx.*
 
 ---
 
-## ✅ Écarté (vérifié, pas un défaut / hors scope)
+## ✅ Écarté (vérifié, pas un défaut / hors scope / décision antérieure maintenue)
 
-- **Timing side-channel au login** (`server.js:208-211`, bcrypt sauté si e-mail inconnu) → pur
-  durcissement ; l'inscription révèle déjà l'existence d'un e-mail via le 409 (compromis accepté
-  au cycle 1). Bénéfice marginal, non touché.
-- **Code mort `api.getLibrary` / `recently-viewed.clearRecent`** → conservés : le cycle 1 a déjà
-  statué « API client complète pour une route réelle, inoffensif » (risque > bénéfice).
-- **`MediaCard` : `<button>`/`<h3>` imbriqués dans un `role="button"`** → ARIA discutable mais
-  fonctionnel (clic interne `stopPropagation`) ; refactor risqué pour un bénéfice faible.
-- **Dockerfile frontend lance `vite dev` en prod** → limitation de déploiement **documentée**
-  dans la ROADMAP (multi-stage `build` + nginx à brancher au déploiement), choix d'infra assumé,
-  pas un bug de code.
-- **Recherche = page 1 seulement (pas de scroll infini)** → la pertinence TMDB place la cible
-  dans le top 20 ; ajouter la pagination serait une feature, pas un manque bloquant.
-- **Half-open du circuit breaker non verrouillé à une seule sonde** → compromis accepté au cycle 1.
-</content>
-</invoke>
+- **Recherche = page 1 uniquement, comptage = `totalResults`** → décision cycle 2 maintenue
+  (la pertinence TMDB place la cible dans le top 20 ; la pagination serait une *feature*, pas
+  un manque bloquant). Seul le double-message à 0 résultat est corrigé (C2).
+- **Exports morts `api.getLibrary` / `recently-viewed.clearRecent`** → conservés (statué
+  cycle 1 : API cliente complète pour une route réelle, inoffensif ; risque > bénéfice).
+- **`cache.get()` compte un stale-serve comme `miss`** → définition « fresh-hit-rate »
+  défendable ; `staleServed` est tracké séparément. Pas de changement de sémantique métrique.
+- **PWA manifest `lang: 'fr'`** → valeur build-time d'un fichier unique ; la rendre par-user
+  imposerait une génération runtime du manifest (infra), hors scope de cet audit.
+- **Dockerfile frontend `vite dev` en prod** → limitation de déploiement documentée (ROADMAP),
+  choix d'infra assumé, pas un bug de code.
+- **Timing side-channel au login** (bcrypt sauté si e-mail inconnu) → durcissement marginal ;
+  l'inscription révèle déjà l'existence d'un e-mail (409). Compromis accepté cycles 1-2.

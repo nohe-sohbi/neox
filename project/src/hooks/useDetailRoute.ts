@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { track } from '../lib/analytics';
 import type { MediaType } from '../lib/types';
@@ -41,14 +41,19 @@ export function useDetailTarget() {
   const [params, setParams] = useSearchParams();
   const raw = params.get(WATCH);
 
-  let target: { id: number; mediaType: MediaType } | null = null;
-  if (raw) {
+  // Memoized on the raw deep-link string so `target` keeps a stable reference
+  // across renders. DetailModal puts it in an effect's deps (it reloads when the
+  // target changes); a fresh object literal every render would re-fire that
+  // effect on every commit and loop the fetch.
+  const target = useMemo<{ id: number; mediaType: MediaType } | null>(() => {
+    if (!raw) return null;
     const [mediaType, idStr] = raw.split('-');
     const id = Number(idStr);
     if ((mediaType === 'movie' || mediaType === 'tv') && Number.isInteger(id) && id > 0) {
-      target = { mediaType, id };
+      return { mediaType, id };
     }
-  }
+    return null;
+  }, [raw]);
 
   const close = useCallback(() => {
     const next = new URLSearchParams(params);

@@ -17,7 +17,7 @@ Légende priorité : **P0** bloquant · **P1** essentiel · **P2** confort — E
 
 ## 🔴 À réparer (cassé / incohérent / mort)
 
-- [ ] **R1 — `DetailModal` : boucle de rendu/fetch infinie sur l'ouverture d'une fiche** · P0 · S
+- [x] **R1 — `DetailModal` : boucle de rendu/fetch infinie sur l'ouverture d'une fiche** · P0 · S
   `hooks/useDetailRoute.ts:44-51` + `components/media/DetailModal.tsx:48-53`.
   `useDetailTarget()` reconstruit `target = { id, mediaType }` **en littéral d'objet à chaque
   render**. L'effet `useEffect(() => { …; load(target.mediaType, target.id); }, [target, load])`

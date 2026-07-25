@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Bookmark, Calendar, Check, Clock, Eye, Film, Play, Star, Trash2, Tv, X } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { track } from '../../lib/analytics';
+import { SITE_URL } from '../../lib/seo';
+import { buildMediaSchema } from '../../lib/structured-data';
 import type { MediaDetails, MediaType } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
 import { useToast } from '../../context/ToastContext';
@@ -124,6 +126,10 @@ export function DetailModal() {
               image={details.backdrop || details.poster}
               type={details.mediaType === 'tv' ? 'video.tv_show' : 'video.movie'}
               path={`/?watch=${details.mediaType}-${details.id}`}
+              jsonLd={buildMediaSchema(
+                details,
+                `${SITE_URL}/?watch=${details.mediaType}-${details.id}`,
+              )}
             />
             <div className="relative h-56 sm:h-80">
               {showTrailer && details.trailerKey ? (

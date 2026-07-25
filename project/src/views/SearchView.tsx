@@ -21,6 +21,9 @@ export function SearchView() {
       ? `${t('search.results_for')} ${t('search.quoted', { term: debounced })}`
       : t('search.title'),
     path: debounced ? `/search?q=${encodeURIComponent(debounced)}` : '/search',
+    // A search result page is thin, duplicated and infinite: crawlable so the
+    // directive is actually read, but never indexed.
+    robots: 'noindex, follow',
   });
 
   const [results, setResults] = useState<MediaItem[]>([]);

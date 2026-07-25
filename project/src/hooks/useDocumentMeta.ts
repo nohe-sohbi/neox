@@ -1,5 +1,11 @@
 import { useEffect } from 'react';
 import { applyMeta, buildMeta, restoreMeta, snapshotMeta, type MetaInput } from '../lib/seo';
+import {
+  applyJsonLd,
+  restoreJsonLd,
+  snapshotJsonLd,
+  type JsonLd,
+} from '../lib/structured-data';
 import { t } from '../lib/i18n';
 
 /**
@@ -11,11 +17,13 @@ import { t } from '../lib/i18n';
  * The input is serialized for the dependency array so callers can pass a fresh
  * object literal every render without thrashing.
  */
-export function useDocumentMeta(input: MetaInput): void {
+export function useDocumentMeta(input: MetaInput, jsonLd?: JsonLd | null): void {
   const key = JSON.stringify(input);
+  const ldKey = jsonLd ? JSON.stringify(jsonLd) : '';
   useEffect(() => {
     if (typeof document === 'undefined') return;
     const snapshot = snapshotMeta();
+    const ldSnapshot = snapshotJsonLd();
     // Localize the site-level fallbacks (used on views without their own title,
     // e.g. Home). A language switch hard-reloads, so reading `t` here is safe.
     applyMeta(
@@ -24,9 +32,13 @@ export function useDocumentMeta(input: MetaInput): void {
         description: t('seo.default_description'),
       }),
     );
-    return () => restoreMeta(snapshot);
+    if (jsonLd !== undefined) applyJsonLd(jsonLd);
+    return () => {
+      restoreMeta(snapshot);
+      if (jsonLd !== undefined) restoreJsonLd(ldSnapshot);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  }, [key, ldKey]);
 }
 
 /**
@@ -34,7 +46,7 @@ export function useDocumentMeta(input: MetaInput): void {
  * for components that early-return before the meta is known (e.g. modals), so
  * the hook is only mounted once the data exists and the rules of hooks hold.
  */
-export function DocumentMeta(props: MetaInput): null {
-  useDocumentMeta(props);
+export function DocumentMeta({ jsonLd, ...props }: MetaInput & { jsonLd?: JsonLd | null }): null {
+  useDocumentMeta(props, jsonLd);
   return null;
 }

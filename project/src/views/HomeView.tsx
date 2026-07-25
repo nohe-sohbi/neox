@@ -7,11 +7,12 @@ import { MediaRow } from '../components/media/MediaRow';
 import { ErrorState } from '../components/ui/States';
 import { useT } from '../lib/i18n';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
+import { buildWebSite } from '../lib/structured-data';
 import { useQuery } from '../hooks/useQuery';
 
 export function HomeView() {
   const { t } = useT();
-  useDocumentMeta({ path: '/' });
+  useDocumentMeta({ path: '/' }, buildWebSite());
 
   // Cached + stale-while-revalidate: returning to Home repaints instantly
   // instead of flashing skeletons. Keyed by locale so a region/language switch

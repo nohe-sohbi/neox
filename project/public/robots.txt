@@ -2,7 +2,9 @@
 User-agent: *
 Allow: /
 
-# Per-user surfaces carry no public value and shouldn't be indexed.
-Disallow: /library
+# /library and /search carry no public value, but they are deliberately NOT
+# disallowed here: a disallowed URL is never crawled, so the noindex the app
+# serves on those routes would never be read. Crawl allowed, indexing refused.
+
 
 Sitemap: https://neox.app/sitemap.xml

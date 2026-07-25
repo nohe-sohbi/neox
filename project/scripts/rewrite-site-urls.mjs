@@ -1,5 +1,5 @@
 /**
- * `robots.txt` and `sitemap.xml` are static files, but the origin they point at
+ * `robots.txt`, `sitemap.xml` and the static tags in `index.html` point at an origin
  * is only known at deploy time. They ship with a placeholder; this rewrites the
  * built copies so a deployed NEOX never sends crawlers to a domain it does not
  * own. Runs automatically after `npm run build` (see the `postbuild` script).
@@ -11,7 +11,9 @@ import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const PLACEHOLDER = 'https://neox.app';
-const FILES = ['robots.txt', 'sitemap.xml'];
+// index.html carries the static og:image / og:url / canonical read by the
+// unfurlers that do not execute JS, so it needs the real origin too.
+const FILES = ['robots.txt', 'sitemap.xml', 'index.html'];
 
 const distDir = path.resolve(process.cwd(), 'dist');
 const origin = (process.env.VITE_SITE_URL || '').trim().replace(/\/+$/, '');

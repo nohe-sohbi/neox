@@ -81,6 +81,12 @@ Ce qui n'est pas visible à l'écran mais tient l'app debout :
   a un skip-link, et `prefers-reduced-motion` est respecté.
 - **Perf client.** Cache mémoire SWR avec dédup des requêtes en vol, `srcset` dérivé côté client des
   URLs TMDB, `ErrorBoundary` global au lieu d'un écran blanc.
+- **SEO.** Le `<head>` suit la route et la fiche ouverte (`title`, `description`, Open Graph,
+  Twitter Card, canonique), avec des données structurées schema.org : `WebSite` + `SearchAction` sur
+  l'accueil, `Movie` ou `TVSeries` sur une fiche, `Person` sur un profil. `aggregateRating` n'est
+  émis que si un vrai nombre de votes le porte, parce que Google rejette une note sans compteur.
+  Les surfaces sans valeur de recherche (`/search`, `/library`) sont servies en `noindex` plutôt que
+  bloquées dans `robots.txt` : une URL interdite au crawl ne fait jamais lire son `noindex`.
 - **Analytics optionnelle et sans cookie.** Aucun script n'est chargé tant que
   `VITE_UMAMI_WEBSITE_ID` n'est pas défini. Quand elle est active, une instance
   [Umami](https://umami.is) auto-hébergée compte les pages et dix actions produit (`Open Detail`,
@@ -106,7 +112,7 @@ neox/
 │   └── library.js      validation et merge des bibliothèques
 └── project/            Frontend React + TypeScript + Vite + Tailwind
     └── src/
-        ├── lib/        client API typé, query (SWR + dédup), i18n, library-io, seo, img
+        ├── lib/        client API typé, query (SWR + dédup), i18n, library-io, seo, structured-data, img
         ├── context/    AuthContext, LibraryContext
         ├── hooks/      useQuery, useDebounce, useMyPlatforms, useModal, useDocumentMeta
         ├── components/ layout, media, home, auth, ui, command
@@ -189,9 +195,9 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 
 ## Qualité
 
-- **142 tests** : 67 côté `backend/` (auth et sync via supertest, garde du secret JWT, cache HTTP,
-  cache LRU et snapshot/hydrate, single-flight, params discover, saisons) et 75 côté `project/`
-  (bibliothèque, export/import, i18n, SEO, cache SWR, vu récemment, srcset).
+- **156 tests** : 67 côté `backend/` (auth et sync via supertest, garde du secret JWT, cache HTTP,
+  cache LRU et snapshot/hydrate, single-flight, params discover, saisons) et 89 côté `project/`
+  (bibliothèque, export/import, i18n, SEO, données structurées, cache SWR, vu récemment, srcset).
 - **Vérifs** : `npm run lint`, `npm run typecheck`, `npm run build`.
 - **CI** : GitHub Actions lance lint, typecheck, tests et build sur chaque PR
   (`.github/workflows/ci.yml`).

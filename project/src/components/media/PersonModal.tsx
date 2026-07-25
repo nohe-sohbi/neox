@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Cake, MapPin, X } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import type { Person } from '../../lib/types';
+import { SITE_URL } from '../../lib/seo';
+import { buildPersonSchema } from '../../lib/structured-data';
 import { usePersonTarget } from '../../hooks/useDetailRoute';
 import { useModal } from '../../hooks/useModal';
 import { DocumentMeta } from '../../hooks/useDocumentMeta';
@@ -97,6 +99,7 @@ export function PersonModal() {
               image={person.photo}
               type="profile"
               path={`/?person=${person.id}`}
+              jsonLd={buildPersonSchema(person, `${SITE_URL}/?person=${person.id}`)}
             />
             <div className="flex flex-col gap-5 sm:flex-row">
               {person.photo ? (

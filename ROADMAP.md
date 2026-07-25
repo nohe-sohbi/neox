@@ -25,13 +25,16 @@ cache au `SIGTERM` et réhydratation au boot, arrêt gracieux avec timeout dur. 
 exposés sur `/api/health`.
 
 **Perf.** Cache HTTP (`Cache-Control` + ETags forts, `no-store` sur les routes privées), cache
-client SWR avec dédup des requêtes en vol, SEO dynamique (`title`, `description`, Open Graph,
-Twitter Card, canonique) avec `robots.txt` et `sitemap.xml` réécrits au build depuis
-`VITE_SITE_URL`.
+client SWR avec dédup des requêtes en vol.
+
+**SEO.** `<head>` dynamique par route et par fiche, données structurées schema.org (`WebSite` +
+`SearchAction`, `Movie`, `TVSeries`, `Person`), image de partage 1200 × 630 en PNG, `noindex` sur
+`/search` et `/library`, `robots.txt` / `sitemap.xml` / tags statiques d'`index.html` réécrits au
+build depuis `VITE_SITE_URL`.
 
 **Packaging.** Image frontend multi-stage (`vite build` puis nginx), API proxyfiée en même-origine
 sous `/api`, conteneurs non-root avec `HEALTHCHECK`, `JWT_SECRET` obligatoire en production,
-licence MIT, 142 tests et CI GitHub Actions sur chaque PR.
+licence MIT, 156 tests et CI GitHub Actions sur chaque PR.
 
 ## Reste
 
@@ -52,5 +55,8 @@ licence MIT, 142 tests et CI GitHub Actions sur chaque PR.
       détection d'un changement de disponibilité. À brancher quand l'infra mail est choisie.
 - [ ] **Cache partagé (Redis)** pour le scaling multi-instances. Le cache actuel est borné en
       mémoire, par instance.
-- [ ] **SEO complet des fiches.** Le `<head>` est déjà piloté par route et par fiche, mais le rendu
-      reste client-side : il manque du SSR ou du prerender pour les crawlers qui n'exécutent pas JS.
+- [ ] **Rendu serveur des fiches.** Le `<head>` et le JSON-LD sont pilotés par route et par fiche,
+      mais le rendu reste client-side : il manque du SSR ou du prerender pour les crawlers qui
+      n'exécutent pas JS, et les fiches vivent sur un paramètre de requête (`/?watch=movie-550`)
+      plutôt que sur un chemin propre. Chantier de framework, à ne lancer qu'avec une demande
+      mesurée en face.

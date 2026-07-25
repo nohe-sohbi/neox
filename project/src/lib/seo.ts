@@ -24,7 +24,9 @@ export const SITE_URL = (import.meta.env.VITE_SITE_URL || 'https://neox.app').re
 export const DEFAULT_TITLE = 'NEOX · Ton radar cinéma & séries';
 export const DEFAULT_DESCRIPTION =
   'Découvre les films et séries du moment, regarde les bandes-annonces et trouve instantanément où les voir en streaming légal. Crée ta watchlist en un clic.';
-export const DEFAULT_IMAGE = `${SITE_URL}/pwa-icon.svg`;
+// 1200x630 PNG: the unfurlers (Facebook, X, LinkedIn, Slack) do not render SVG,
+// so an SVG og:image means every share has no preview at all.
+export const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
 
 const MAX_DESCRIPTION = 200;
 
@@ -37,6 +39,13 @@ export interface MetaInput {
   type?: string;
   /** Path (+ optional query) of the current view, for canonical / og:url. */
   path?: string;
+  /**
+   * `robots` directive for views with no search value (per-user surfaces, search
+   * result pages). Left undefined the tag is removed, which is the indexable
+   * default; robots.txt is deliberately not used for these, since a disallowed
+   * URL is never crawled and its noindex therefore never read.
+   */
+  robots?: string;
 }
 
 export interface ResolvedMeta {
@@ -45,6 +54,7 @@ export interface ResolvedMeta {
   image: string;
   type: string;
   url: string;
+  robots?: string;
 }
 
 /** Collapse whitespace and clip to `max`, appending an ellipsis when clipped. */
@@ -77,7 +87,7 @@ export function buildMeta(input: MetaInput = {}, defaults: MetaDefaults = {}): R
     url = `${SITE_URL}${input.path.startsWith('/') ? '' : '/'}${input.path}`;
   }
 
-  return { title, description, image, type, url };
+  return { title, description, image, type, url, robots: input.robots?.trim() || undefined };
 }
 
 /* ----------------------------- DOM application ---------------------------- */
@@ -117,10 +127,21 @@ function upsertCanonical(url: string): void {
   el.setAttribute('href', url);
 }
 
+function upsertOrRemoveRobots(value: string | undefined): void {
+  const el = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]');
+  if (!value) {
+    el?.remove();
+    return;
+  }
+  if (el) el.setAttribute('content', value);
+  else upsertMeta('name', 'robots', value);
+}
+
 export interface MetaSnapshot {
   title: string;
   tags: Record<string, string | null>;
   canonical: string | null;
+  robots: string | null;
 }
 
 /** Capture the currently-applied head state so it can be restored later. */
@@ -131,10 +152,12 @@ export function snapshotMeta(): MetaSnapshot {
     tags[`${attr}:${key}`] = el ? el.getAttribute('content') : null;
   }
   const canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  const robots = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]');
   return {
     title: document.title,
     tags,
     canonical: canonical ? canonical.getAttribute('href') : null,
+    robots: robots ? robots.getAttribute('content') : null,
   };
 }
 
@@ -146,6 +169,7 @@ export function applyMeta(meta: ResolvedMeta): void {
     upsertMeta(attr, key, content);
   }
   upsertCanonical(meta.url);
+  upsertOrRemoveRobots(meta.robots);
 }
 
 /** Restore a previously captured snapshot (used when an overlay closes). */
@@ -156,4 +180,5 @@ export function restoreMeta(snapshot: MetaSnapshot): void {
     if (content != null) upsertMeta(attr, key, content);
   }
   if (snapshot.canonical != null) upsertCanonical(snapshot.canonical);
+  upsertOrRemoveRobots(snapshot.robots ?? undefined);
 }

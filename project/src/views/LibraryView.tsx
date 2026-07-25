@@ -47,7 +47,11 @@ function toMediaItem(entry: LibraryEntry): MediaItem {
 
 export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
   const { t, tn } = useT();
-  useDocumentMeta({ title: t('library.title'), path: '/library' });
+  useDocumentMeta({
+    title: t('library.title'),
+    path: '/library',
+    robots: 'noindex, nofollow',
+  });
   const navigate = useNavigate();
   const { user } = useAuth();
   const toast = useToast();

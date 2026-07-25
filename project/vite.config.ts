@@ -11,7 +11,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'pwa-icon.svg'],
       manifest: {
-        name: 'NEOX — Ton radar cinéma & séries',
+        name: 'NEOX · Ton radar cinéma & séries',
         short_name: 'NEOX',
         description:
           'Découvre les films et séries du moment et trouve où les regarder légalement.',

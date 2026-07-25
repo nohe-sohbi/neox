@@ -93,7 +93,7 @@ export function PersonModal() {
           <>
             <DocumentMeta
               title={person.name}
-              description={person.biography || `${person.name} — ${knownFor}`}
+              description={person.biography || `${person.name}, ${knownFor}`}
               image={person.photo}
               type="profile"
               path={`/?person=${person.id}`}

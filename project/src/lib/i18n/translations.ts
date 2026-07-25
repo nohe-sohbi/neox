@@ -3,7 +3,7 @@
  * `{var}` placeholders are filled by `interpolate`. Pluralized strings carry
  * `_one` / `_other` suffixes; the caller picks based on count.
  *
- * The catalogue itself (titles, synopses…) is localized by TMDB — these are
+ * The catalogue itself (titles, synopses…) is localized by TMDB; these are
  * only the app's own chrome.
  */
 export type Dict = Record<string, string>;
@@ -18,7 +18,7 @@ const fr: Dict = {
   'nav.library': 'Ma liste',
   'nav.account': 'Mon compte',
   'nav.primary': 'Navigation principale',
-  'nav.home_aria': 'NEOX — accueil',
+  'nav.home_aria': 'NEOX, accueil',
   'nav.logged_as': 'Connecté en tant que',
   'nav.logout': 'Se déconnecter',
   'nav.login': 'Connexion',
@@ -32,7 +32,7 @@ const fr: Dict = {
   // Shared
   'common.close': 'Fermer',
   'common.load_error': 'Chargement impossible.',
-  'seo.default_title': 'NEOX — Ton radar cinéma & séries',
+  'seo.default_title': 'NEOX · Ton radar cinéma & séries',
   'seo.default_description':
     'Découvre les films et séries du moment, regarde les bandes-annonces et trouve instantanément où les voir en streaming légal. Crée ta watchlist en un clic.',
   'api.network': 'Impossible de joindre le serveur. Vérifie ta connexion.',
@@ -72,7 +72,7 @@ const fr: Dict = {
   'discover.movies_title': 'Films',
   'discover.tv_title': 'Séries',
   'discover.movies_sub':
-    'Du blockbuster au film culte — explore, filtre, trouve ta prochaine séance.',
+    'Du blockbuster au film culte : explore, filtre, trouve ta prochaine séance.',
   'discover.tv_sub': 'Des pépites à binge-watcher, triées sur le volet.',
   'sort.popularity': 'Populaires',
   'sort.vote_movie': 'Les mieux notés',
@@ -147,7 +147,7 @@ const fr: Dict = {
   'toast.removed': 'Retiré de ta liste',
   'toast.marked_want': 'Ajouté à « À voir »',
   'toast.marked_watched': 'Marqué comme vu',
-  'toast.rated': 'Note enregistrée — ajouté à « Vus »',
+  'toast.rated': 'Note enregistrée, ajouté à « Vus »',
   'toast.rating_cleared': 'Note retirée',
   'toast.exported': 'Liste exportée',
   'toast.cleared': 'Liste vidée',
@@ -212,7 +212,7 @@ const fr: Dict = {
 
   // Watch providers
   'providers.none':
-    'Aucune offre légale détectée dans ta région pour le moment. Reviens bientôt — le catalogue évolue chaque semaine.',
+    'Aucune offre légale détectée dans ta région pour le moment. Reviens bientôt, le catalogue évolue chaque semaine.',
   'providers.streaming': 'En streaming',
   'providers.rent': 'En location',
   'providers.buy': 'À l’achat',
@@ -269,7 +269,7 @@ const en: Dict = {
   'nav.library': 'My list',
   'nav.account': 'My account',
   'nav.primary': 'Primary navigation',
-  'nav.home_aria': 'NEOX — home',
+  'nav.home_aria': 'NEOX, home',
   'nav.logged_as': 'Signed in as',
   'nav.logout': 'Sign out',
   'nav.login': 'Sign in',
@@ -281,7 +281,7 @@ const en: Dict = {
 
   'common.close': 'Close',
   'common.load_error': 'Something went wrong while loading.',
-  'seo.default_title': 'NEOX — Your movie & TV radar',
+  'seo.default_title': 'NEOX · Your movie & TV radar',
   'seo.default_description':
     'Discover trending movies and shows, watch trailers, and instantly find where to stream them legally. Build your watchlist in one click.',
   'api.network': 'Couldn’t reach the server. Check your connection.',
@@ -309,7 +309,7 @@ const en: Dict = {
   'search.count_other': '{count} results',
   'search.empty_title': 'What do you feel like watching tonight?',
   'search.empty_desc':
-    'Type a movie or show title — we’ll tell you instantly where to watch it legally.',
+    'Type a movie or show title and we’ll tell you instantly where to watch it legally.',
   'search.none_title': 'No results',
   'search.none_desc':
     'Nothing found for “{query}”. Check the spelling or try another title.',
@@ -317,7 +317,7 @@ const en: Dict = {
   'discover.movies_title': 'Movies',
   'discover.tv_title': 'TV Shows',
   'discover.movies_sub':
-    'From blockbusters to cult classics — explore, filter, find your next session.',
+    'From blockbusters to cult classics: explore, filter, find your next session.',
   'discover.tv_sub': 'Binge-worthy gems, hand-picked for you.',
   'sort.popularity': 'Popular',
   'sort.vote_movie': 'Top rated',
@@ -389,7 +389,7 @@ const en: Dict = {
   'toast.removed': 'Removed from your list',
   'toast.marked_want': 'Added to your watchlist',
   'toast.marked_watched': 'Marked as watched',
-  'toast.rated': 'Rating saved — added to “Watched”',
+  'toast.rated': 'Rating saved, added to “Watched”',
   'toast.rating_cleared': 'Rating cleared',
   'toast.exported': 'List exported',
   'toast.cleared': 'List cleared',
@@ -449,7 +449,7 @@ const en: Dict = {
   'card.remove': 'Remove from my list',
 
   'providers.none':
-    'No legal offer detected in your region yet. Check back soon — the catalog changes every week.',
+    'No legal offer detected in your region yet. Check back soon, the catalog changes every week.',
   'providers.streaming': 'Streaming',
   'providers.rent': 'Rent',
   'providers.buy': 'Buy',
@@ -501,7 +501,7 @@ const es: Dict = {
   'nav.library': 'Mi lista',
   'nav.account': 'Mi cuenta',
   'nav.primary': 'Navegación principal',
-  'nav.home_aria': 'NEOX — inicio',
+  'nav.home_aria': 'NEOX, inicio',
   'nav.logged_as': 'Conectado como',
   'nav.logout': 'Cerrar sesión',
   'nav.login': 'Iniciar sesión',
@@ -513,7 +513,7 @@ const es: Dict = {
 
   'common.close': 'Cerrar',
   'common.load_error': 'No se pudo cargar.',
-  'seo.default_title': 'NEOX — Tu radar de cine y series',
+  'seo.default_title': 'NEOX · Tu radar de cine y series',
   'seo.default_description':
     'Descubre las películas y series del momento, mira los tráilers y encuentra al instante dónde verlas en streaming legal. Crea tu lista en un clic.',
   'api.network': 'No se pudo conectar con el servidor. Revisa tu conexión.',
@@ -621,7 +621,7 @@ const es: Dict = {
   'toast.removed': 'Quitado de tu lista',
   'toast.marked_want': 'Añadido a « Por ver »',
   'toast.marked_watched': 'Marcado como visto',
-  'toast.rated': 'Puntuación guardada — añadido a «Vistos»',
+  'toast.rated': 'Puntuación guardada, añadido a «Vistos»',
   'toast.rating_cleared': 'Puntuación eliminada',
   'toast.exported': 'Lista exportada',
   'toast.cleared': 'Lista vaciada',
@@ -733,7 +733,7 @@ const de: Dict = {
   'nav.library': 'Meine Liste',
   'nav.account': 'Mein Konto',
   'nav.primary': 'Hauptnavigation',
-  'nav.home_aria': 'NEOX — Startseite',
+  'nav.home_aria': 'NEOX, Startseite',
   'nav.logged_as': 'Angemeldet als',
   'nav.logout': 'Abmelden',
   'nav.login': 'Anmelden',
@@ -745,7 +745,7 @@ const de: Dict = {
 
   'common.close': 'Schließen',
   'common.load_error': 'Laden fehlgeschlagen.',
-  'seo.default_title': 'NEOX — Dein Film- & Serienradar',
+  'seo.default_title': 'NEOX · Dein Film- & Serienradar',
   'seo.default_description':
     'Entdecke aktuelle Filme und Serien, sieh dir Trailer an und finde sofort, wo du sie legal streamen kannst. Erstelle deine Watchlist mit einem Klick.',
   'api.network': 'Server nicht erreichbar. Prüfe deine Verbindung.',
@@ -774,7 +774,7 @@ const de: Dict = {
   'search.count_other': '{count} Ergebnisse',
   'search.empty_title': 'Worauf hast du heute Abend Lust?',
   'search.empty_desc':
-    'Tippe den Titel eines Films oder einer Serie — wir sagen dir sofort, wo du ihn legal schauen kannst.',
+    'Tippe den Titel eines Films oder einer Serie und wir sagen dir sofort, wo du ihn legal schauen kannst.',
   'search.none_title': 'Keine Ergebnisse',
   'search.none_desc':
     'Nichts gefunden für „{query}“. Prüfe die Schreibweise oder probiere einen anderen Titel.',
@@ -782,7 +782,7 @@ const de: Dict = {
   'discover.movies_title': 'Filme',
   'discover.tv_title': 'Serien',
   'discover.movies_sub':
-    'Vom Blockbuster bis zum Kultfilm — entdecken, filtern, nächsten Film finden.',
+    'Vom Blockbuster bis zum Kultfilm: entdecken, filtern, nächsten Film finden.',
   'discover.tv_sub': 'Binge-würdige Perlen, handverlesen für dich.',
   'sort.popularity': 'Beliebt',
   'sort.vote_movie': 'Bestbewertet',
@@ -854,7 +854,7 @@ const de: Dict = {
   'toast.removed': 'Aus deiner Liste entfernt',
   'toast.marked_want': 'Zu „Ansehen“ hinzugefügt',
   'toast.marked_watched': 'Als gesehen markiert',
-  'toast.rated': 'Bewertung gespeichert — zu „Gesehen“ hinzugefügt',
+  'toast.rated': 'Bewertung gespeichert, zu „Gesehen“ hinzugefügt',
   'toast.rating_cleared': 'Bewertung entfernt',
   'toast.exported': 'Liste exportiert',
   'toast.cleared': 'Liste geleert',
@@ -914,7 +914,7 @@ const de: Dict = {
   'card.remove': 'Aus meiner Liste entfernen',
 
   'providers.none':
-    'Derzeit kein legales Angebot in deiner Region gefunden. Schau bald wieder vorbei — der Katalog ändert sich jede Woche.',
+    'Derzeit kein legales Angebot in deiner Region gefunden. Schau bald wieder vorbei, der Katalog ändert sich jede Woche.',
   'providers.streaming': 'Im Streaming',
   'providers.rent': 'Zum Leihen',
   'providers.buy': 'Zum Kaufen',
@@ -966,7 +966,7 @@ const it: Dict = {
   'nav.library': 'La mia lista',
   'nav.account': 'Il mio account',
   'nav.primary': 'Navigazione principale',
-  'nav.home_aria': 'NEOX — home',
+  'nav.home_aria': 'NEOX, home',
   'nav.logged_as': 'Connesso come',
   'nav.logout': 'Esci',
   'nav.login': 'Accedi',
@@ -978,7 +978,7 @@ const it: Dict = {
 
   'common.close': 'Chiudi',
   'common.load_error': 'Caricamento non riuscito.',
-  'seo.default_title': 'NEOX — Il tuo radar per film e serie',
+  'seo.default_title': 'NEOX · Il tuo radar per film e serie',
   'seo.default_description':
     'Scopri i film e le serie del momento, guarda i trailer e trova subito dove vederli in streaming legale. Crea la tua watchlist con un clic.',
   'api.network': 'Impossibile raggiungere il server. Controlla la connessione.',
@@ -1014,7 +1014,7 @@ const it: Dict = {
   'discover.movies_title': 'Film',
   'discover.tv_title': 'Serie',
   'discover.movies_sub':
-    'Dal blockbuster al cult — esplora, filtra, trova la tua prossima visione.',
+    'Dal blockbuster al cult: esplora, filtra, trova la tua prossima visione.',
   'discover.tv_sub': 'Gemme da maratona, selezionate con cura.',
   'sort.popularity': 'Popolari',
   'sort.vote_movie': 'Più votati',
@@ -1086,7 +1086,7 @@ const it: Dict = {
   'toast.removed': 'Rimosso dalla tua lista',
   'toast.marked_want': 'Aggiunto a « Da vedere »',
   'toast.marked_watched': 'Segnato come visto',
-  'toast.rated': 'Voto salvato — aggiunto a «Visti»',
+  'toast.rated': 'Voto salvato, aggiunto a «Visti»',
   'toast.rating_cleared': 'Voto rimosso',
   'toast.exported': 'Lista esportata',
   'toast.cleared': 'Lista svuotata',

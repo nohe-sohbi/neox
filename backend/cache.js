@@ -37,7 +37,7 @@ class TtlLruCache {
    *   - `null` when absent or fully expired (past the stale window).
    *   - `{ value, stale: false }` for a fresh hit.
    *   - `{ value, stale: true }` for an entry past its TTL but within the stale
-   *     window — usable only as a fallback.
+   *     window: usable only as a fallback.
    */
   get(key) {
     const entry = this.store.get(key);
@@ -93,7 +93,7 @@ class TtlLruCache {
   /**
    * Serializable view of the live entries, newest-inserted last so a later
    * hydrate() replays them in the same LRU order. Fully-expired entries (past
-   * the stale window) are dropped — no point persisting dead data.
+   * the stale window) are dropped: no point persisting dead data.
    */
   snapshot() {
     const now = Date.now();

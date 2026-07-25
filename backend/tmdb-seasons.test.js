@@ -7,7 +7,7 @@ describe('normalizeSeasons (TV details season index)', () => {
     const out = normalizeSeasons([
       { season_number: 2, name: 'Season 2', episode_count: 8, air_date: '2021-06-01' },
       { season_number: 1, name: 'Season 1', episode_count: 10, air_date: '2020-01-15' },
-      // Upcoming/empty season TMDB sometimes lists — dropped.
+      // Upcoming/empty season TMDB sometimes lists: dropped.
       { season_number: 3, name: 'Season 3', episode_count: 0, air_date: null },
     ]);
     expect(out.map((s) => s.seasonNumber)).toEqual([1, 2]);

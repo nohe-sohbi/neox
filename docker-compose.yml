@@ -1,6 +1,6 @@
 # Production-shaped stack: an nginx container serves the built frontend and
 # proxies /api to the backend over the internal network. Only the frontend
-# publishes a port — put your TLS terminator (Dokploy, Traefik, Caddy…) in
+# publishes a port: put your TLS terminator (Dokploy, Traefik, Caddy…) in
 # front of it.
 #
 # For hot-reload development, run the two dev servers directly instead:
@@ -13,13 +13,13 @@ services:
       dockerfile: Dockerfile
     environment:
       - NODE_ENV=production
-      - "TMDB_API_KEY=${TMDB_API_KEY:?TMDB_API_KEY is required — free key at https://www.themoviedb.org/settings/api}"
+      - "TMDB_API_KEY=${TMDB_API_KEY:?TMDB_API_KEY is required, free key at https://www.themoviedb.org/settings/api}"
       - TMDB_READ_TOKEN=${TMDB_READ_TOKEN:-}
       - TMDB_REGION=${TMDB_REGION:-FR}
       - TMDB_LANGUAGE=${TMDB_LANGUAGE:-fr-FR}
       # No default on purpose: the API refuses to boot in production without
       # this, and a shared placeholder would be as good as no secret at all.
-      - "JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required — generate one with `openssl rand -hex 32`}"
+      - "JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required, generate one with `openssl rand -hex 32`}"
       - DATA_DIR=/data
     volumes:
       # Persist accounts + libraries + the cache snapshot across redeploys.

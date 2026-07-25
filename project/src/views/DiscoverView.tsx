@@ -22,12 +22,12 @@ const TV_SORTS = [
   { id: 'first_air_date.desc', key: 'sort.release_tv' },
 ];
 
-// Minimum-rating presets (0 = no floor). Kept coarse on purpose — fine-grained
+// Minimum-rating presets (0 = no floor). Kept coarse on purpose: fine-grained
 // sliders add friction without improving discovery.
 const RATING_OPTIONS = [0, 6, 7, 8, 9];
 
 const CURRENT_YEAR = new Date().getFullYear();
-// Exact release years, newest first, back to 1950 — matches TMDB's
+// Exact release years, newest first, back to 1950: matches TMDB's
 // primary_release_year / first_air_date_year filter.
 const YEAR_OPTIONS = Array.from({ length: CURRENT_YEAR - 1950 + 1 }, (_, i) => CURRENT_YEAR - i);
 

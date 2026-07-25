@@ -1,5 +1,5 @@
 /**
- * NEOX API — a thin, cached proxy in front of TMDB.
+ * NEOX API: a thin, cached proxy in front of TMDB.
  *
  * The frontend never talks to TMDB directly: the key stays server-side, every
  * response is normalized to a compact shape, and a shared cache keeps us fast
@@ -36,7 +36,7 @@ const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeade
 app.use('/api', apiLimiter);
 app.use('/api/auth', authLimiter);
 
-// Tiny request logger — quiet but useful in dev.
+// Tiny request logger: quiet but useful in dev.
 app.use((req, _res, next) => {
     if (process.env.NODE_ENV !== 'production') {
         console.log(`${req.method} ${req.originalUrl}`);
@@ -302,15 +302,15 @@ app.use((err, _req, res, _next) => {
     });
 });
 
-// Only start listening when run directly — tests import `app` via supertest.
+// Only start listening when run directly: tests import `app` via supertest.
 if (require.main === module) {
     const server = app.listen(PORT, () => {
         console.log(`NEOX API running on port ${PORT}`);
         if (!tmdb.isConfigured()) {
-            console.warn('⚠  TMDB_API_KEY is not set — TMDB requests will return 503 until configured.');
+            console.warn('⚠  TMDB_API_KEY is not set: TMDB requests will return 503 until configured.');
         }
         if (auth.usingDefaultSecret) {
-            console.warn('⚠  JWT_SECRET is not set — using an insecure default. Set it in production.');
+            console.warn('⚠  JWT_SECRET is not set: using an insecure default. Set it in production.');
         }
     });
 
@@ -322,9 +322,9 @@ if (require.main === module) {
     const shutdown = (signal) => {
         if (shuttingDown) return;
         shuttingDown = true;
-        console.log(`${signal} received — shutting down gracefully…`);
+        console.log(`${signal} received: shutting down gracefully…`);
         const forced = setTimeout(() => {
-            console.warn('Shutdown timed out — forcing exit.');
+            console.warn('Shutdown timed out: forcing exit.');
             process.exit(1);
         }, 10000);
         forced.unref();

@@ -1,5 +1,5 @@
 /**
- * "Recently viewed" history — the titles whose detail page the user opened.
+ * "Recently viewed" history: the titles whose detail page the user opened.
  *
  * Stored locally (no account needed), newest-first and de-duplicated, so the
  * home page can offer a "pick up where you left off" rail and the ⌘K palette can
@@ -15,7 +15,7 @@ export const MAX_RECENT_VIEWED = 20;
 /** Fired on the window whenever the list changes, so views can refresh live. */
 export const RECENT_VIEWED_EVENT = 'neox:recently-viewed-changed';
 
-/** Compact record of a viewed title — just enough to render a MediaCard. */
+/** Compact record of a viewed title: just enough to render a MediaCard. */
 export interface RecentItem {
   id: number;
   mediaType: MediaItem['mediaType'];
@@ -31,7 +31,7 @@ function keyOf(item: { id: number; mediaType: string }): string {
 
 /**
  * Returns a new list with `item` promoted to the front, de-duplicated by media
- * key and capped at `max`. Pure — no storage, no side effects.
+ * key and capped at `max`. Pure: no storage, no side effects.
  */
 export function addRecent(
   list: RecentItem[],
@@ -79,12 +79,12 @@ export function rememberViewed(item: RecentItem): RecentItem[] {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   } catch {
-    /* storage unavailable — keep the in-memory result */
+    /* storage unavailable: keep the in-memory result */
   }
   try {
     window.dispatchEvent(new Event(RECENT_VIEWED_EVENT));
   } catch {
-    /* no window (SSR/tests) — nothing to notify */
+    /* no window (SSR/tests): nothing to notify */
   }
   return next;
 }

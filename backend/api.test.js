@@ -90,11 +90,13 @@ describe('tv season endpoint', () => {
     expect(res.status).toBe(400);
   });
 
-  it('accepts a valid request and delegates upstream (503 without a TMDB key)', async () => {
-    // Validation passed, so the route reached the TMDB client, which reports it
-    // is unconfigured in the test env rather than a 400/404 routing miss.
+  it('accepts a valid request and delegates upstream', async () => {
+    // What this asserts is routing + validation, not upstream behaviour: the
+    // request must reach the TMDB client instead of dying on a 400/404. The
+    // outcome then depends on the environment, and both are correct here, so
+    // the suite stays green whether or not a developer has a real key in .env.
     const res = await request(app).get('/api/tv/1399/season/1');
-    expect(res.status).toBe(503);
-    expect(res.body.code).toBe('TMDB_NOT_CONFIGURED');
+    expect([200, 503]).toContain(res.status);
+    if (res.status === 503) expect(res.body.code).toBe('TMDB_NOT_CONFIGURED');
   });
 });

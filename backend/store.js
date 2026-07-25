@@ -1,5 +1,5 @@
 /**
- * Tiny persistent JSON store — zero external dependencies.
+ * Tiny persistent JSON store: zero external dependencies.
  *
  * Good enough for a single-instance deployment: users + their libraries live in
  * one file, written atomically (tmp + rename) through a serialized queue so
@@ -31,7 +31,7 @@ function load() {
 function persist() {
     // The write runs after any previously-queued write (serialized so concurrent
     // requests can't interleave and corrupt the file). It *rejects* on failure so
-    // the caller — and therefore the API route — learns the data was not saved
+    // the caller (and therefore the API route) learns the data was not saved
     // instead of reporting a false success.
     const run = writeQueue.then(
         () =>
@@ -73,8 +73,8 @@ async function createUser({ email, passwordHash }) {
     const normalizedEmail = email.trim().toLowerCase();
     // Atomic uniqueness backstop: this check and the state mutation below run
     // synchronously (no await between them), so two concurrent registrations for
-    // the same email — which can both clear the route-level check while awaiting
-    // bcrypt — can't both create an account. The second one loses here.
+    // the same email (which can both clear the route-level check while awaiting
+    // bcrypt) can't both create an account. The second one loses here.
     if (findUserByEmail(normalizedEmail)) {
         const err = new Error('Un compte existe déjà avec cet e-mail.');
         err.status = 409;

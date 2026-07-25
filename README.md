@@ -1,18 +1,17 @@
 <div align="center">
 
-# 🎬 NEOX
+# NEOX
 
 ### Ton radar cinéma & séries.
 
-**Découvre les tendances. Regarde les bandes-annonces. Trouve où regarder — légalement.**
+Découvre les tendances, lance la bande-annonce, et sache tout de suite où regarder, légalement.
 
 React + TypeScript + Vite · Node + Express · TMDB API
 
 [![CI](https://github.com/nohe-sohbi/neox/actions/workflows/ci.yml/badge.svg)](https://github.com/nohe-sohbi/neox/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-3b82f6.svg)](LICENSE)
-![Tests](https://img.shields.io/badge/tests-142%20green-22c55e)
 
-**[🔗 Démo live](#)** · _à renseigner après le premier déploiement_
+**[Démo live](#)** · _à renseigner après le premier déploiement_
 
 </div>
 
@@ -21,11 +20,11 @@ React + TypeScript + Vite · Node + Express · TMDB API
 |  |  |
 |---|---|
 | ![Accueil](docs/screenshots/home.png) | ![Fiche détaillée](docs/screenshots/detail.png) |
-| **Accueil** — hero + rails éditorialisés | **Fiche** — « où regarder » : streaming, location, achat |
+| **Accueil** : hero + rails éditorialisés | **Fiche** : où regarder, en streaming, location ou achat |
 | ![Explorer](docs/screenshots/discover.png) | ![Ma liste](docs/screenshots/library.png) |
-| **Explorer** — filtres & scroll infini | **Ma liste** — notes & statistiques |
+| **Explorer** : filtres et scroll infini | **Ma liste** : notes et statistiques |
 | ![Palette de commande](docs/screenshots/command.png) | |
-| **Ctrl K** — recherche instantanée & navigation | |
+| **Ctrl K** : recherche instantanée et navigation | |
 
 </div>
 
@@ -33,214 +32,181 @@ React + TypeScript + Vite · Node + Express · TMDB API
 
 ## C'est quoi NEOX ?
 
-NEOX est une app de **découverte de films et séries**. Tu cherches une pépite à regarder ce
-soir, NEOX te montre les tendances du moment, te lance la bande-annonce, et te dit
-**instantanément sur quelles plateformes légales** le titre est dispo (streaming, location,
-achat) dans ta région. Un clic sur le marque-page et c'est dans ta watchlist.
+Tu cherches une pépite à regarder ce soir. NEOX te montre les tendances du moment, te lance la
+bande-annonce, et te dit sur quelles plateformes légales le titre est disponible dans ta région,
+en streaming, en location ou à l'achat. Un clic sur le marque-page et c'est dans ta liste.
 
-Aucun contenu n'est hébergé ni stocké : NEOX agrège des **métadonnées publiques** (TMDB) et la
-**disponibilité légale** (JustWatch via TMDB).
+Aucun contenu n'est hébergé ni diffusé : NEOX agrège des métadonnées publiques (TMDB) et la
+disponibilité légale (JustWatch via TMDB).
 
-## ✨ Fonctionnalités
+## Ce que ça fait
 
-- **Accueil éditorialisé** — hero rotatif (avec préchargement des backdrops) + rails
-  « À l'affiche », « Tendances séries », « Acclamés par la critique »…
-- **Recherche instantanée** (debounced, films + séries) avec états loading / vide / erreur soignés.
-- **Palette de commandes ⌘K** — lanceur clavier global (⌘K / Ctrl+K) : recherche instantanée, saut
-  vers n'importe quelle page et **recherches récentes**, navigation 100 % clavier.
-- **Explorer** — filtres par genre, **année de sortie**, **note minimale** (6+/7+/8+/9+), tri
-  (populaires, mieux notés, récents, box-office) et **scroll infini**.
-- **Filtre « Mes plateformes »** — n'affiche que ce qui est dispo sur tes services (Netflix,
-  Prime, Max…), préférence mémorisée.
-- **Fiche détaillée** — bande-annonce YouTube intégrée, synopsis, casting, genres, durée, et la
-  section **« Où regarder (légalement) »**.
-- **Saisons & épisodes (séries)** — un **navigateur par saison** dans la fiche d'une série : sélecteur
-  de saisons (spéciaux en fin), puis la **liste des épisodes** (vignette, code SxEx, date, durée, note),
-  chargée **à la demande** et mise en cache côté composant — aucun re-fetch en changeant d'onglet.
-- **Bibliothèque perso** — statut **À voir / Vu**, **note personnelle 1–10**, filtres par statut,
-  **tri** (ajout, titre, note TMDB, ta note, année) et **export / import JSON** (sauvegarde et
-  restauration portables, sans compte requis).
-- **Comptes & sync cloud** — inscription/connexion (JWT), ta liste fusionnée et synchronisée sur
-  tous tes appareils. Hors-ligne : tout reste en localStorage.
-- **Recommandations « Pour toi »** — suggestions personnalisées à partir de ta bibliothèque.
-- **Pages Personnes** — casting cliquable → bio + filmographie de l'acteur·rice.
-- **Interface multilingue (i18n)** — toute l'UI est traduite (FR · EN · ES · DE · IT) et suit le
-  sélecteur région/langue, en plus du catalogue déjà localisé par TMDB.
-- **PWA installable** — ajoute NEOX à ton écran d'accueil, shell offline, images en cache.
-- **URLs partageables** — chaque fiche a son deep link (`/?watch=movie-550`), navigation par routes.
-- **Analytics privacy-first** (Plausible, opt-in) et **API durcie** (helmet, compression, rate-limit).
-- **Cache TMDB résilient** — cache borné **LRU + TTL** avec **stale-while-revalidate** (une panne
-  TMDB sert la donnée en cache plutôt qu'une erreur) ; métriques exposées sur `/api/health`.
-- **Coalescing de requêtes (single-flight)** — les **cache-miss concurrents** sur une même URL TMDB
-  ne déclenchent qu'**un seul appel amont** (le premier appelant travaille, les autres attendent la
-  même promesse) : protection thundering-herd, quota TMDB préservé sous charge. Compteurs
-  `coalesced` / `flights` / `inFlight` exposés sur `/api/health`.
-- **Disjoncteur (circuit breaker) TMDB** — après une série d'échecs amont, le circuit s'**ouvre** et
-  les appels suivants **échouent vite** (cache périmé servi si dispo, sinon 503 immédiat) plutôt que
-  de vider le budget de retry sur un TMDB en panne ; **half-open** + requête sonde après cooldown
-  pour se refermer automatiquement. Les erreurs client 4xx ne le déclenchent jamais. État et
-  compteurs (`state` / `trips` / `shortCircuits`…) exposés sur `/api/health`.
-- **Statistiques de la bibliothèque** — un panneau « Statistiques » repliable dans Ma liste calcule
-  **localement** ta progression (vus/à voir), la répartition films/séries, ta **note moyenne**,
-  l'**histogramme de tes notes** et tes **décennies de prédilection** — sans compte ni appel TMDB.
-- **Notifications toast accessibles** — chaque action (ajout/retrait, import/export, vidage) donne un
-  retour clair via une **région `aria-live`** (annoncée aux lecteurs d'écran, `role="alert"` pour les
-  erreurs), avec auto-dismiss et respect de `prefers-reduced-motion`.
-- **SEO dynamique & cartes sociales** — chaque route et chaque fiche/personne pilote le `<head>`
-  (`title`, `description`, **Open Graph + Twitter Card** avec poster, URL canonique) ; les overlays
-  restaurent le head à la fermeture. `robots.txt` + `sitemap.xml` inclus.
-- **Cache HTTP** — en plus du cache mémoire, les endpoints de lecture envoient `Cache-Control`
-  (`max-age` + `stale-while-revalidate`) et des **ETags forts** → navigateurs et CDN réutilisent les
-  réponses et obtiennent des **304** quand rien n'a changé ; les routes privées sont en `no-store`.
-- **Démarrage à chaud & arrêt gracieux** — sur `SIGTERM`/`SIGINT`, le serveur cesse d'accepter, laisse
-  les requêtes en vol se terminer, **snapshote le cache TMDB sur disque** (écriture atomique) puis sort ;
-  au boot il **réhydrate** les entrées encore fraîches. Un redéploiement ne repart plus cache vide →
-  pas de thundering-herd sur TMDB. Timeout d'arrêt dur pour ne jamais bloquer l'orchestrateur.
-- **Images responsives** — l'app dérive un **`srcset`** côté client à partir de l'URL TMDB (posters,
-  backdrops, vignettes d'épisodes) : le navigateur télécharge la bonne résolution selon le viewport et le
-  DPR (`decoding="async"`), sans changer le contrat d'API. Moins de bande passante sur mobile, meilleur LCP.
-- **Accessibilité des modales** — fiche, personne, auth et palette ⌘K partagent un hook
-  `useModal` : **piège de focus**, restauration du focus à la fermeture, `Escape`, verrou de scroll
-  et sémantique `role="dialog"` / `aria-modal`.
-- **Cache de données côté client** — cache mémoire **stale-while-revalidate** avec **dédup des
-  requêtes en vol** (`lib/query.ts` + `useQuery`) : revenir sur l'Accueil ou changer d'onglet
-  repeint instantanément depuis le cache puis revalide en arrière-plan, sans skeleton qui clignote.
-- **« Vu récemment »** — les fiches ouvertes sont mémorisées localement et resurgissent dans un rail
-  Accueil « Reprends où tu en étais » et dans la palette ⌘K (sans compte requis).
-- **Résilience & a11y** — **ErrorBoundary** global (repli localisé + rechargement plutôt qu'un écran
-  blanc), lien **« Aller au contenu »** (skip-link) et respect de **`prefers-reduced-motion`**.
-- **Design system** Tailwind sur-mesure : thème sombre, dégradé de marque, micro-interactions,
-  skeletons, responsive mobile-first.
+- **Découvrir** : accueil éditorialisé (hero rotatif, rails « À l'affiche », « Tendances séries »,
+  « Acclamés par la critique »), recherche instantanée sur les films et les séries.
+- **Savoir où regarder** : la section « Où regarder (légalement) » de chaque fiche liste le
+  streaming, la location et l'achat pour ta région, avec un filtre « Mes plateformes » qui ne garde
+  que tes services.
+- **Explorer finement** : genre, année de sortie, note minimale (6+/7+/8+/9+), tri par popularité,
+  note, date ou box-office, en scroll infini.
+- **Naviguer au clavier** : palette `Ctrl K` globale pour chercher un titre, sauter vers une page ou
+  reprendre une recherche récente, sans quitter le clavier.
+- **Suivre ses séries** : navigateur par saison dans la fiche, liste des épisodes avec vignette,
+  code `SxEx`, date, durée et note, chargée à la demande.
+- **Tenir sa liste** : statut À voir / Vu, note personnelle de 1 à 10, tri, filtres, et un panneau
+  de statistiques calculé localement (progression, répartition films/séries, note moyenne,
+  histogramme des notes, décennies de prédilection).
+- **Retrouver sa liste partout** : compte optionnel (inscription, connexion) qui synchronise la
+  bibliothèque entre appareils. Sans compte, tout reste en local, avec export et import JSON.
+- **Installer l'app** : PWA avec shell hors-ligne et images en cache, interface traduite en
+  français, anglais, espagnol, allemand et italien.
 
-## 🏗️ Architecture
+## Sous le capot
+
+Ce qui n'est pas visible à l'écran mais tient l'app debout :
+
+- **La clé TMDB ne quitte jamais le serveur.** Le frontend ne parle qu'à l'API NEOX, qui met en
+  cache et normalise chaque réponse.
+- **Trois couches contre les pannes amont.** Un cache LRU + TTL en `stale-while-revalidate` sert la
+  donnée légèrement périmée plutôt qu'une erreur ; le coalescing (single-flight) réduit N
+  cache-miss concurrents à un seul appel amont ; un disjoncteur ouvre le circuit après une série
+  d'échecs et se referme via une requête sonde. Métriques et état exposés sur `/api/health`.
+- **Redémarrage à chaud.** Sur `SIGTERM`, le serveur snapshote le cache TMDB sur disque et le
+  réhydrate au boot : un redéploiement ne repart plus cache vide.
+- **Cache HTTP.** Les endpoints de lecture envoient `Cache-Control` et des ETags forts, les routes
+  privées sont en `no-store`.
+- **Auth self-contained.** bcrypt + JWT + store JSON atomique, aucun SaaS tiers. L'API refuse de
+  démarrer en production sans `JWT_SECRET`.
+- **Accessibilité.** Les quatre overlays partagent un hook `useModal` (piège de focus, restauration,
+  `Escape`, verrou de scroll, `role="dialog"`), les actions passent par une région `aria-live`, il y
+  a un skip-link, et `prefers-reduced-motion` est respecté.
+- **Perf client.** Cache mémoire SWR avec dédup des requêtes en vol, `srcset` dérivé côté client des
+  URLs TMDB, `ErrorBoundary` global au lieu d'un écran blanc.
+
+## Architecture
 
 ```
 neox/
-├── backend/            API Node/Express — proxy TMDB + comptes + sync
-│   ├── server.js       routes + validation + gestion d'erreurs centralisée
+├── backend/            API Node/Express : proxy TMDB + comptes + sync
+│   ├── server.js       routes, validation, gestion d'erreurs centralisée
 │   ├── tmdb.js         client TMDB (retry/backoff, normalisation)
-│   ├── cache.js        cache borné LRU + TTL + stale-while-revalidate + snapshot/hydrate (testé)
-│   ├── single-flight.js coalescing des requêtes amont concurrentes (testé)
-│   ├── http-cache.js   middlewares Cache-Control + ETag/304 + no-store (testé)
+│   ├── cache.js        cache LRU + TTL + stale-while-revalidate + snapshot/hydrate
+│   ├── single-flight.js coalescing des requêtes amont concurrentes
+│   ├── circuit-breaker.js disjoncteur sur la santé de TMDB
+│   ├── http-cache.js   middlewares Cache-Control, ETag/304, no-store
 │   ├── auth.js         bcrypt + JWT, middleware requireAuth
-│   ├── store.js        store JSON persistant (atomique, zéro dépendance)
-│   └── library.js      validation + merge des bibliothèques
+│   ├── store.js        store JSON persistant, atomique, zéro dépendance
+│   └── library.js      validation et merge des bibliothèques
 └── project/            Frontend React + TypeScript + Vite + Tailwind
     └── src/
-        ├── lib/        client API typé · query (cache SWR + dédup) · i18n (FR/EN/ES/DE/IT) · recherches récentes · recently-viewed · library-io (export/import + tri) · seo (meta/OG) · seasons (ordre/format, testé) · img (srcset TMDB, testé)
-        ├── context/    AuthContext · LibraryContext (sync cloud)
-        ├── hooks/      useDebounce · useQuery (SWR) · useMyPlatforms · useDetailRoute · useModal (focus trap a11y) · useDocumentMeta (SEO)
-        ├── components/ layout · media · home · auth · ui (+ ErrorBoundary) · command (⌘K)
-        └── views/      Home · Discover · Search · Library
+        ├── lib/        client API typé, query (SWR + dédup), i18n, library-io, seo, img
+        ├── context/    AuthContext, LibraryContext
+        ├── hooks/      useQuery, useDebounce, useMyPlatforms, useModal, useDocumentMeta
+        ├── components/ layout, media, home, auth, ui, command
+        └── views/      Home, Discover, Search, Library
 ```
 
-La clé TMDB **reste côté serveur** : le frontend ne parle qu'à l'API NEOX, qui met en cache et
-normalise chaque réponse. L'auth est **self-contained** (bcrypt + JWT, store JSON) — aucun SaaS
-tiers requis. La bibliothèque est **localStorage-first** puis fusionnée au compte à la connexion.
+La bibliothèque est localStorage-first, puis fusionnée au compte à la connexion.
 
-## 🚀 Démarrage
+## Démarrage
 
 ### Prérequis
-- Docker + Docker Compose **ou** Node 20+
-- Une clé API TMDB (gratuite) : https://www.themoviedb.org/settings/api
+- Docker + Docker Compose, ou Node 20+
+- Une clé API TMDB, gratuite : https://www.themoviedb.org/settings/api
 
 ### 1. Configurer
 ```bash
 cp .env.example .env
 # Renseigne TMDB_API_KEY, puis génère un secret de signature :
-openssl rand -hex 32   # → à coller dans JWT_SECRET
+openssl rand -hex 32   # à coller dans JWT_SECRET
 ```
 
-`docker compose` **refuse de démarrer** si `TMDB_API_KEY` ou `JWT_SECRET` manquent : un secret
-JWT par défaut partagé permettrait à n'importe qui de forger un jeton pour n'importe quel compte.
+`docker compose` refuse de démarrer si `TMDB_API_KEY` ou `JWT_SECRET` manquent : un secret JWT par
+défaut partagé permettrait à n'importe qui de forger un jeton pour n'importe quel compte.
 
 ### 2a. Lancer avec Docker (recommandé)
 ```bash
 docker compose up --build
 ```
-- App : http://localhost:8080 (`WEB_PORT` pour changer de port)
+App sur http://localhost:8080, `WEB_PORT` pour changer de port.
 
-Le stack est **façonné pour la production** : le frontend est *buildé* puis servi en statique par
-nginx (assets hashés en cache long, shell et service worker en `no-cache`), et l'API est
-**proxyfiée sous le même domaine** en `/api`. Le navigateur ne fait donc aucun appel cross-origin,
-et le backend n'expose aucun port publiquement. Il n'y a plus qu'un port à placer derrière ton
-terminateur TLS (Dokploy, Traefik, Caddy…).
+Le stack est façonné pour la production : le frontend est buildé puis servi en statique par nginx
+(assets hashés en cache long, shell et service worker en `no-cache`), et l'API est proxyfiée sous le
+même domaine en `/api`. Le navigateur ne fait aucun appel cross-origin, le backend n'expose aucun
+port publiquement, et il ne reste qu'un port à placer derrière ton terminateur TLS.
 
-Pour un déploiement sur ton domaine, renseigne aussi `VITE_SITE_URL` dans `.env` : elle pilote les
-URLs canoniques / Open Graph **et** réécrit `robots.txt` + `sitemap.xml` au build.
+Pour un déploiement sur ton domaine, renseigne aussi `VITE_SITE_URL` : elle pilote les URLs
+canoniques et Open Graph, et réécrit `robots.txt` + `sitemap.xml` au build.
 
-> ⚠️ Vite inline ses variables **au build**, pas au démarrage du conteneur : après avoir changé un
-> `VITE_*`, il faut reconstruire l'image (`docker compose up --build`).
+> Vite inline ses variables au build, pas au démarrage du conteneur. Après avoir changé un `VITE_*`,
+> reconstruis l'image (`docker compose up --build`).
 
-### 2b. Lancer en local (sans Docker)
-C'est le mode à utiliser pour développer — hot-reload des deux côtés :
+### 2b. Lancer en local, sans Docker
+Le mode à utiliser pour développer, avec hot-reload des deux côtés :
 ```bash
-# Terminal 1 — API
+# Terminal 1, API
 cd backend && npm install && npm run dev
 
-# Terminal 2 — Frontend
+# Terminal 2, frontend
 cd project && npm install && npm run dev
 ```
-- Frontend : http://localhost:5173 · API : http://localhost:3001
+Frontend sur http://localhost:5173, API sur http://localhost:3001.
 
-Sans `VITE_API_URL`, le frontend vise `http://localhost:3001`. Le mettre à la chaîne **vide** bascule
-en même-origine (`/api`), ce que fait l'image Docker.
+Sans `VITE_API_URL`, le frontend vise `http://localhost:3001`. Le mettre à la chaîne vide bascule en
+même-origine (`/api`), ce que fait l'image Docker.
 
-## 🔌 API
+## API
 
 | Méthode | Route | Description |
 |---|---|---|
-| GET | `/api/health` | État du service + config TMDB |
+| GET | `/api/health` | État du service, config TMDB, métriques cache et disjoncteur |
 | GET | `/api/home` | Payload accueil (hero + rails) |
 | GET | `/api/search?q=&page=` | Recherche multi (films + séries) |
 | GET | `/api/trending/:type?window=week\|day` | Tendances (`all`/`movie`/`tv`) |
-| GET | `/api/discover/:type?genre=&sort=&year=&minRating=&page=` | Exploration filtrée (genre, année, note min., tri) |
+| GET | `/api/discover/:type?genre=&sort=&year=&minRating=&page=` | Exploration filtrée |
 | GET | `/api/genres/:type` | Genres (`movie`/`tv`) |
 | GET | `/api/providers/:type?region=` | Plateformes de streaming d'une région |
-| GET | `/api/person/:id` | Profil + filmographie d'une personne |
+| GET | `/api/person/:id` | Profil et filmographie d'une personne |
 | POST | `/api/recommendations` | « Pour toi » à partir de `{ seeds: [...] }` |
-| GET | `/api/:type/:id` | Fiche complète + providers + casting + reco (+ saisons pour `tv`) |
-| GET | `/api/tv/:id/season/:season` | Épisodes d'une saison (vignette, date, durée, note) |
-| POST | `/api/auth/register` | Création de compte → `{ token, user }` |
-| POST | `/api/auth/login` | Connexion → `{ token, user }` |
+| GET | `/api/:type/:id` | Fiche complète, providers, casting, reco, saisons pour `tv` |
+| GET | `/api/tv/:id/season/:season` | Épisodes d'une saison |
+| POST | `/api/auth/register` | Création de compte, renvoie `{ token, user }` |
+| POST | `/api/auth/login` | Connexion, renvoie `{ token, user }` |
 | GET | `/api/auth/me` 🔒 | Profil du token courant |
 | GET | `/api/library` 🔒 | Bibliothèque du compte |
 | PUT | `/api/library` 🔒 | Remplace la bibliothèque |
-| POST | `/api/library/merge` 🔒 | Fusionne (local ⊕ serveur) |
+| POST | `/api/library/merge` 🔒 | Fusionne local et serveur |
 
-🔒 = requiert l'en-tête `Authorization: Bearer <token>`.
+🔒 requiert l'en-tête `Authorization: Bearer <token>`.
 Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et disponibilités.
 
-## ✅ Qualité
+## Qualité
 
-- **Tests** : `npm test` côté `backend/` (auth + sync via supertest, **garde du secret JWT**,
-  cache HTTP : headers + 304, cache LRU + **snapshot/hydrate**, **single-flight**,
-  **params discover**, **saisons/épisodes**) et `project/` (logique bibliothèque +
-  export/import/tri, i18n, **SEO/meta**, **cache SWR + dédup**, **« vu récemment »**,
-  **saisons**, **srcset images** via vitest) — **67 + 75 = 142 tests verts**.
-- **Vérifs** : `npm run lint` · `npm run typecheck` · `npm run build`.
-- **CI** : GitHub Actions lance lint + typecheck + tests + build sur chaque PR
+- **142 tests** : 67 côté `backend/` (auth et sync via supertest, garde du secret JWT, cache HTTP,
+  cache LRU et snapshot/hydrate, single-flight, params discover, saisons) et 75 côté `project/`
+  (bibliothèque, export/import, i18n, SEO, cache SWR, vu récemment, srcset).
+- **Vérifs** : `npm run lint`, `npm run typecheck`, `npm run build`.
+- **CI** : GitHub Actions lance lint, typecheck, tests et build sur chaque PR
   (`.github/workflows/ci.yml`).
 
-## 🔒 Sécurité
+## Sécurité
 
-- La **clé TMDB ne quitte jamais le serveur** : le frontend ne parle qu'à l'API NEOX.
-- **Aucun secret n'est versionné** — `.env` est ignoré, seul `.env.example` est suivi.
-- L'API **refuse de démarrer** en `NODE_ENV=production` sans `JWT_SECRET` : un secret de repli
-  connu de tous vaut une absence d'authentification.
-- Mots de passe **hachés bcrypt**, jetons JWT signés, `helmet`, rate-limit global + limiteur
-  strict sur `/api/auth`, corps de requête bornés.
-- Les routes privées (`/api/library`, `/api/auth/me`) sont en `no-store` — jamais mises en cache
-  par un navigateur ou un CDN.
+- La clé TMDB ne quitte jamais le serveur.
+- Aucun secret versionné : `.env` est ignoré, seul `.env.example` est suivi.
+- L'API refuse de démarrer en `NODE_ENV=production` sans `JWT_SECRET` : un secret de repli connu de
+  tous vaut une absence d'authentification.
+- Mots de passe hachés bcrypt, jetons JWT signés, `helmet`, rate-limit global et limiteur strict sur
+  `/api/auth`, corps de requête bornés.
+- Les routes privées (`/api/library`, `/api/auth/me`) sont en `no-store`, jamais mises en cache par
+  un navigateur ou un CDN.
 
-## 🧰 Stack
+## Stack
 
 **Frontend** : React 18 · TypeScript · Vite · Tailwind CSS · lucide-react
 **Backend** : Node 20 · Express · node-fetch · cache en mémoire
 **Déploiement** : Docker multi-stage · nginx (statique + proxy `/api`)
 **Données** : [TMDB](https://www.themoviedb.org/) · disponibilité via JustWatch
 
-## 📄 Licence & mentions
+## Licence et mentions
 
 Publié sous licence **[MIT](LICENSE)**.
 

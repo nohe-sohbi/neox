@@ -38,7 +38,7 @@ export function rememberSearch(query: string): string[] {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   } catch {
-    /* storage unavailable — keep the in-memory result */
+    /* storage unavailable: keep the in-memory result */
   }
   return next;
 }

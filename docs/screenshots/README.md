@@ -20,7 +20,7 @@ Lance l'app avec une clé TMDB valide, puis prends ces cinq vues :
 
 - **Fenêtre en 1440 × 900**, thème sombre (le seul thème de l'app).
 - Format **PNG**, redimensionné à **1440 px de large max** et compressé
-  (`pngquant`, `oxipng` ou <https://squoosh.app>) — vise < 400 Ko par fichier,
+  (`pngquant`, `oxipng` ou <https://squoosh.app>) : vise < 400 Ko par fichier,
   sinon le README devient lourd à charger sur mobile.
 - Une **capture animée** (GIF ou MP4) de la palette ⌘K vaut plus que les cinq
   images réunies : c'est la fonctionnalité qui se démontre le mieux en mouvement.

@@ -5,7 +5,7 @@ import { t } from '../lib/i18n';
 /**
  * Drive the document head from React. On mount (and whenever the input changes)
  * it snapshots the current head, applies the resolved meta, and restores the
- * snapshot on cleanup — so a detail/person overlay that sets its own title and
+ * snapshot on cleanup, so a detail/person overlay that sets its own title and
  * poster cleanly hands the head back to the underlying page when it closes.
  *
  * The input is serialized for the dependency array so callers can pass a fresh
@@ -30,7 +30,7 @@ export function useDocumentMeta(input: MetaInput): void {
 }
 
 /**
- * Declarative wrapper around {@link useDocumentMeta}. Renders nothing — handy
+ * Declarative wrapper around {@link useDocumentMeta}. Renders nothing: handy
  * for components that early-return before the meta is known (e.g. modals), so
  * the hook is only mounted once the data exists and the rules of hooks hold.
  */

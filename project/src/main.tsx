@@ -12,7 +12,7 @@ import './index.css';
 
 // Advertise the active UI language on the document. index.html ships a static
 // `lang="fr"`, but the UI language is resolved from the stored locale at load
-// and a locale switch hard-reloads — so setting these once here keeps the
+// and a locale switch hard-reloads, so setting these once here keeps the
 // document's language honest for screen readers and crawlers (plus og:locale
 // for link unfurlers).
 document.documentElement.lang = activeLang;

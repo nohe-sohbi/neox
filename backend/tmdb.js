@@ -60,7 +60,7 @@ function hydrateCacheFromDisk() {
 
 /**
  * Writes the current cache to disk atomically (tmp + rename). Called on a clean
- * shutdown. Never throws — a failed snapshot must not block process exit.
+ * shutdown. Never throws: a failed snapshot must not block process exit.
  */
 async function persistCache() {
     if (!CACHE_PERSIST) return false;
@@ -187,7 +187,7 @@ async function tmdbGet(path, params = {}) {
             } catch (error) {
                 lastError = error;
                 // Deterministic client errors (bad id, unsupported type) say
-                // nothing about TMDB's health — but TMDB *did* answer, so the
+                // nothing about TMDB's health, but TMDB *did* answer, so the
                 // upstream is alive: record a success (which closes a half-open
                 // probe) and surface the error without retrying or tripping.
                 if (error.status && error.status >= 400 && error.status < 500) {
@@ -202,7 +202,7 @@ async function tmdbGet(path, params = {}) {
         // against upstream health and may trip the breaker for the next caller.
         breaker.recordFailure();
 
-        // Upstream is failing — serve slightly-stale data rather than erroring out.
+        // Upstream is failing: serve slightly-stale data rather than erroring out.
         if (cached) {
             cache.recordStaleServe();
             return cached.value;
@@ -285,7 +285,7 @@ function normalizeProviders(payload, region) {
 /**
  * A TV season summary as it appears inside a `/tv/{id}` payload. Only seasons
  * that actually have episodes are kept (TMDB sometimes lists empty upcoming
- * seasons). Specials (season 0) are preserved — the client decides how to
+ * seasons). Specials (season 0) are preserved: the client decides how to
  * order them.
  */
 function normalizeSeasons(seasons) {
@@ -363,7 +363,7 @@ function buildDiscoverParams(
     const params = {
         sort_by: sort,
         page: String(page),
-        // A floor of 50 votes keeps obscure entries out — but a user asking for
+        // A floor of 50 votes keeps obscure entries out, but a user asking for
         // a minimum rating wants a stricter signal, so raise the floor then.
         'vote_count.gte': minRating ? '200' : '50',
         ...locale({ language }),
@@ -508,7 +508,7 @@ async function home(region = DEFAULT_REGION, opts = {}) {
     const hero = heroPool.slice(0, 5);
 
     // Row labels are localized client-side by id (t('home.row.<id>')), so the
-    // payload only carries the id + items — no server-side title.
+    // payload only carries the id + items: no server-side title.
     const rows = [
         { id: 'now_playing', items: nowPlaying.results },
         { id: 'trending_tv', items: trendingTv.results },

@@ -1,4 +1,4 @@
-# NEOX — https://www.themoviedb.org metadata discovery app
+# NEOX, a https://www.themoviedb.org metadata discovery app
 User-agent: *
 Allow: /
 

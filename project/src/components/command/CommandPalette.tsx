@@ -101,7 +101,7 @@ export function CommandPalette() {
     };
   }, [show]);
 
-  // Scroll lock, Escape, focus trap + restore — and focus the input on open
+  // Scroll lock, Escape, focus trap + restore, and focus the input on open
   // (it's the first focusable element inside the dialog).
   const dialogRef = useModal<HTMLDivElement>(open, hide);
 

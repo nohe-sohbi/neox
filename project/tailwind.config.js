@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Core surfaces — a deep, near-black space-blue.
+        // Core surfaces: a deep, near-black space-blue.
         ink: {
           950: '#06060B',
           900: '#0A0A12',

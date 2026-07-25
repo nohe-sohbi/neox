@@ -4,7 +4,7 @@
  * built copies so a deployed NEOX never sends crawlers to a domain it does not
  * own. Runs automatically after `npm run build` (see the `postbuild` script).
  *
- * Set VITE_SITE_URL — the same variable that drives canonical/og:url tags — to
+ * Set VITE_SITE_URL (the same variable that drives canonical/og:url tags) to
  * activate it. Left unset, the placeholder stays and the build still succeeds.
  */
 import { readFile, writeFile } from 'node:fs/promises';
@@ -18,7 +18,7 @@ const origin = (process.env.VITE_SITE_URL || '').trim().replace(/\/+$/, '');
 
 if (!origin) {
   console.log(
-    `[site-urls] VITE_SITE_URL unset — leaving ${PLACEHOLDER} in ${FILES.join(' / ')}.`,
+    `[site-urls] VITE_SITE_URL unset, leaving ${PLACEHOLDER} in ${FILES.join(' / ')}.`,
   );
   process.exit(0);
 }
@@ -29,7 +29,7 @@ if (!/^https?:\/\//.test(origin)) {
 }
 
 if (origin === PLACEHOLDER) {
-  console.log('[site-urls] VITE_SITE_URL matches the placeholder — nothing to rewrite.');
+  console.log('[site-urls] VITE_SITE_URL matches the placeholder, nothing to rewrite.');
   process.exit(0);
 }
 
@@ -39,7 +39,7 @@ for (const file of FILES) {
   const rewritten = source.replaceAll(PLACEHOLDER, origin);
 
   if (rewritten === source) {
-    console.warn(`[site-urls] ${file}: no "${PLACEHOLDER}" occurrence found — left untouched.`);
+    console.warn(`[site-urls] ${file}: no "${PLACEHOLDER}" occurrence found, left untouched.`);
     continue;
   }
 

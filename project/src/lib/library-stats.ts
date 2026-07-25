@@ -1,5 +1,5 @@
 /**
- * Library insights — turn a raw watchlist into a few honest numbers about your
+ * Library insights: turn a raw watchlist into a few honest numbers about your
  * own taste: how much you've watched vs. parked, your movies/shows split, how
  * generous your ratings are, and which decades you gravitate towards.
  *
@@ -20,7 +20,7 @@ export interface LibraryStats {
   watched: number;
   movies: number;
   tv: number;
-  /** watched / total, 0..1 — your "completion" of what you've saved. */
+  /** watched / total, 0..1: your "completion" of what you've saved. */
   completionRate: number;
   /** How many entries carry a personal rating. */
   ratedCount: number;

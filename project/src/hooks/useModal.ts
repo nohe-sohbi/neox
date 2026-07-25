@@ -23,7 +23,7 @@ const FOCUSABLE = [
  *
  * Attach the returned ref to the dialog container and give it
  * `role="dialog" aria-modal="true"` plus a label. Listeners live on that node,
- * so stacked dialogs never fight over the same keystroke — only the one holding
+ * so stacked dialogs never fight over the same keystroke: only the one holding
  * focus reacts.
  */
 export function useModal<T extends HTMLElement = HTMLDivElement>(

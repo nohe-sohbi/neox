@@ -1,5 +1,5 @@
 /**
- * Privacy-friendly analytics via Plausible — entirely opt-in.
+ * Privacy-friendly analytics via Plausible: entirely opt-in.
  * Set VITE_PLAUSIBLE_DOMAIN to enable; otherwise every call is a no-op and no
  * script is ever loaded.
  */

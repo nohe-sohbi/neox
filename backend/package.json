@@ -1,7 +1,7 @@
 {
   "name": "neox-api",
   "version": "1.0.0",
-  "description": "NEOX API — cached TMDB proxy + accounts & library sync",
+  "description": "NEOX API: cached TMDB proxy + accounts & library sync",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {

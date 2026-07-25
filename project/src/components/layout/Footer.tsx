@@ -6,7 +6,7 @@ export function Footer() {
     <footer className="border-t border-white/10 bg-ink-950">
       <div className="container mx-auto flex flex-col items-center gap-3 px-6 py-8 text-center text-sm text-white/40 sm:flex-row sm:justify-between sm:text-left">
         <p>
-          <span className="font-bold text-gradient">NEOX</span> — {t('footer.tagline')}
+          <span className="font-bold text-gradient">NEOX</span>, {t('footer.tagline')}
         </p>
         <p>
           {t('footer.data_by')}{' '}

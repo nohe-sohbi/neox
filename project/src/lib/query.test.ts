@@ -32,7 +32,7 @@ describe('QueryCache get/set/getFresh', () => {
   });
 });
 
-describe('QueryCache.fetch — single-flight dedup', () => {
+describe('QueryCache.fetch: single-flight dedup', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 

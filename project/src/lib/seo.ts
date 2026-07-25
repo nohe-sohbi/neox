@@ -2,8 +2,8 @@
  * SEO / social-preview metadata.
  *
  * NEOX is a client-rendered SPA, so this does not replace server-side rendering
- * for crawlers that don't execute JS. What it *does* do — and what visibly
- * matters — is keep the document head honest as the user navigates:
+ * for crawlers that don't execute JS. What it does do, and what visibly
+ * matters, is keep the document head honest as the user navigates:
  *
  *   - the browser tab + bookmarks show the title of the page or title you're on,
  *   - link-unfurlers and crawlers that run JS (Google, Slack with JS, etc.) read
@@ -21,7 +21,7 @@ export const SITE_NAME = 'NEOX';
 /** Absolute site origin, used for canonical + og:url. Configurable per deploy. */
 export const SITE_URL = (import.meta.env.VITE_SITE_URL || 'https://neox.app').replace(/\/+$/, '');
 
-export const DEFAULT_TITLE = 'NEOX — Ton radar cinéma & séries';
+export const DEFAULT_TITLE = 'NEOX · Ton radar cinéma & séries';
 export const DEFAULT_DESCRIPTION =
   'Découvre les films et séries du moment, regarde les bandes-annonces et trouve instantanément où les voir en streaming légal. Crée ta watchlist en un clic.';
 export const DEFAULT_IMAGE = `${SITE_URL}/pwa-icon.svg`;

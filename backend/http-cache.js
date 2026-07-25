@@ -8,8 +8,8 @@
  *
  *   - `cacheControl(maxAge)` sets `Cache-Control: public` with `max-age` and a
  *     `stale-while-revalidate` window, so repeat views are instant and a slow
- *     upstream is masked. It only marks successful (2xx) responses as cacheable —
- *     errors are never cached.
+ *     upstream is masked. It only marks successful (2xx) responses as
+ *     cacheable; errors are never cached.
  *   - `noStore` opts private endpoints (auth, library, health) out of any cache.
  *
  * Conditional requests (ETag / 304 Not Modified) are handled by Express itself
@@ -48,7 +48,7 @@ function cacheControl(maxAge, opts = {}) {
     };
 }
 
-/** Middleware that disables all caching — for per-user / volatile endpoints. */
+/** Middleware that disables all caching: for per-user / volatile endpoints. */
 function noStore(_req, res, next) {
     res.set('Cache-Control', 'no-store');
     next();
@@ -58,9 +58,9 @@ function noStore(_req, res, next) {
 // genre and provider lists are near-static, details change rarely, while the
 // home/trending/search surfaces are kept short so "what's hot" stays current.
 const TTL = {
-    static: 60 * 60 * 24, // genres, providers — a day
-    details: 60 * 60, // a title's details, a person's filmography — an hour
-    dynamic: 60 * 10, // home, trending, discover, search — ten minutes
+    static: 60 * 60 * 24, // genres, providers: a day
+    details: 60 * 60, // a title's details, a person's filmography: an hour
+    dynamic: 60 * 10, // home, trending, discover, search: ten minutes
 };
 
 module.exports = { cacheControl, noStore, TTL };

@@ -12,7 +12,7 @@ interface State {
 
 /**
  * Catches render-time crashes anywhere below it and shows a friendly, localized
- * fallback instead of a blank white screen — the app shell (navbar/footer) stays
+ * fallback instead of a blank white screen: the app shell (navbar/footer) stays
  * usable and the user can recover with a reload. Class component because error
  * boundaries have no hook equivalent; `t` is the resolved i18n singleton.
  */

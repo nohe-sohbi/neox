@@ -10,7 +10,7 @@ import {
 import { useT } from '../../lib/i18n';
 
 /**
- * "Pick up where you left off" — the titles the user recently opened. Renders
+ * "Pick up where you left off": the titles the user recently opened. Renders
  * nothing until there's history, and refreshes live when a new title is viewed.
  */
 export function RecentlyViewedRow() {

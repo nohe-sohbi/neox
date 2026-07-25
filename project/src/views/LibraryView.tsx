@@ -111,7 +111,7 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          {/* Backup / restore — works logged-out too (data ownership). */}
+          {/* Backup / restore: works logged-out too (data ownership). */}
           <input
             ref={fileRef}
             type="file"
@@ -150,7 +150,7 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
         </div>
       </div>
 
-      {/* Your taste in numbers — collapsible, computed locally. */}
+      {/* Your taste in numbers: collapsible, computed locally. */}
       {entries.length > 0 && <LibraryStats entries={entries} />}
 
       {/* Sync banner for logged-out users */}

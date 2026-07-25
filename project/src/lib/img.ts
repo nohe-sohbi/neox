@@ -4,7 +4,7 @@
  * The API hands the client a single fixed-size TMDB URL (e.g. a `w500` poster).
  * TMDB serves any size from the same path by swapping the width token, so we can
  * derive a `srcset` client-side and let the browser pick the right resolution
- * for the viewport + DPR — cutting bandwidth on phones (a poster grid rendered
+ * for the viewport + DPR: cutting bandwidth on phones (a poster grid rendered
  * at ~150px wide has no business downloading a 500px-wide image) and improving
  * LCP, all without changing the API contract.
  *

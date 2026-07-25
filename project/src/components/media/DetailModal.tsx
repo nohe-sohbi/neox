@@ -120,7 +120,7 @@ export function DetailModal() {
             <div className="relative h-56 sm:h-80">
               {showTrailer && details.trailerKey ? (
                 <iframe
-                  title={`${t('detail.trailer')} — ${details.title}`}
+                  title={`${t('detail.trailer')} : ${details.title}`}
                   src={`https://www.youtube.com/embed/${details.trailerKey}?autoplay=1&rel=0`}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen

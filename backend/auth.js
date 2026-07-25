@@ -1,6 +1,6 @@
 /**
  * Self-contained auth: bcrypt password hashing + stateless JWTs.
- * No third-party SaaS required — set JWT_SECRET in production.
+ * No third-party SaaS required: set JWT_SECRET in production.
  */
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -11,7 +11,7 @@ const TOKEN_TTL = '30d';
 const usingDefaultSecret = !process.env.JWT_SECRET;
 
 /**
- * The fallback secret is public — it is written right above, in a file anyone
+ * The fallback secret is public: it is written right above, in a file anyone
  * can read. Signing with it lets a stranger mint a valid token for any account,
  * so it is a full auth bypass, not a warning-level smell. Zero-config startup
  * is worth keeping in dev; in production we refuse to boot instead.
@@ -22,7 +22,7 @@ const usingDefaultSecret = !process.env.JWT_SECRET;
 function assertSecretConfigured(nodeEnv = process.env.NODE_ENV, secret = process.env.JWT_SECRET) {
     if (!secret && nodeEnv === 'production') {
         throw new Error(
-            'JWT_SECRET is required when NODE_ENV=production — refusing to sign tokens with the ' +
+            'JWT_SECRET is required when NODE_ENV=production. Refusing to sign tokens with the ' +
                 'built-in development secret. Generate one with: openssl rand -hex 32',
         );
     }

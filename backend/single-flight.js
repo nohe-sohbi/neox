@@ -4,8 +4,8 @@
  * The TMDB cache already absorbs repeated reads, but it does nothing for
  * *concurrent* misses: when a cold key is requested by N callers at once (a
  * popular title going viral, a cron warming the cache, a burst of traffic after
- * a deploy), each caller fires its own upstream fetch. That's a thundering herd
- * — N identical round trips that hammer TMDB's rate limit and waste latency.
+ * a deploy), each caller fires its own upstream fetch. That's a thundering
+ * herd: N identical round trips that hammer TMDB's rate limit and waste latency.
  *
  * SingleFlight collapses those into one: the first caller for a key runs the
  * work, every concurrent caller for the same key awaits the *same* promise, and

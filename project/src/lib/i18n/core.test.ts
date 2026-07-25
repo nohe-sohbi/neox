@@ -57,7 +57,7 @@ describe('createTranslator', () => {
 describe('makeFormatNumber', () => {
   it('formats numbers per locale', () => {
     expect(makeFormatNumber('en')(12345)).toBe('12,345');
-    // Non-breaking/thin space grouping in fr — just assert it is not the en form.
+    // Non-breaking/thin space grouping in fr: just assert it is not the en form.
     expect(makeFormatNumber('fr')(12345)).not.toBe('12,345');
   });
 });

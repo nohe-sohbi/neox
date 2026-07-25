@@ -84,7 +84,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
 
   // On login (or user switch), merge the local library into the account.
   // On logout, drop the (account's) library from this device so the next user
-  // starts clean — otherwise the merge-on-login effect would push the previous
+  // starts clean; otherwise the merge-on-login effect would push the previous
   // user's watchlist into a different account.
   useEffect(() => {
     const uid = user?.id ?? null;

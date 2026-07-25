@@ -5,7 +5,7 @@
  * should own it: export produces a portable JSON backup, import restores (or
  * migrates) it on any device, and `sortEntries` powers the order controls in the
  * Library view. Imported data is untrusted, so every entry is re-validated to the
- * exact `LibraryEntry` shape before it is allowed back into the app — mirroring
+ * exact `LibraryEntry` shape before it is allowed back into the app: mirroring
  * the backend's `sanitizeLibrary`.
  */
 import type { LibraryEntry, LibraryStatus, MediaType } from './types';

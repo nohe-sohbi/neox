@@ -63,7 +63,7 @@ export function useQuery<T>(
       setError(null);
       if (!force && isFresh(entry, ttl, Date.now())) {
         setLoading(false);
-        return; // fresh enough — nothing to do
+        return; // fresh enough: nothing to do
       }
       // stale (or forced): keep showing data, revalidate without a spinner
     } else {

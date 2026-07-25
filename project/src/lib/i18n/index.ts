@@ -12,7 +12,7 @@ export { SUPPORTED_LANGS, langFromLocale, interpolate } from './core';
 
 // The UI language is derived from the active catalogue locale. Switching locale
 // triggers a full reload (see LocaleMenu), so resolving once at module load is
-// both correct and cheap — no context plumbing required.
+// both correct and cheap: no context plumbing required.
 const lang: Lang = langFromLocale(getLocale().language);
 
 /** Translate a key, optionally interpolating `{var}` placeholders. */

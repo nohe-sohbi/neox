@@ -13,7 +13,7 @@ function read(): number[] {
 
 /**
  * The user's preferred streaming platforms, persisted locally. Powers the
- * "only on my platforms" filter — set once, reused everywhere.
+ * "only on my platforms" filter: set once, reused everywhere.
  */
 export function useMyPlatforms() {
   const [ids, setIds] = useState<number[]>(read);

@@ -16,7 +16,7 @@
  * it for another cooldown.
  *
  * It only counts *upstream-health* failures (network/timeout/5xx/exhausted
- * retries) — deterministic 4xx client errors (a bad id, an unsupported type)
+ * retries): deterministic 4xx client errors (a bad id, an unsupported type)
  * say nothing about TMDB's health and must never trip the breaker.
  *
  * Dependency-free and time-injectable, so the state machine is trivial to
@@ -84,7 +84,7 @@ class CircuitBreaker {
     return true;
   }
 
-  /** A healthy upstream response — reset the failure streak and close up. */
+  /** A healthy upstream response: reset the failure streak and close up. */
   recordSuccess() {
     this.successes += 1;
     this.consecutiveFailures = 0;
@@ -92,7 +92,7 @@ class CircuitBreaker {
     this.halfOpenProbing = false;
   }
 
-  /** An upstream-health failure — count it and trip if we've hit the threshold. */
+  /** An upstream-health failure: count it and trip if we've hit the threshold. */
   recordFailure() {
     this.failures += 1;
     this.consecutiveFailures += 1;

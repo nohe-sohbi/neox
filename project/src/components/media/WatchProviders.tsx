@@ -1,6 +1,7 @@
 import { ExternalLink } from 'lucide-react';
 import type { Provider, WatchProviders as Providers } from '../../lib/types';
 import { useT } from '../../lib/i18n';
+import { track } from '../../lib/analytics';
 
 function ProviderGroup({ label, providers }: { label: string; providers: Provider[] }) {
   if (providers.length === 0) return null;
@@ -52,6 +53,7 @@ export function WatchProviders({ providers }: { providers: Providers }) {
           href={providers.link}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => track('Providers Click')}
           className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-cyan transition-colors hover:text-white"
         >
           {t('providers.justwatch')}

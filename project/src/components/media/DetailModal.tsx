@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Bookmark, Calendar, Check, Clock, Eye, Film, Play, Star, Trash2, Tv, X } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
+import { track } from '../../lib/analytics';
 import type { MediaDetails, MediaType } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
 import { useToast } from '../../context/ToastContext';
@@ -53,6 +54,13 @@ export function DetailModal() {
     setShowTrailer(false);
     void load(target.mediaType, target.id);
   }, [target, load]);
+
+  // Two controls start the trailer (the play overlay and the action button), so
+  // the handler lives here: one place to set the state, one place to count it.
+  const playTrailer = useCallback(() => {
+    setShowTrailer(true);
+    if (details) track('Trailer Play', { mediaType: details.mediaType });
+  }, [details]);
 
   // Record successful opens so Home + ⌘K can resurface them.
   useEffect(() => {
@@ -143,7 +151,7 @@ export function DetailModal() {
                   <div className="absolute inset-0 bg-gradient-to-t from-ink-900 via-ink-900/40 to-transparent" />
                   {details.trailerKey && (
                     <button
-                      onClick={() => setShowTrailer(true)}
+                      onClick={playTrailer}
                       className="group absolute inset-0 flex items-center justify-center"
                       aria-label={t('detail.play_trailer')}
                     >
@@ -221,7 +229,7 @@ export function DetailModal() {
               {/* Actions: trailer + library status */}
               <div className="flex flex-wrap items-center gap-3">
                 {details.trailerKey && !showTrailer && (
-                  <button onClick={() => setShowTrailer(true)} className="btn-primary">
+                  <button onClick={playTrailer} className="btn-primary">
                     <Play className="h-5 w-5 fill-current" />
                     {t('detail.trailer')}
                   </button>

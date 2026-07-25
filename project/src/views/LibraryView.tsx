@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bookmark, Cloud, Download, Loader2, Trash2, Upload } from 'lucide-react';
 import type { LibraryEntry, LibraryStatus, MediaItem } from '../lib/types';
+import { track } from '../lib/analytics';
 import { useAuth } from '../context/AuthContext';
 import { useLibrary } from '../context/LibraryContext';
 import {
@@ -74,6 +75,7 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
     a.download = backupFilename();
     a.click();
     URL.revokeObjectURL(url);
+    track('Library Export', { count: entries.length });
     toast.success(t('toast.exported'));
   };
 

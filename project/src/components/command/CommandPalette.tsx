@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { track } from '../../lib/analytics';
 import type { MediaItem } from '../../lib/types';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useOpenDetail } from '../../hooks/useDetailRoute';
@@ -64,42 +65,40 @@ export function CommandPalette() {
     [t],
   );
 
-  const show = useCallback(() => {
+  const show = useCallback((via: 'shortcut' | 'button' = 'button') => {
     setRecent(readSearches());
     setViewed(readRecent());
     setQuery('');
     setResults([]);
     setActive(0);
     setOpen(true);
+    track('Palette Open', { via });
   }, []);
 
   const hide = useCallback(() => setOpen(false), []);
 
-  // Global ⌘K / Ctrl+K toggle + custom open event.
+  // Global ⌘K / Ctrl+K toggle + custom open event. The shortcut goes through
+  // show()/hide() rather than duplicating the reset: a ref carries the current
+  // state because calling track() inside a state updater would double-count in
+  // StrictMode, which invokes the updater twice.
+  const openRef = useRef(open);
+  openRef.current = open;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setOpen((o) => {
-          if (!o) {
-            setRecent(readSearches());
-            setViewed(readRecent());
-            setQuery('');
-            setResults([]);
-            setActive(0);
-          }
-          return !o;
-        });
+        if (openRef.current) hide();
+        else show('shortcut');
       }
     };
-    const onOpen = () => show();
+    const onOpen = () => show('button');
     window.addEventListener('keydown', onKey);
     window.addEventListener(OPEN_COMMAND_EVENT, onOpen);
     return () => {
       window.removeEventListener('keydown', onKey);
       window.removeEventListener(OPEN_COMMAND_EVENT, onOpen);
     };
-  }, [show]);
+  }, [show, hide]);
 
   // Scroll lock, Escape, focus trap + restore, and focus the input on open
   // (it's the first focusable element inside the dialog).

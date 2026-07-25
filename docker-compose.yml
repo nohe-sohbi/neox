@@ -38,8 +38,9 @@ services:
       args:
         VITE_API_URL: ""
         VITE_SITE_URL: ${VITE_SITE_URL:-}
-        VITE_PLAUSIBLE_DOMAIN: ${VITE_PLAUSIBLE_DOMAIN:-}
-        VITE_PLAUSIBLE_SRC: ${VITE_PLAUSIBLE_SRC:-}
+        VITE_UMAMI_WEBSITE_ID: ${VITE_UMAMI_WEBSITE_ID:-}
+        VITE_UMAMI_DOMAINS: ${VITE_UMAMI_DOMAINS:-}
+        VITE_UMAMI_SRC: ${VITE_UMAMI_SRC:-}
     ports:
       - "${WEB_PORT:-8080}:80"
     depends_on:

@@ -81,6 +81,14 @@ Ce qui n'est pas visible à l'écran mais tient l'app debout :
   a un skip-link, et `prefers-reduced-motion` est respecté.
 - **Perf client.** Cache mémoire SWR avec dédup des requêtes en vol, `srcset` dérivé côté client des
   URLs TMDB, `ErrorBoundary` global au lieu d'un écran blanc.
+- **Analytics optionnelle et sans cookie.** Aucun script n'est chargé tant que
+  `VITE_UMAMI_WEBSITE_ID` n'est pas défini. Quand elle est active, une instance
+  [Umami](https://umami.is) auto-hébergée compte les pages et dix actions produit (`Open Detail`,
+  `Trailer Play`, `Providers Click`, `Palette Open`, `Rating Set`, `Library Add`, `Library Import`,
+  `Library Export`, `Signup`, `Login`). Aucune propriété d'événement ne porte de donnée personnelle :
+  pas d'e-mail, pas de terme de recherche, seulement des compteurs et des types de média.
+  `VITE_UMAMI_DOMAINS` limite le tracker au domaine de production, donc une session locale ne
+  pollue pas les statistiques.
 
 ## Architecture
 

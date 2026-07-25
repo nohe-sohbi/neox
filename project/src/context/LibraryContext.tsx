@@ -142,9 +142,11 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   );
 
   const setRating = useCallback(
-    (item: MediaItem, rating: number | null) =>
+    (item: MediaItem, rating: number | null) => {
       // Rating something implies you've watched it.
-      upsert(item, { personalRating: rating, status: 'watched' }),
+      upsert(item, { personalRating: rating, status: 'watched' });
+      if (rating != null) track('Rating Set', { rating });
+    },
     [upsert],
   );
 

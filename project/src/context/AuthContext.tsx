@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { api, getAuthToken, setAuthToken, UNAUTHORIZED_EVENT } from '../lib/api';
+import { track } from '../lib/analytics';
 import type { User } from '../lib/types';
 
 interface AuthContextValue {
@@ -50,12 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await api.login(email, password);
     setAuthToken(res.token);
     setUser(res.user);
+    track('Login');
   }, []);
 
   const register = useCallback(async (email: string, password: string) => {
     const res = await api.register(email, password);
     setAuthToken(res.token);
     setUser(res.user);
+    track('Signup');
   }, []);
 
   const logout = useCallback(() => {

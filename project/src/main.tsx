@@ -8,6 +8,10 @@ import { LibraryProvider } from './context/LibraryContext';
 import { ToastProvider } from './context/ToastContext';
 import { activeLang } from './lib/i18n';
 import { localeTag } from './lib/i18n/core';
+// Self-hosted variable faces: no third-party request at runtime, one woff2 per
+// family instead of nine static weights, and the axes stay available.
+import '@fontsource-variable/bricolage-grotesque';
+import '@fontsource-variable/instrument-sans';
 import './index.css';
 
 // Advertise the active UI language on the document. index.html ships a static

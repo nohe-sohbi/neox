@@ -114,7 +114,7 @@ export function PersonModal() {
                 </div>
               )}
               <div className="flex-1">
-                <h2 className="text-2xl font-extrabold text-white sm:text-3xl">{person.name}</h2>
+                <h2 className="font-display text-2xl font-extrabold tracking-tight text-white sm:text-3xl">{person.name}</h2>
                 {knownFor && (
                   <p className="mt-1 text-sm font-medium text-brand-cyan">{knownFor}</p>
                 )}

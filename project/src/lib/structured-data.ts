@@ -31,7 +31,11 @@ export function isoDuration(minutes: number | null): string | null {
   if (minutes == null || !Number.isFinite(minutes) || minutes <= 0) return null;
   const h = Math.floor(minutes / 60);
   const m = Math.round(minutes % 60);
-  return `PT${h > 0 ? `${h}H` : ''}${m > 0 ? `${m}M` : ''}` || null;
+  // A sub-minute runtime rounds both components to zero. Returning "PT" then
+  // would be an invalid duration, which Google reports as an error, so an
+  // unusable value becomes an absent one.
+  if (h === 0 && m === 0) return null;
+  return `PT${h > 0 ? `${h}H` : ''}${m > 0 ? `${m}M` : ''}`;
 }
 
 /**

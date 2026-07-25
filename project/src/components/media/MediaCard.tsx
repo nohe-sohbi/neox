@@ -83,7 +83,7 @@ export function MediaCard({ item }: { item: MediaItem }) {
         <h3 className="truncate text-sm font-semibold text-white/90 transition-colors group-hover:text-white">
           {item.title}
         </h3>
-        <p className="text-xs text-white/40">{item.year || '—'}</p>
+        <p className="text-xs text-white/55">{item.year || '—'}</p>
       </div>
     </article>
   );

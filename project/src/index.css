@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,8 +7,10 @@
     scroll-behavior: smooth;
   }
 
-  /* Respect users who ask for less motion: kill animations, transitions and
-     smooth scrolling so the UI stays calm and accessible. */
+  /* Reduced motion is not "no feedback". A blanket 0.001ms kill also removes the
+     transitions that tell you a control reacted, which leaves the UI feeling
+     broken rather than calm. So: decorative and looping animation goes, scroll
+     jumps instead of gliding, and state transitions merely get shorter. */
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
@@ -20,8 +20,17 @@
     *::after {
       animation-duration: 0.001ms !important;
       animation-iteration-count: 1 !important;
-      transition-duration: 0.001ms !important;
       scroll-behavior: auto !important;
+    }
+    /* Colour, opacity and border feedback survives, at a length that reads as
+       instant without being absent. Transforms are the part that moves, so they
+       are the part that stops. */
+    *,
+    *::before,
+    *::after {
+      transition-duration: 80ms !important;
+      transition-property: color, background-color, border-color, fill, stroke,
+        opacity, box-shadow !important;
     }
   }
 

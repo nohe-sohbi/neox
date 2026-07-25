@@ -42,7 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
       >
         <AlertTriangle className="h-12 w-12 text-orange-400" />
         <div>
-          <h1 className="text-2xl font-bold text-white">{t('error.title')}</h1>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-white">{t('error.title')}</h1>
           <p className="mt-1 max-w-md text-sm text-white/50">{t('error.boundary_desc')}</p>
         </div>
         <button onClick={this.handleReload} className="btn-primary">

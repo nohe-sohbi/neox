@@ -66,7 +66,7 @@ export function SearchView() {
 
   return (
     <div className="container mx-auto px-6 pb-16 pt-28">
-      <h1 className="mb-1 text-2xl font-extrabold sm:text-3xl">
+      <h1 className="mb-1 font-display text-2xl font-extrabold tracking-tight text-balance sm:text-3xl">
         {debounced ? (
           <>
             {t('search.results_for')}{' '}

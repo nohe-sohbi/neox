@@ -79,7 +79,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-1 flex items-start justify-between">
-          <h2 className="text-2xl font-extrabold text-white">
+          <h2 className="font-display text-2xl font-extrabold tracking-tight text-white">
             {mode === 'login' ? t('auth.welcome_back') : t('auth.create_account')}
           </h2>
           <button

@@ -20,8 +20,14 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['"Clash Display"', 'Inter', 'system-ui', 'sans-serif'],
+        // Instrument Sans for the interface: narrow enough for dense metadata,
+        // with terminals that stay legible at 12px.
+        sans: ['"Instrument Sans Variable"', 'system-ui', 'sans-serif'],
+        // Bricolage Grotesque for titles. It carries an editorial voice at large
+        // sizes, which is what a catalogue of films should sound like. The
+        // previous stack named a face ("Clash Display") that was never loaded,
+        // so every `font-display` silently rendered as the body face.
+        display: ['"Bricolage Grotesque Variable"', '"Instrument Sans Variable"', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         glow: '0 0 40px -8px rgba(139, 92, 246, 0.55)',

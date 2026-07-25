@@ -7,7 +7,7 @@ function ProviderGroup({ label, providers }: { label: string; providers: Provide
   if (providers.length === 0) return null;
   return (
     <div>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/40">{label}</p>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/55">{label}</p>
       <div className="flex flex-wrap gap-2.5">
         {providers.map((p) => (
           <div
@@ -60,7 +60,7 @@ export function WatchProviders({ providers }: { providers: Providers }) {
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
       )}
-      <p className="text-xs text-white/30">{t('providers.disclaimer')}</p>
+      <p className="text-xs text-white/55">{t('providers.disclaimer')}</p>
     </div>
   );
 }

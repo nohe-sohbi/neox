@@ -254,7 +254,7 @@ export function CommandPalette() {
                 );
               })()}
 
-              <p className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-white/30">
+              <p className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-white/55">
                 {loading ? t('cmd.searching') : t('cmd.results')}
               </p>
 
@@ -297,7 +297,7 @@ export function CommandPalette() {
           ) : (
             <>
               {showNavHeading && (
-                <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider text-white/30">
+                <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider text-white/55">
                   {t('cmd.nav')}
                 </p>
               )}
@@ -317,7 +317,7 @@ export function CommandPalette() {
               })}
 
               {viewed.length > 0 && (
-                <p className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-white/30">
+                <p className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-white/55">
                   {t('cmd.recent_viewed')}
                 </p>
               )}
@@ -349,7 +349,7 @@ export function CommandPalette() {
 
               {recent.length > 0 && (
                 <div className="mt-1 flex items-center justify-between px-3 pb-1 pt-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-white/30">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-white/55">
                     {t('cmd.recent')}
                   </p>
                   <button

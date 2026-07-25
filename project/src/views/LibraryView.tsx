@@ -106,7 +106,7 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
     <div className="container mx-auto px-6 pb-16 pt-28">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="flex items-center gap-3 text-3xl font-extrabold sm:text-4xl">
+          <h1 className="flex items-center gap-3 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
             {t('library.title')}
             {syncing && <Loader2 className="h-5 w-5 animate-spin text-brand-cyan" />}
           </h1>

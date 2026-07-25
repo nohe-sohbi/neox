@@ -52,6 +52,12 @@ describe('isoDuration', () => {
     expect(isoDuration(null)).toBeNull();
     expect(isoDuration(0)).toBeNull();
     expect(isoDuration(-10)).toBeNull();
+    expect(isoDuration(Number.NaN)).toBeNull();
+  });
+
+  it('returns null rather than an invalid "PT" for a sub-minute runtime', () => {
+    // 0.4 min rounds to 0h 0m: emitting "PT" would be an invalid ISO duration.
+    expect(isoDuration(0.4)).toBeNull();
   });
 });
 

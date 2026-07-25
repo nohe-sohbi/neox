@@ -201,7 +201,7 @@ export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: Season
 
       {/* Screen-reader friendly episode count for the active season. */}
       {detail && !loading && !error && detail.episodes.length > 0 && (
-        <p className="mt-3 text-xs text-white/30">
+        <p className="mt-3 text-xs text-white/55">
           {tn('season.episodes', detail.episodes.length)}
         </p>
       )}

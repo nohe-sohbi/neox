@@ -148,7 +148,7 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
 
   return (
     <div className="container mx-auto px-6 pb-16 pt-28">
-      <h1 className="text-3xl font-extrabold sm:text-4xl">
+      <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
         {mediaType === 'tv' ? t('discover.tv_title') : t('discover.movies_title')}
       </h1>
       <p className="mt-1 text-white/50">

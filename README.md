@@ -78,7 +78,12 @@ Ce qui n'est pas visible à l'écran mais tient l'app debout :
   démarrer en production sans `JWT_SECRET`.
 - **Accessibilité.** Les quatre overlays partagent un hook `useModal` (piège de focus, restauration,
   `Escape`, verrou de scroll, `role="dialog"`), les actions passent par une région `aria-live`, il y
-  a un skip-link, et `prefers-reduced-motion` est respecté.
+  a un skip-link. Contrastes mesurés, pas estimés : tout le texte passe le 4.5:1 de WCAG AA sur le
+  fond `ink-950`. `prefers-reduced-motion` réduit les transitions à 80 ms et coupe les transformées
+  au lieu de tout annuler : un bouton qui ne réagit plus du tout se lit comme cassé, pas comme calme.
+- **Typographie auto-hébergée.** Bricolage Grotesque pour les titres, Instrument Sans pour
+  l'interface, en variable woff2 servi par le bundle. Aucune requête vers un CDN de polices, ce qui
+  serait incohérent pour une app qui ne charge même pas de script d'analytics par défaut.
 - **Perf client.** Cache mémoire SWR avec dédup des requêtes en vol, `srcset` dérivé côté client des
   URLs TMDB, `ErrorBoundary` global au lieu d'un écran blanc.
 - **SEO.** Le `<head>` suit la route et la fiche ouverte (`title`, `description`, Open Graph,
@@ -195,8 +200,8 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 
 ## Qualité
 
-- **156 tests** : 67 côté `backend/` (auth et sync via supertest, garde du secret JWT, cache HTTP,
-  cache LRU et snapshot/hydrate, single-flight, params discover, saisons) et 89 côté `project/`
+- **157 tests** : 67 côté `backend/` (auth et sync via supertest, garde du secret JWT, cache HTTP,
+  cache LRU et snapshot/hydrate, single-flight, params discover, saisons) et 90 côté `project/`
   (bibliothèque, export/import, i18n, SEO, données structurées, cache SWR, vu récemment, srcset).
 - **Vérifs** : `npm run lint`, `npm run typecheck`, `npm run build`.
 - **CI** : GitHub Actions lance lint, typecheck, tests et build sur chaque PR
@@ -215,7 +220,7 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 
 ## Stack
 
-**Frontend** : React 18 · TypeScript · Vite · Tailwind CSS · lucide-react
+**Frontend** : React 18 · TypeScript · Vite · Tailwind CSS · lucide-react · Bricolage Grotesque + Instrument Sans
 **Backend** : Node 20 · Express · node-fetch · cache en mémoire
 **Déploiement** : Docker multi-stage · nginx (statique + proxy `/api`)
 **Données** : [TMDB](https://www.themoviedb.org/) · disponibilité via JustWatch

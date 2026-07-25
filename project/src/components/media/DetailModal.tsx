@@ -183,7 +183,7 @@ export function DetailModal() {
                   />
                 )}
                 <div className="flex-1">
-                  <h2 className="text-2xl font-extrabold leading-tight text-white sm:text-4xl">
+                  <h2 className="font-display text-2xl font-extrabold leading-[1.08] tracking-tight text-balance text-white sm:text-4xl">
                     {details.title}
                   </h2>
                   {details.tagline && (

@@ -104,7 +104,7 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
                 onClick={() => window.dispatchEvent(new Event(OPEN_COMMAND_EVENT))}
                 aria-label={t('cmd.open')}
                 title={t('cmd.open')}
-                className="absolute right-2 top-1/2 hidden -translate-y-1/2 items-center rounded border border-white/15 bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold text-white/40 transition-colors hover:text-white/80 sm:inline-flex"
+                className="absolute right-2 top-1/2 hidden -translate-y-1/2 items-center rounded border border-white/15 bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold text-white/60 transition-colors hover:text-white sm:inline-flex"
               >
                 {isMac ? '⌘' : 'Ctrl'} K
               </button>
@@ -146,7 +146,7 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
               {menuOpen && (
                 <div className="card-surface absolute right-0 top-12 w-56 animate-scale-in p-2">
                   <div className="border-b border-white/10 px-3 py-2">
-                    <p className="text-xs text-white/40">{t('nav.logged_as')}</p>
+                    <p className="text-xs text-white/55">{t('nav.logged_as')}</p>
                     <p className="truncate text-sm font-medium text-white">{user.email}</p>
                   </div>
                   <button

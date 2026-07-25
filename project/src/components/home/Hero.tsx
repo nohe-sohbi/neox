@@ -79,7 +79,7 @@ export function Hero({ items }: { items: MediaItem[] }) {
               {current.year && <span>{current.year}</span>}
             </div>
 
-            <h1 className="text-4xl font-extrabold leading-tight text-white text-shadow-glow sm:text-6xl">
+            <h1 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-balance text-white text-shadow-glow sm:text-6xl">
               {current.title}
             </h1>
 
@@ -108,16 +108,25 @@ export function Hero({ items }: { items: MediaItem[] }) {
       </div>
 
       {items.length > 1 && (
-        <div className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 gap-2">
+        <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1">
           {items.map((item, i) => (
+            // The bar stays 6px tall, but the button carries vertical padding so the
+            // hit area clears the 24x24 floor of WCAG 2.5.8 on a touch screen.
             <button
               key={item.id}
               onClick={() => setActive(i)}
               aria-label={t('hero.goto_slide', { n: i + 1 })}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === active ? 'w-8 bg-brand-gradient' : 'w-2 bg-white/30 hover:bg-white/50'
-              }`}
-            />
+              aria-current={i === active}
+              className="group flex h-6 items-center px-1"
+            >
+              <span
+                className={`block h-1.5 rounded-full transition-all duration-300 ${
+                  i === active
+                    ? 'w-8 bg-brand-gradient'
+                    : 'w-2 bg-white/40 group-hover:bg-white/70'
+                }`}
+              />
+            </button>
           ))}
         </div>
       )}

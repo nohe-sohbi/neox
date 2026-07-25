@@ -50,7 +50,7 @@ export function LocaleMenu() {
       </button>
       {open && (
         <div className="card-surface absolute right-0 top-12 z-50 w-56 animate-scale-in p-2">
-          <p className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-white/40">
+          <p className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-white/55">
             {t('locale.title')}
           </p>
           <div className="max-h-72 overflow-y-auto">

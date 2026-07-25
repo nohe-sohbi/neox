@@ -44,7 +44,7 @@ export function MediaCard({ item }: { item: MediaItem }) {
         />
       )}
 
-      <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-ink-800 shadow-card ring-1 ring-white/5 transition-all duration-300 group-hover:ring-white/20">
+      <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-ink-800 shadow-card ring-1 ring-white/5 transition-all duration-300 group-hover:ring-[color-mix(in_srgb,var(--film,#ffffff)_55%,transparent)] group-focus-visible:ring-[color-mix(in_srgb,var(--film,#ffffff)_55%,transparent)]">
         {poster ? (
           <img
             src={poster.src}

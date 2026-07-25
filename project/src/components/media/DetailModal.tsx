@@ -339,10 +339,10 @@ export function DetailModal() {
                             src={member.photo}
                             alt={member.name}
                             loading="lazy"
-                            className="mb-1.5 h-20 w-20 rounded-full object-cover ring-1 ring-white/10 transition-all group-hover:ring-white/40"
+                            className="mb-1.5 h-20 w-20 rounded-full object-cover ring-1 ring-white/10 transition-all group-hover:ring-[color-mix(in_srgb,var(--film,#ffffff)_55%,transparent)]"
                           />
                         ) : (
-                          <div className="mb-1.5 flex h-20 w-20 items-center justify-center rounded-full bg-ink-700 text-lg font-bold text-white/40 transition-all group-hover:ring-1 group-hover:ring-white/40">
+                          <div className="mb-1.5 flex h-20 w-20 items-center justify-center rounded-full bg-ink-700 text-lg font-bold text-white/40 transition-all group-hover:ring-1 group-hover:ring-[color-mix(in_srgb,var(--film,#ffffff)_55%,transparent)]">
                             {member.name.slice(0, 1)}
                           </div>
                         )}

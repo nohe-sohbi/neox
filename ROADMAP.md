@@ -206,12 +206,11 @@ vitrine. Cette phase traite l'écart entre « ça marche » et « ça se montre 
 
 ### 🔴 À faire avant de rendre le repo public
 
-- [ ] **Purger l'historique.** Une clé d'API tierce, dans un fichier d'environnement, est présente
-      dans 6 commits (le `.env` a été commité avant le pivot puis supprimé — supprimer un fichier
-      n'efface rien de l'historique). Le repo est privé aujourd'hui ; le passer public l'expose aux
-      scanners en quelques minutes. **Révoque la clé d'abord**, la purge ensuite. Accessoirement,
-      l'historique porte encore la trace de l'outil d'origine : repartir d'une histoire
-      squashée règle les deux problèmes d'un coup.
+- [x] **Historique purgé.** Le `.env` commité avant le pivot a été retiré de l'intégralité de
+      l'historique (`git filter-repo`), ainsi que les 12 fichiers `.idea/` de config JetBrains.
+      Les 78 commits et leurs dates d'auteur sont conservés à l'identique. La clé qui y vivait est
+      à considérer comme compromise et doit être révoquée côté fournisseur, indépendamment de
+      cette purge.
 - [ ] **Déployer et renseigner l'URL de démo** dans le README (le lien est un `#` en attendant).
 - [ ] **Prendre les captures d'écran** — elles ont besoin d'une vraie clé TMDB pour montrer autre
       chose que des états vides ; voir `docs/screenshots/README.md`.

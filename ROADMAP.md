@@ -1,8 +1,8 @@
 # 🗺️ NEOX — Roadmap to Ship
 
-Statut : **v1 livrable** (ce commit). Pivot d'un agrégateur illégal vers une app de
-découverte légale (TMDB + « où regarder »). Ci-dessous : ce qui est fait, et la suite, en
-étapes brutes et directes.
+Statut : **v1 livrable**. App de découverte de films et séries adossée à TMDB, avec la
+disponibilité sur les plateformes légales (« où regarder »). Ci-dessous : ce qui est fait,
+et la suite, en étapes brutes et directes.
 
 ## ✅ Phase 0 — Livré dans ce commit
 
@@ -212,8 +212,8 @@ vitrine. Cette phase traite l'écart entre « ça marche » et « ça se montre 
       à considérer comme compromise et doit être révoquée côté fournisseur, indépendamment de
       cette purge.
 - [ ] **Déployer et renseigner l'URL de démo** dans le README (le lien est un `#` en attendant).
-- [ ] **Prendre les captures d'écran** — elles ont besoin d'une vraie clé TMDB pour montrer autre
-      chose que des états vides ; voir `docs/screenshots/README.md`.
+- [x] **Captures d'écran déposées** — les 5 vues spécifiées dans `docs/screenshots/README.md`,
+      en 1440×900, thème sombre, PNG < 400 Ko chacune. Galerie active dans le README.
 
 ### 🟡 Nécessite une infra externe (volontairement non codé en dur)
 

@@ -16,18 +16,18 @@ React + TypeScript + Vite · Node + Express · TMDB API
 
 </div>
 
-<!-- GALERIE — décommenter une fois les captures déposées (voir docs/screenshots/README.md)
 <div align="center">
 
 |  |  |
 |---|---|
 | ![Accueil](docs/screenshots/home.png) | ![Fiche détaillée](docs/screenshots/detail.png) |
-| **Accueil** — hero + rails éditorialisés | **Fiche** — bande-annonce & « où regarder » |
+| **Accueil** — hero + rails éditorialisés | **Fiche** — « où regarder » : streaming, location, achat |
 | ![Explorer](docs/screenshots/discover.png) | ![Ma liste](docs/screenshots/library.png) |
 | **Explorer** — filtres & scroll infini | **Ma liste** — notes & statistiques |
+| ![Palette de commande](docs/screenshots/command.png) | |
+| **Ctrl K** — recherche instantanée & navigation | |
 
 </div>
--->
 
 ---
 

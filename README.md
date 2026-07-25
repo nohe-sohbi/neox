@@ -11,7 +11,7 @@ React + TypeScript + Vite · Node + Express · TMDB API
 [![CI](https://github.com/nohe-sohbi/neox/actions/workflows/ci.yml/badge.svg)](https://github.com/nohe-sohbi/neox/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-3b82f6.svg)](LICENSE)
 
-**[Démo live](#)** · _à renseigner après le premier déploiement_
+**[Démo live → neox.sohbi.dev](https://neox.sohbi.dev)**
 
 </div>
 

@@ -51,7 +51,9 @@ licence MIT, 170 tests et CI GitHub Actions sur chaque PR.
       purge.
 - [x] **Captures d'écran déposées.** Les 5 vues spécifiées dans `docs/screenshots/README.md`, en
       1440 × 900, thème sombre, PNG sous 400 Ko chacune. Galerie active dans le README.
-- [ ] **Déployer et renseigner l'URL de démo** dans le README, où le lien est un `#` en attendant.
+- [x] **Déployé sur https://neox.sohbi.dev**, derrière Traefik avec un certificat Let's Encrypt.
+      La stack compose tourne telle quelle : nginx sert le bundle et proxifie `/api` vers le
+      backend, qui n'expose aucun port publiquement. Chaque `git push` sur `main` redéploie.
 
 ### Nécessite une infra externe, volontairement non codé en dur
 

@@ -8,7 +8,26 @@
 
 React + TypeScript + Vite · Node + Express · TMDB API
 
+[![CI](https://github.com/nohe-sohbi/neox/actions/workflows/ci.yml/badge.svg)](https://github.com/nohe-sohbi/neox/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-3b82f6.svg)](LICENSE)
+![Tests](https://img.shields.io/badge/tests-142%20green-22c55e)
+
+**[🔗 Démo live](#)** · _à renseigner après le premier déploiement_
+
 </div>
+
+<!-- GALERIE — décommenter une fois les captures déposées (voir docs/screenshots/README.md)
+<div align="center">
+
+|  |  |
+|---|---|
+| ![Accueil](docs/screenshots/home.png) | ![Fiche détaillée](docs/screenshots/detail.png) |
+| **Accueil** — hero + rails éditorialisés | **Fiche** — bande-annonce & « où regarder » |
+| ![Explorer](docs/screenshots/discover.png) | ![Ma liste](docs/screenshots/library.png) |
+| **Explorer** — filtres & scroll infini | **Ma liste** — notes & statistiques |
+
+</div>
+-->
 
 ---
 
@@ -128,20 +147,33 @@ tiers requis. La bibliothèque est **localStorage-first** puis fusionnée au com
 ### 1. Configurer
 ```bash
 cp .env.example .env
-# Renseigne TMDB_API_KEY dans .env
+# Renseigne TMDB_API_KEY, puis génère un secret de signature :
+openssl rand -hex 32   # → à coller dans JWT_SECRET
 ```
+
+`docker compose` **refuse de démarrer** si `TMDB_API_KEY` ou `JWT_SECRET` manquent : un secret
+JWT par défaut partagé permettrait à n'importe qui de forger un jeton pour n'importe quel compte.
 
 ### 2a. Lancer avec Docker (recommandé)
 ```bash
 docker compose up --build
 ```
-- Frontend : http://localhost:5173
-- API : http://localhost:3001
+- App : http://localhost:8080 (`WEB_PORT` pour changer de port)
 
-> Derrière un reverse proxy (Dokploy, Traefik…), retire le bloc `ports` du backend dans
-> `docker-compose.yml` et route via le proxy.
+Le stack est **façonné pour la production** : le frontend est *buildé* puis servi en statique par
+nginx (assets hashés en cache long, shell et service worker en `no-cache`), et l'API est
+**proxyfiée sous le même domaine** en `/api`. Le navigateur ne fait donc aucun appel cross-origin,
+et le backend n'expose aucun port publiquement. Il n'y a plus qu'un port à placer derrière ton
+terminateur TLS (Dokploy, Traefik, Caddy…).
+
+Pour un déploiement sur ton domaine, renseigne aussi `VITE_SITE_URL` dans `.env` : elle pilote les
+URLs canoniques / Open Graph **et** réécrit `robots.txt` + `sitemap.xml` au build.
+
+> ⚠️ Vite inline ses variables **au build**, pas au démarrage du conteneur : après avoir changé un
+> `VITE_*`, il faut reconstruire l'image (`docker compose up --build`).
 
 ### 2b. Lancer en local (sans Docker)
+C'est le mode à utiliser pour développer — hot-reload des deux côtés :
 ```bash
 # Terminal 1 — API
 cd backend && npm install && npm run dev
@@ -149,6 +181,10 @@ cd backend && npm install && npm run dev
 # Terminal 2 — Frontend
 cd project && npm install && npm run dev
 ```
+- Frontend : http://localhost:5173 · API : http://localhost:3001
+
+Sans `VITE_API_URL`, le frontend vise `http://localhost:3001`. Le mettre à la chaîne **vide** bascule
+en même-origine (`/api`), ce que fait l'image Docker.
 
 ## 🔌 API
 
@@ -177,21 +213,36 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 
 ## ✅ Qualité
 
-- **Tests** : `npm test` côté `backend/` (auth + sync via supertest, cache HTTP : headers + 304,
-  cache LRU + **snapshot/hydrate**, **single-flight**, **params discover**, **saisons/épisodes**) et
-  `project/` (logique bibliothèque + export/import/tri, i18n, **SEO/meta**, **cache SWR + dédup**,
-  **« vu récemment »**, **saisons**, **srcset images** via vitest) — 59 + 75 tests verts.
+- **Tests** : `npm test` côté `backend/` (auth + sync via supertest, **garde du secret JWT**,
+  cache HTTP : headers + 304, cache LRU + **snapshot/hydrate**, **single-flight**,
+  **params discover**, **saisons/épisodes**) et `project/` (logique bibliothèque +
+  export/import/tri, i18n, **SEO/meta**, **cache SWR + dédup**, **« vu récemment »**,
+  **saisons**, **srcset images** via vitest) — **67 + 75 = 142 tests verts**.
 - **Vérifs** : `npm run lint` · `npm run typecheck` · `npm run build`.
 - **CI** : GitHub Actions lance lint + typecheck + tests + build sur chaque PR
   (`.github/workflows/ci.yml`).
+
+## 🔒 Sécurité
+
+- La **clé TMDB ne quitte jamais le serveur** : le frontend ne parle qu'à l'API NEOX.
+- **Aucun secret n'est versionné** — `.env` est ignoré, seul `.env.example` est suivi.
+- L'API **refuse de démarrer** en `NODE_ENV=production` sans `JWT_SECRET` : un secret de repli
+  connu de tous vaut une absence d'authentification.
+- Mots de passe **hachés bcrypt**, jetons JWT signés, `helmet`, rate-limit global + limiteur
+  strict sur `/api/auth`, corps de requête bornés.
+- Les routes privées (`/api/library`, `/api/auth/me`) sont en `no-store` — jamais mises en cache
+  par un navigateur ou un CDN.
 
 ## 🧰 Stack
 
 **Frontend** : React 18 · TypeScript · Vite · Tailwind CSS · lucide-react
 **Backend** : Node 20 · Express · node-fetch · cache en mémoire
+**Déploiement** : Docker multi-stage · nginx (statique + proxy `/api`)
 **Données** : [TMDB](https://www.themoviedb.org/) · disponibilité via JustWatch
 
-## 📄 Mentions
+## 📄 Licence & mentions
+
+Publié sous licence **[MIT](LICENSE)**.
 
 Ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB.
 NEOX n'héberge, ne stocke et ne diffuse aucun contenu vidéo.

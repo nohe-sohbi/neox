@@ -15,7 +15,10 @@ import type {
 } from './types';
 import { createTranslator, langFromLocale } from './i18n/core';
 
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/$/, '');
+// `??`, not `||`: an explicitly empty VITE_API_URL means "same origin" — the
+// production image serves the API under /api behind the same host, so requests
+// stay relative and never need CORS. Unset still falls back to the dev API.
+const API_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001').replace(/\/$/, '');
 
 // Catalogue locale (region + language), initialized from storage so the very
 // first request already uses the user's preference.

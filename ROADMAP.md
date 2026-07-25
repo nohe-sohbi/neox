@@ -168,7 +168,55 @@ Trois axes d'amélioration majeurs, toujours sans dépendance ni infra externe :
       posters sur mobile ne télécharge plus une image `w500` pour l'afficher à ~150 px : bande passante en
       moins, meilleur LCP, **contrat d'API inchangé**. Logique pure et **testée** (`project/src/lib/img.test.ts`).
 
-## ⏭️ Reste (nécessite une infra externe — volontairement non codé en dur)
+## ✅ Phase 10 — Prêt à publier : packaging de prod & durcissement (LIVRÉ)
+
+Le code applicatif était mûr, mais le repo n'était pas *publiable* : il se déployait sur un
+serveur de dev, tolérait un secret d'authentification par défaut, et n'avait ni licence ni
+vitrine. Cette phase traite l'écart entre « ça marche » et « ça se montre ».
+
+- [x] **Image frontend de production** — le `Dockerfile` lançait `vite dev --host`, c'est-à-dire un
+      serveur de développement en production (bundle non minifié, websocket HMR ouvert). Il est
+      remplacé par un **multi-stage** : `npm ci` + `vite build`, puis **nginx** qui sert le statique.
+      Assets hashés en `immutable` un an ; shell, service worker et manifeste en `no-cache` (sans
+      quoi un redéploiement continuerait à servir la build précédente). Image finale sans Node ni
+      sources. `.dockerignore` des deux côtés, backend en `node:20-alpine` + `npm ci --omit=dev`,
+      utilisateur **non-root**, et `HEALTHCHECK` sur les deux services.
+- [x] **API en même-origine** — nginx **proxifie `/api`** vers le backend sur le réseau interne. Le
+      navigateur ne fait plus d'appel cross-origin (plus de CORS), l'URL de l'API n'est plus gravée
+      dans le bundle, et le backend **n'expose plus aucun port publiquement** : un seul port à mettre
+      derrière TLS. Côté client, `VITE_API_URL` vide bascule en relatif (`??` au lieu de `||`, pour
+      qu'une chaîne vide reste une chaîne vide) ; non défini, le défaut dev `localhost:3001` tient.
+- [x] **Secret JWT obligatoire en production** — `auth.js` retombait sur un secret écrit en clair
+      dans le fichier, avec un simple `console.warn` : n'importe qui pouvait forger un jeton pour
+      n'importe quel compte. L'API **refuse désormais de démarrer** si `NODE_ENV=production` et
+      `JWT_SECRET` absent, et `docker compose` échoue avant même de construire (plus de valeur par
+      défaut partagée dans le compose — elle aurait satisfait la garde tout en restant publique).
+      Règle extraite en `assertSecretConfigured()` et **testée**, avec `requireAuth` (jeton forgé,
+      jeton expiré, jeton absent) : `backend/auth.test.js`, +8 tests → **142 verts**.
+- [x] **`robots.txt` / `sitemap.xml` suivent le domaine réel** — ils pointaient en dur vers
+      `https://neox.app`. Un script `postbuild` les réécrit depuis `VITE_SITE_URL`, la même variable
+      qui pilote déjà les URLs canoniques et Open Graph. Non définie, le placeholder reste et la
+      build passe.
+- [x] **Licence & vitrine** — **LICENSE MIT** ajoutée (sans licence, un repo public reste « tous
+      droits réservés »), badges CI/licence/tests, section sécurité dans le README, et une galerie
+      de captures prête à décommenter (spécifications de prise de vue dans
+      `docs/screenshots/README.md`).
+
+## ⏭️ Reste
+
+### 🔴 À faire avant de rendre le repo public
+
+- [ ] **Purger l'historique.** Une clé d'API tierce, dans un fichier d'environnement, est présente
+      dans 6 commits (le `.env` a été commité avant le pivot puis supprimé — supprimer un fichier
+      n'efface rien de l'historique). Le repo est privé aujourd'hui ; le passer public l'expose aux
+      scanners en quelques minutes. **Révoque la clé d'abord**, la purge ensuite. Accessoirement,
+      l'historique porte encore la trace de l'outil d'origine : repartir d'une histoire
+      squashée règle les deux problèmes d'un coup.
+- [ ] **Déployer et renseigner l'URL de démo** dans le README (le lien est un `#` en attendant).
+- [ ] **Prendre les captures d'écran** — elles ont besoin d'une vraie clé TMDB pour montrer autre
+      chose que des états vides ; voir `docs/screenshots/README.md`.
+
+### 🟡 Nécessite une infra externe (volontairement non codé en dur)
 
 - [ ] **Notifications « ça arrive sur ta plateforme »** — requiert SMTP/push + un scheduler
       (cron) + détection de changement de dispo. À brancher quand l'infra mail/push est choisie.
@@ -176,5 +224,3 @@ Trois axes d'amélioration majeurs, toujours sans dépendance ni infra externe :
       mémoire par instance — voir Phase 4).
 - [ ] **SEO complet des fiches** — SSR/prerender (Next.js ou vite-plugin-ssr) ; les deep links
       fonctionnent déjà côté client.
-- [ ] **Sécurité** : faire tourner la clé du fournisseur présente dans l'historique git et purger
-      l'historique si le repo devient public (`git filter-repo`).

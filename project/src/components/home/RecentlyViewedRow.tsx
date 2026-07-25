@@ -29,7 +29,7 @@ export function RecentlyViewedRow() {
     <MediaRow
       title={t('home.recent')}
       items={items.map(toMediaItem)}
-      icon={<Clock className="h-5 w-5 text-brand-cyan" />}
+      icon={<Clock className="h-5 w-5 text-white/50" />}
     />
   );
 }

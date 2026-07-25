@@ -12,7 +12,7 @@ const ICONS: Record<ToastKind, typeof Info> = {
 const ACCENT: Record<ToastKind, string> = {
   success: 'border-emerald-500/30 text-emerald-300',
   error: 'border-red-500/30 text-red-300',
-  info: 'border-brand-cyan/30 text-brand-cyan',
+  info: 'border-white/25 text-white',
 };
 
 /**

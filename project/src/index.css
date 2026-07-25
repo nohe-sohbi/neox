@@ -62,16 +62,16 @@
 }
 
 @layer components {
-  .text-gradient {
-    @apply bg-brand-gradient bg-clip-text text-transparent;
-  }
-
+  /* The primary action is a slab of light. It reads `--film` when a title is in
+     context and falls back to plain white when none is, which is what keeps the
+     interface from inventing a colour it has no reason to show. */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand-gradient px-6 py-3
-      font-semibold text-white shadow-glow transition-all duration-200
-      hover:shadow-glow-cyan hover:brightness-110 active:scale-[0.97]
-      focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-ink-950
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3
+      font-semibold text-ink-950 transition-all duration-200
+      hover:brightness-110 active:scale-[0.97]
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-950
       disabled:opacity-50 disabled:pointer-events-none;
+    background-color: var(--film, #FFFFFF);
   }
 
   .btn-ghost {
@@ -101,8 +101,10 @@
 }
 
 @layer utilities {
+  /* Legibility over a busy backdrop, not a brand effect: a neutral drop that
+     detaches the letterforms without tinting them. */
   .text-shadow-glow {
-    text-shadow: 0 0 18px rgba(139, 92, 246, 0.45);
+    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.65);
   }
 
   /* Skeleton shimmer */

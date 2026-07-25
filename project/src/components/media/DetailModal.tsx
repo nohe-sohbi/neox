@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import { Bookmark, Calendar, Check, Clock, Eye, Film, Play, Star, Trash2, Tv, X } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { track } from '../../lib/analytics';
 import { SITE_URL } from '../../lib/seo';
 import { buildMediaSchema } from '../../lib/structured-data';
+import { useFilmColor } from '../../hooks/useFilmColor';
 import type { MediaDetails, MediaType } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
 import { useToast } from '../../context/ToastContext';
@@ -34,6 +35,8 @@ export function DetailModal() {
   const toast = useToast();
 
   const [details, setDetails] = useState<MediaDetails | null>(null);
+
+  const film = useFilmColor(details?.poster);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showTrailer, setShowTrailer] = useState(false);
@@ -100,6 +103,7 @@ export function DetailModal() {
         aria-label={details?.title || t('detail.loading')}
         tabIndex={-1}
         className="relative w-full max-w-4xl animate-scale-in overflow-hidden bg-ink-900 shadow-2xl outline-none sm:rounded-3xl sm:border sm:border-white/10"
+        style={film ? ({ '--film': film.light } as CSSProperties) : undefined}
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -161,7 +165,7 @@ export function DetailModal() {
                       className="group absolute inset-0 flex items-center justify-center"
                       aria-label={t('detail.play_trailer')}
                     >
-                      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-gradient shadow-glow transition-transform group-hover:scale-110">
+                      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--film,theme(colors.white))] text-ink-950 transition-transform group-hover:scale-110">
                         <Play className="ml-1 h-7 w-7 fill-white text-white" />
                       </span>
                     </button>
@@ -335,10 +339,10 @@ export function DetailModal() {
                             src={member.photo}
                             alt={member.name}
                             loading="lazy"
-                            className="mb-1.5 h-20 w-20 rounded-full object-cover ring-1 ring-white/10 transition-all group-hover:ring-brand-violet/50"
+                            className="mb-1.5 h-20 w-20 rounded-full object-cover ring-1 ring-white/10 transition-all group-hover:ring-white/40"
                           />
                         ) : (
-                          <div className="mb-1.5 flex h-20 w-20 items-center justify-center rounded-full bg-ink-700 text-lg font-bold text-white/40 transition-all group-hover:ring-1 group-hover:ring-brand-violet/50">
+                          <div className="mb-1.5 flex h-20 w-20 items-center justify-center rounded-full bg-ink-700 text-lg font-bold text-white/40 transition-all group-hover:ring-1 group-hover:ring-white/40">
                             {member.name.slice(0, 1)}
                           </div>
                         )}

@@ -70,7 +70,7 @@ export function SearchView() {
         {debounced ? (
           <>
             {t('search.results_for')}{' '}
-            <span className="text-gradient">{t('search.quoted', { term: debounced })}</span>
+            <span className="text-white">{t('search.quoted', { term: debounced })}</span>
           </>
         ) : (
           t('search.title')

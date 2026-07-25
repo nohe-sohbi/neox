@@ -163,7 +163,7 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
             onClick={() => setSort(s.id)}
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
               sort === s.id
-                ? 'bg-brand-gradient text-white shadow-glow'
+                ? 'bg-white text-ink-950'
                 : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
             }`}
           >
@@ -174,7 +174,7 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
           onClick={() => setShowPlatforms((s) => !s)}
           className={`ml-auto inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
             platformsActive
-              ? 'bg-brand-gradient text-white shadow-glow'
+              ? 'bg-white text-ink-950'
               : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
           }`}
         >
@@ -211,7 +211,7 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
                   onClick={() => platforms.toggle(p.id)}
                   className={`flex items-center gap-2 rounded-lg border p-1.5 pr-3 transition-all ${
                     on
-                      ? 'border-brand-violet/60 bg-brand-violet/15 text-white'
+                      ? 'border-white/40 bg-white/12 text-white'
                       : 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
                   }`}
                 >
@@ -256,7 +256,7 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
           <select
             value={year ?? ''}
             onChange={(e) => setYear(e.target.value ? Number(e.target.value) : undefined)}
-            className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/90 outline-none transition-colors hover:bg-white/10 focus:border-brand-violet/60"
+            className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/90 outline-none transition-colors hover:bg-white/10 focus:border-white/40"
           >
             <option value="">{t('discover.all_years')}</option>
             {YEAR_OPTIONS.map((y) => (
@@ -279,7 +279,7 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
                   aria-pressed={on}
                   className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium transition-all ${
                     on
-                      ? 'bg-brand-gradient text-white shadow-glow'
+                      ? 'bg-white text-ink-950'
                       : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
                   }`}
                 >
@@ -312,7 +312,7 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
           <>
             <MediaGrid items={items} loading={loading} />
             <div ref={sentinelRef} className="flex justify-center py-10">
-              {loadingMore && <Spinner className="h-6 w-6 text-brand-cyan" />}
+              {loadingMore && <Spinner className="h-6 w-6 text-white/70" />}
             </div>
           </>
         )}

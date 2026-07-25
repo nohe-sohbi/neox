@@ -5,6 +5,8 @@ import { useLibrary } from '../../context/LibraryContext';
 import { useToast } from '../../context/ToastContext';
 import { useOpenDetail } from '../../hooks/useDetailRoute';
 import { backdropImg } from '../../lib/img';
+import { useFilmColor } from '../../hooks/useFilmColor';
+import type { CSSProperties } from 'react';
 import { useT } from '../../lib/i18n';
 
 export function Hero({ items }: { items: MediaItem[] }) {
@@ -31,12 +33,20 @@ export function Hero({ items }: { items: MediaItem[] }) {
     }
   }, [active, items]);
 
-  if (items.length === 0) return null;
+  // Every hook runs before the empty-list guard: an early return above a hook
+  // changes the hook order the moment the payload arrives, which React treats
+  // as a different component.
   const current = items[active];
+  const film = useFilmColor(current?.poster);
+
+  if (items.length === 0 || !current) return null;
   const saved = isSaved(current);
 
   return (
-    <section className="relative h-[70vh] min-h-[460px] w-full overflow-hidden">
+    <section
+      className="relative h-[70vh] min-h-[460px] w-full overflow-hidden"
+      style={film ? ({ '--film': film.light } as CSSProperties) : undefined}
+    >
       {items.map((item, i) => {
         const bd = item.backdrop ? backdropImg(item.backdrop) : null;
         return (
@@ -60,14 +70,29 @@ export function Hero({ items }: { items: MediaItem[] }) {
         );
       })}
 
-      <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/40 to-transparent" />
+      {/* The veil that lifts the title off the artwork. Neutral by default; once
+          the poster's hue is known it takes that temperature, so the whole hero
+          changes colour as the carousel advances. */}
+      <div
+        className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/40 to-transparent"
+        style={film ? ({ '--tw-gradient-via': `${film.veil}99` } as CSSProperties) : undefined}
+      />
       <div className="absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/60 to-transparent" />
+      {film && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-70"
+          style={{
+            background: `radial-gradient(90% 120% at 10% 92%, ${film.veil} 0%, transparent 62%)`,
+          }}
+        />
+      )}
 
       <div className="relative z-10 flex h-full items-end pb-16">
         <div className="container mx-auto px-6">
           <div key={current.id} className="max-w-2xl animate-slide-up">
             <div className="mb-4 flex items-center gap-3 text-sm font-medium text-white/70">
-              <span className="rounded-md bg-brand-gradient px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-white">
+              <span className="rounded-md bg-[var(--film,theme(colors.white))] px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-ink-950">
                 {current.mediaType === 'tv' ? t('hero.series') : t('hero.movie')}
               </span>
               {current.rating ? (
@@ -122,7 +147,7 @@ export function Hero({ items }: { items: MediaItem[] }) {
               <span
                 className={`block h-1.5 rounded-full transition-all duration-300 ${
                   i === active
-                    ? 'w-8 bg-brand-gradient'
+                    ? 'w-8 bg-[var(--film,theme(colors.white))]'
                     : 'w-2 bg-white/40 group-hover:bg-white/70'
                 }`}
               />

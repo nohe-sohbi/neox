@@ -108,7 +108,7 @@ export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: Season
               onClick={() => setSelected(season.seasonNumber)}
               className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
                 isActive
-                  ? 'bg-brand-gradient text-white shadow-glow'
+                  ? 'bg-white text-ink-950'
                   : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
               }`}
             >
@@ -120,7 +120,7 @@ export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: Season
 
       {loading && (
         <div className="flex items-center gap-2 py-8 text-sm text-white/50">
-          <Spinner className="h-4 w-4 text-brand-cyan" />
+          <Spinner className="h-4 w-4 text-white/70" />
           {t('season.loading')}
         </div>
       )}

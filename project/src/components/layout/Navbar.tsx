@@ -88,7 +88,7 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
               value={q}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={t('nav.search_placeholder')}
-              className="w-40 rounded-full border border-white/15 bg-white/5 py-2 pl-9 pr-8 text-sm text-white placeholder-white/40 outline-none transition-all focus:w-56 focus:border-brand-violet/50 focus:bg-white/10 focus:ring-2 focus:ring-brand-violet/30 sm:w-52 sm:focus:w-72"
+              className="w-40 rounded-full border border-white/15 bg-white/5 py-2 pl-9 pr-8 text-sm text-white placeholder-white/40 outline-none transition-all focus:w-56 focus:border-white/40 focus:bg-white/10 focus:ring-2 focus:ring-white/20 sm:w-52 sm:focus:w-72"
             />
             {q ? (
               <button
@@ -124,7 +124,7 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
           >
             <Bookmark className="h-5 w-5" />
             {count > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-gradient px-1 text-[10px] font-bold text-white">
+              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-ink-950">
                 {count > 99 ? '99+' : count}
               </span>
             )}
@@ -139,7 +139,7 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
               <button
                 onClick={() => setMenuOpen((o) => !o)}
                 aria-label={t('nav.account')}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-gradient text-sm font-bold uppercase text-white shadow-glow"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/12 text-sm font-bold uppercase text-white ring-1 ring-white/20"
               >
                 {user.email.slice(0, 1)}
               </button>

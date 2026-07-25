@@ -9,7 +9,7 @@ export function Spinner({ className = '' }: { className?: string }) {
 export function FullSpinner({ label }: { label?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-24 text-white/60">
-      <Spinner className="h-8 w-8 text-brand-cyan" />
+      <Spinner className="h-8 w-8 text-white/70" />
       {label && <p className="text-sm">{label}</p>}
     </div>
   );

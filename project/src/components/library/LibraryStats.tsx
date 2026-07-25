@@ -33,7 +33,7 @@ export function LibraryStats({ entries }: { entries: LibraryEntry[] }) {
         aria-expanded={open}
         className="flex w-full items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-left text-sm font-semibold text-white/80 transition-colors hover:bg-white/10"
       >
-        <BarChart3 className="h-4 w-4 text-brand-cyan" />
+        <BarChart3 className="h-4 w-4 text-white/50" />
         {open ? t('stats.hide') : t('stats.show')}
         <ChevronDown
           className={`ml-auto h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`}
@@ -76,7 +76,7 @@ export function LibraryStats({ entries }: { entries: LibraryEntry[] }) {
                   <div key={i} className="flex flex-1 flex-col items-center gap-1">
                     <div className="flex h-24 w-full items-end">
                       <div
-                        className="w-full rounded-t bg-brand-gradient transition-all"
+                        className="w-full rounded-t bg-white/80 transition-all"
                         style={{ height: `${(count / maxBar) * 100}%` }}
                         title={`${i + 1}: ${count}`}
                       />

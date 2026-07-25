@@ -108,7 +108,7 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
         <div>
           <h1 className="flex items-center gap-3 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
             {t('library.title')}
-            {syncing && <Loader2 className="h-5 w-5 animate-spin text-brand-cyan" />}
+            {syncing && <Loader2 className="h-5 w-5 animate-spin text-white/70" />}
           </h1>
           <p className="mt-1 text-white/50">
             {entries.length > 0
@@ -163,9 +163,9 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
       {!user && entries.length > 0 && (
         <button
           onClick={onOpenAuth}
-          className="mb-6 flex w-full items-center gap-3 rounded-2xl border border-brand-violet/30 bg-brand-violet/10 p-4 text-left transition-colors hover:bg-brand-violet/15"
+          className="mb-6 flex w-full items-center gap-3 rounded-2xl border border-white/15 bg-white/5 p-4 text-left transition-colors hover:bg-white/10"
         >
-          <Cloud className="h-6 w-6 shrink-0 text-brand-cyan" />
+          <Cloud className="h-6 w-6 shrink-0 text-white/50" />
           <div>
             <p className="font-semibold text-white">{t('library.sync_cta_title')}</p>
             <p className="text-sm text-white/60">{t('library.sync_cta_desc')}</p>
@@ -194,7 +194,7 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
                   onClick={() => setFilter(f.id)}
                   className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
                     filter === f.id
-                      ? 'bg-brand-gradient text-white shadow-glow'
+                      ? 'bg-white text-ink-950'
                       : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
                   }`}
                 >
@@ -209,7 +209,7 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as SortMode)}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white outline-none transition-colors hover:bg-white/10 focus:border-brand-violet/50"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white outline-none transition-colors hover:bg-white/10 focus:border-white/40"
               >
                 {SORT_MODES.map((m) => (
                   <option key={m.id} value={m.id} className="bg-ink-900">

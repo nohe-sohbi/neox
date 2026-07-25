@@ -14,7 +14,9 @@ recommandations « Pour toi », palette `Ctrl K`, rail « Reprends où tu en ét
 sans compte, panneau de statistiques calculé localement. Comptes optionnels (bcrypt + JWT, store
 JSON) avec fusion localStorage vers compte à la connexion.
 
-**Interface.** Design system Tailwind sur-mesure en thème sombre, typographie auto-hébergée
+**Interface.** Aucune couleur d'accent déclarée : la teinte vient de l'affiche du titre affiché,
+extraite dans le navigateur et rendue comme de la lumière. Design system Tailwind sur-mesure en
+thème sombre, typographie auto-hébergée
 (Bricolage Grotesque pour les titres, Instrument Sans pour l'interface), i18n complète FR / EN / ES /
 DE / IT, PWA installable avec shell hors-ligne, images responsives via `srcset` dérivé côté client,
 toasts accessibles en région `aria-live`, piège de focus partagé par les quatre overlays, skip-link,
@@ -36,7 +38,7 @@ build depuis `VITE_SITE_URL`.
 
 **Packaging.** Image frontend multi-stage (`vite build` puis nginx), API proxyfiée en même-origine
 sous `/api`, conteneurs non-root avec `HEALTHCHECK`, `JWT_SECRET` obligatoire en production,
-licence MIT, 157 tests et CI GitHub Actions sur chaque PR.
+licence MIT, 170 tests et CI GitHub Actions sur chaque PR.
 
 ## Reste
 

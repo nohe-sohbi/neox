@@ -1,9 +1,11 @@
+import type { CSSProperties } from 'react';
 import { Bookmark, Check, Film, Tv } from 'lucide-react';
 import type { MediaItem } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
 import { useToast } from '../../context/ToastContext';
 import { useOpenDetail } from '../../hooks/useDetailRoute';
 import { posterImg } from '../../lib/img';
+import { useFilmColor } from '../../hooks/useFilmColor';
 import { RatingBadge } from '../ui/RatingBadge';
 import { useT } from '../../lib/i18n';
 
@@ -15,10 +17,14 @@ export function MediaCard({ item }: { item: MediaItem }) {
   const saved = isSaved(item);
   const watched = statusOf(item) === 'watched';
   const poster = item.poster ? posterImg(item.poster) : null;
+  // The card borrows the artwork's hue. Null until it resolves, and null
+  // forever for a title with no poster: the neutral card is the default.
+  const film = useFilmColor(item.poster);
 
   return (
     <article
       className="group relative w-full cursor-pointer"
+      style={film ? ({ '--film': film.light } as CSSProperties) : undefined}
       onClick={() => openDetail(item)}
       role="button"
       tabIndex={0}
@@ -29,7 +35,16 @@ export function MediaCard({ item }: { item: MediaItem }) {
         }
       }}
     >
-      <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-ink-800 shadow-card ring-1 ring-white/5 transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-glow group-hover:ring-brand-violet/40">
+      {/* The light the poster casts behind itself, like a backlit frame in a
+          foyer. It sits under the artwork and only appears on hover or focus. */}
+      {film && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-[8%] top-[10%] bottom-[18%] rounded-2xl bg-[var(--film)] opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-50 group-focus-visible:opacity-50"
+        />
+      )}
+
+      <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-ink-800 shadow-card ring-1 ring-white/5 transition-all duration-300 group-hover:ring-white/20">
         {poster ? (
           <img
             src={poster.src}
@@ -71,7 +86,7 @@ export function MediaCard({ item }: { item: MediaItem }) {
           aria-label={saved ? t('card.remove') : t('card.add')}
           className={`absolute bottom-2 right-2 flex h-9 w-9 translate-y-2 items-center justify-center rounded-full backdrop-blur-md transition-all duration-300 group-hover:translate-y-0 ${
             saved
-              ? 'bg-brand-gradient text-white shadow-glow'
+              ? 'bg-[var(--film,theme(colors.white))] text-ink-950'
               : 'bg-black/60 text-white/80 hover:bg-black/80'
           }`}
         >
@@ -83,7 +98,9 @@ export function MediaCard({ item }: { item: MediaItem }) {
         <h3 className="truncate text-sm font-semibold text-white/90 transition-colors group-hover:text-white">
           {item.title}
         </h3>
-        <p className="text-xs text-white/55">{item.year || '—'}</p>
+        <p className="text-xs text-white/55 transition-colors duration-300 group-hover:text-[var(--film,theme(colors.white))]">
+          {item.year || '—'}
+        </p>
       </div>
     </article>
   );

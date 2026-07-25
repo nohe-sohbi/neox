@@ -104,7 +104,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t('auth.email_placeholder')}
-              className="w-full rounded-xl border border-white/15 bg-white/5 py-3 pl-11 pr-4 text-white placeholder-white/40 outline-none transition-all focus:border-brand-violet/50 focus:ring-2 focus:ring-brand-violet/30"
+              className="w-full rounded-xl border border-white/15 bg-white/5 py-3 pl-11 pr-4 text-white placeholder-white/40 outline-none transition-all focus:border-white/40 focus:ring-2 focus:ring-white/20"
             />
           </div>
           <div className="relative">
@@ -116,7 +116,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={mode === 'register' ? t('auth.password_min') : t('auth.password_placeholder')}
-              className="w-full rounded-xl border border-white/15 bg-white/5 py-3 pl-11 pr-4 text-white placeholder-white/40 outline-none transition-all focus:border-brand-violet/50 focus:ring-2 focus:ring-brand-violet/30"
+              className="w-full rounded-xl border border-white/15 bg-white/5 py-3 pl-11 pr-4 text-white placeholder-white/40 outline-none transition-all focus:border-white/40 focus:ring-2 focus:ring-white/20"
             />
           </div>
 
@@ -144,7 +144,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               setMode(mode === 'login' ? 'register' : 'login');
               setError(null);
             }}
-            className="font-semibold text-brand-cyan transition-colors hover:text-white"
+            className="font-semibold text-white underline decoration-white/40 underline-offset-4 transition-colors hover:decoration-white"
           >
             {mode === 'login' ? t('auth.signup_link') : t('auth.login_link')}
           </button>

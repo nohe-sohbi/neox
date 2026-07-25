@@ -29,12 +29,12 @@ function App() {
       {/* Keyboard / screen-reader users can jump straight to the content. */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-brand-gradient focus:px-4 focus:py-2 focus:font-semibold focus:text-white focus:shadow-glow"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:font-semibold focus:text-ink-950"
       >
         {t('a11y.skip')}
       </a>
 
-      <div className="pointer-events-none fixed inset-0 bg-aurora" />
+      <div aria-hidden className="pointer-events-none fixed inset-0 bg-aurora opacity-20 transition-colors duration-700" />
 
       <Navbar onOpenAuth={() => setAuthOpen(true)} />
 

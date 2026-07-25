@@ -64,7 +64,7 @@ export function LocaleMenu() {
                 >
                   <span className="text-lg">{l.flag}</span>
                   <span className="flex-1">{l.label}</span>
-                  {active && <Check className="h-4 w-4 text-brand-cyan" />}
+                  {active && <Check className="h-4 w-4 text-white" />}
                 </button>
               );
             })}

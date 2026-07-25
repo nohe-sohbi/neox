@@ -57,7 +57,7 @@ export function ForYouRow() {
       title={t('home.for_you')}
       items={items}
       loading={loading}
-      icon={<Sparkles className="h-5 w-5 text-brand-cyan" />}
+      icon={<Sparkles className="h-5 w-5 text-white/50" />}
     />
   );
 }

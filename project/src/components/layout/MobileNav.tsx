@@ -41,14 +41,14 @@ export function MobileNav() {
                 <span className="relative">
                   <item.icon className="h-5 w-5" />
                   {item.to === '/library' && count > 0 && (
-                    <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-gradient px-1 text-[9px] font-bold text-white">
+                    <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[9px] font-bold text-ink-950">
                       {count > 99 ? '99+' : count}
                     </span>
                   )}
                 </span>
                 {t(item.key)}
                 {isActive && (
-                  <span className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-brand-gradient" />
+                  <span className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-white" />
                 )}
               </>
             )}

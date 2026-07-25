@@ -86,6 +86,12 @@ Ce qui n'est pas visible à l'écran mais tient l'app debout :
   serait incohérent pour une app qui ne charge même pas de script d'analytics par défaut.
 - **Perf client.** Cache mémoire SWR avec dédup des requêtes en vol, `srcset` dérivé côté client des
   URLs TMDB, `ErrorBoundary` global au lieu d'un écran blanc.
+- **L'interface n'a pas de couleur d'accent.** Elle emprunte celle du titre affiché : la teinte
+  dominante de l'affiche est extraite dans le navigateur, pondérée par la saturation puis rendue
+  comme de la lumière, et c'est elle qui colore le hero, la carte survolée et la fiche ouverte. Là où
+  aucun titre n'est en contexte, comme la barre de navigation, l'état actif reste un blanc neutre.
+  Coût : zéro travail serveur, `image.tmdb.org` répondant `access-control-allow-origin: *`, et un
+  échantillon `w92` de quelques kilo-octets mis en cache un an.
 - **SEO.** Le `<head>` suit la route et la fiche ouverte (`title`, `description`, Open Graph,
   Twitter Card, canonique), avec des données structurées schema.org : `WebSite` + `SearchAction` sur
   l'accueil, `Movie` ou `TVSeries` sur une fiche, `Person` sur un profil. `aggregateRating` n'est
@@ -117,9 +123,9 @@ neox/
 │   └── library.js      validation et merge des bibliothèques
 └── project/            Frontend React + TypeScript + Vite + Tailwind
     └── src/
-        ├── lib/        client API typé, query (SWR + dédup), i18n, library-io, seo, structured-data, img
+        ├── lib/        client API typé, query (SWR + dédup), i18n, library-io, seo, structured-data, film-color, img
         ├── context/    AuthContext, LibraryContext
-        ├── hooks/      useQuery, useDebounce, useMyPlatforms, useModal, useDocumentMeta
+        ├── hooks/      useQuery, useDebounce, useMyPlatforms, useModal, useDocumentMeta, useFilmColor
         ├── components/ layout, media, home, auth, ui, command
         └── views/      Home, Discover, Search, Library
 ```
@@ -200,9 +206,10 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 
 ## Qualité
 
-- **157 tests** : 67 côté `backend/` (auth et sync via supertest, garde du secret JWT, cache HTTP,
-  cache LRU et snapshot/hydrate, single-flight, params discover, saisons) et 90 côté `project/`
-  (bibliothèque, export/import, i18n, SEO, données structurées, cache SWR, vu récemment, srcset).
+- **170 tests** : 67 côté `backend/` (auth et sync via supertest, garde du secret JWT, cache HTTP,
+  cache LRU et snapshot/hydrate, single-flight, params discover, saisons) et 103 côté `project/`
+  (bibliothèque, export/import, i18n, SEO, données structurées, extraction de teinte, cache SWR,
+  vu récemment, srcset).
 - **Vérifs** : `npm run lint`, `npm run typecheck`, `npm run build`.
 - **CI** : GitHub Actions lance lint, typecheck, tests et build sur chaque PR
   (`.github/workflows/ci.yml`).

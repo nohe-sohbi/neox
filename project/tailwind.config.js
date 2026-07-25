@@ -12,12 +12,6 @@ export default {
           700: '#1B1B29',
           600: '#262638',
         },
-        // Brand gradient anchors.
-        brand: {
-          cyan: '#22D3EE',
-          violet: '#8B5CF6',
-          fuchsia: '#D946EF',
-        },
       },
       fontFamily: {
         // Instrument Sans for the interface: narrow enough for dense metadata,
@@ -30,15 +24,15 @@ export default {
         display: ['"Bricolage Grotesque Variable"', '"Instrument Sans Variable"', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        glow: '0 0 40px -8px rgba(139, 92, 246, 0.55)',
-        'glow-cyan': '0 0 32px -6px rgba(34, 211, 238, 0.5)',
         card: '0 12px 40px -12px rgba(0, 0, 0, 0.7)',
       },
-      backgroundImage: {
-        'brand-gradient': 'linear-gradient(135deg, #22D3EE 0%, #8B5CF6 55%, #D946EF 100%)',
-        'aurora':
-          'radial-gradient(60% 60% at 50% 0%, rgba(139,92,246,0.22) 0%, rgba(34,211,238,0.08) 40%, transparent 75%)',
-      },
+          backgroundImage: {
+      // Ambient light at the top of the page. It carries no hue of its own: the
+      // `--film` set by whatever title is in context tints it, and it stays a
+      // neutral lift when none is.
+      aurora:
+        'radial-gradient(60% 60% at 50% 0%, var(--film, rgba(255,255,255,0.10)) 0%, transparent 62%)',
+    },
       keyframes: {
         'fade-in': {
           '0%': { opacity: '0' },

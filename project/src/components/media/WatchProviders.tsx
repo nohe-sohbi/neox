@@ -54,7 +54,7 @@ export function WatchProviders({ providers }: { providers: Providers }) {
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => track('Providers Click')}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-cyan transition-colors hover:text-white"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--film,theme(colors.white))] transition-colors hover:text-white"
         >
           {t('providers.justwatch')}
           <ExternalLink className="h-3.5 w-3.5" />

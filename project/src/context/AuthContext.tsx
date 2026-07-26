@@ -17,6 +17,12 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  /** Rotates the password and, with it, every session but this one. */
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  /** Signs every other device out, keeping this one. */
+  logoutEverywhere: () => Promise<void>;
+  /** Erases the account, its preferences and its library. Irreversible. */
+  deleteAccount: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -66,9 +72,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  // Both of these revoke every token the account has issued, including the one
+  // this device is holding, so they hand back a fresh one: the device that asked
+  // stays signed in, the others are cut off.
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    const res = await api.changePassword(currentPassword, newPassword);
+    setAuthToken(res.token);
+  }, []);
+
+  const logoutEverywhere = useCallback(async () => {
+    const res = await api.logoutEverywhere();
+    setAuthToken(res.token);
+  }, []);
+
+  const deleteAccount = useCallback(
+    async (password: string) => {
+      await api.deleteAccount(password);
+      // Clearing `user` cascades: the library and preference providers wipe
+      // their local copies for the account that no longer exists.
+      logout();
+    },
+    [logout],
+  );
+
   const value = useMemo(
-    () => ({ user, ready, login, register, logout }),
-    [user, ready, login, register, logout],
+    () => ({ user, ready, login, register, logout, changePassword, logoutEverywhere, deleteAccount }),
+    [user, ready, login, register, logout, changePassword, logoutEverywhere, deleteAccount],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

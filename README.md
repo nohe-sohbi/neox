@@ -55,8 +55,13 @@ disponibilité légale (JustWatch via TMDB).
 - **Tenir sa liste** : statut À voir / Vu, note personnelle de 1 à 10, tri, filtres, et un panneau
   de statistiques calculé localement (progression, répartition films/séries, note moyenne,
   histogramme des notes, décennies de prédilection).
-- **Retrouver sa liste partout** : compte optionnel (inscription, connexion) qui synchronise la
-  bibliothèque entre appareils. Sans compte, tout reste en local, avec export et import JSON.
+- **Retrouver son NEOX partout** : compte optionnel (inscription, connexion) qui synchronise la
+  bibliothèque *et* les préférences entre appareils : plateformes de streaming, région et langue du
+  catalogue, tri et filtre par défaut de la liste. Sans compte, tout reste en local, avec export et
+  import JSON.
+- **Rester maître de son compte** : un panneau « Mon compte » pour changer son mot de passe,
+  déconnecter les autres appareils, exporter l'intégralité de ses données en un fichier, et
+  supprimer son compte pour de bon.
 - **Installer l'app** : PWA avec shell hors-ligne et images en cache, interface traduite en
   français, anglais, espagnol, allemand et italien.
 
@@ -75,7 +80,15 @@ Ce qui n'est pas visible à l'écran mais tient l'app debout :
 - **Cache HTTP.** Les endpoints de lecture envoient `Cache-Control` et des ETags forts, les routes
   privées sont en `no-store`.
 - **Auth self-contained.** bcrypt + JWT + store JSON atomique, aucun SaaS tiers. L'API refuse de
-  démarrer en production sans `JWT_SECRET`.
+  démarrer en production sans `JWT_SECRET`. Chaque jeton porte la génération du compte : changer son
+  mot de passe ou demander une déconnexion globale incrémente ce compteur et invalide d'un coup tous
+  les jetons émis avant, sans table de sessions à maintenir. La suppression d'un compte efface le
+  compte, ses préférences et sa bibliothèque, et ses jetons cessent de passer à la requête suivante.
+- **Sync sans écrasement.** La bibliothèque porte un numéro de révision : un `PUT` contre une
+  révision périmée est refusé en `409` avec l'état du serveur, que le client fusionne avant de
+  repousser. Sans ça, deux onglets ouverts suffisent à ce que le plus lent efface ce que l'autre
+  vient d'enregistrer. En cas de conflit, l'union gagne : perdre une suppression est moins grave que
+  perdre une collection.
 - **Accessibilité.** Les quatre overlays partagent un hook `useModal` (piège de focus, restauration,
   `Escape`, verrou de scroll, `role="dialog"`), les actions passent par une région `aria-live`, il y
   a un skip-link. Contrastes mesurés, pas estimés : tout le texte passe le 4.5:1 de WCAG AA sur le
@@ -118,19 +131,22 @@ neox/
 │   ├── single-flight.js coalescing des requêtes amont concurrentes
 │   ├── circuit-breaker.js disjoncteur sur la santé de TMDB
 │   ├── http-cache.js   middlewares Cache-Control, ETag/304, no-store
-│   ├── auth.js         bcrypt + JWT, middleware requireAuth
+│   ├── auth.js         bcrypt + JWT (générations de jetons), middleware requireAuth
 │   ├── store.js        store JSON persistant, atomique, zéro dépendance
-│   └── library.js      validation et merge des bibliothèques
+│   ├── library.js      validation et merge des bibliothèques
+│   └── preferences.js  validation des préférences de compte
 └── project/            Frontend React + TypeScript + Vite + Tailwind
     └── src/
-        ├── lib/        client API typé, query (SWR + dédup), i18n, library-io, seo, structured-data, film-color, img
-        ├── context/    AuthContext, LibraryContext
+        ├── lib/        client API typé, query (SWR + dédup), i18n, library-io, preferences, seo, structured-data, film-color, img
+        ├── context/    AuthContext, PreferencesContext, LibraryContext
         ├── hooks/      useQuery, useDebounce, useMyPlatforms, useModal, useDocumentMeta, useFilmColor
         ├── components/ layout, media, home, auth, ui, command
         └── views/      Home, Discover, Search, Library
 ```
 
-La bibliothèque est localStorage-first, puis fusionnée au compte à la connexion.
+Bibliothèque et préférences sont localStorage-first, puis réconciliées avec le compte à la
+connexion : la bibliothèque par fusion, les préférences en gardant le côté modifié le plus
+récemment. Sans compte, rien ne change, tout vit dans le navigateur.
 
 ## Démarrage
 
@@ -197,8 +213,14 @@ même-origine (`/api`), ce que fait l'image Docker.
 | POST | `/api/auth/register` | Création de compte, renvoie `{ token, user }` |
 | POST | `/api/auth/login` | Connexion, renvoie `{ token, user }` |
 | GET | `/api/auth/me` 🔒 | Profil du token courant |
-| GET | `/api/library` 🔒 | Bibliothèque du compte |
-| PUT | `/api/library` 🔒 | Remplace la bibliothèque |
+| PATCH | `/api/account/password` 🔒 | Change le mot de passe, révoque les autres sessions |
+| POST | `/api/account/logout-all` 🔒 | Déconnecte tous les autres appareils |
+| GET | `/api/account/export` 🔒 | Compte + préférences + bibliothèque en un document |
+| DELETE | `/api/account` 🔒 | Supprime le compte et ses données (mot de passe requis) |
+| GET | `/api/preferences` 🔒 | Préférences du compte (`null` si jamais enregistrées) |
+| PUT | `/api/preferences` 🔒 | Met à jour les préférences (patch partiel) |
+| GET | `/api/library` 🔒 | Bibliothèque du compte, avec sa révision |
+| PUT | `/api/library` 🔒 | Remplace la bibliothèque (`409` si `rev` est périmée) |
 | POST | `/api/library/merge` 🔒 | Fusionne local et serveur |
 
 🔒 requiert l'en-tête `Authorization: Bearer <token>`.
@@ -206,10 +228,11 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 
 ## Qualité
 
-- **170 tests** : 67 côté `backend/` (auth et sync via supertest, garde du secret JWT, cache HTTP,
-  cache LRU et snapshot/hydrate, single-flight, params discover, saisons) et 103 côté `project/`
-  (bibliothèque, export/import, i18n, SEO, données structurées, extraction de teinte, cache SWR,
-  vu récemment, srcset).
+- **210 tests** : 96 côté `backend/` (auth, gestion de compte et sync via supertest, révocation de
+  jetons, conflits de révision, validation des préférences, garde du secret JWT, cache HTTP, cache
+  LRU et snapshot/hydrate, single-flight, params discover, saisons) et 114 côté `project/`
+  (bibliothèque, préférences, export/import, i18n, SEO, données structurées, extraction de teinte,
+  cache SWR, vu récemment, srcset).
 - **Vérifs** : `npm run lint`, `npm run typecheck`, `npm run build`.
 - **CI** : GitHub Actions lance lint, typecheck, tests et build sur chaque PR
   (`.github/workflows/ci.yml`).
@@ -221,9 +244,14 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 - L'API refuse de démarrer en `NODE_ENV=production` sans `JWT_SECRET` : un secret de repli connu de
   tous vaut une absence d'authentification.
 - Mots de passe hachés bcrypt, jetons JWT signés, `helmet`, rate-limit global et limiteur strict sur
-  `/api/auth`, corps de requête bornés.
-- Les routes privées (`/api/library`, `/api/auth/me`) sont en `no-store`, jamais mises en cache par
-  un navigateur ou un CDN.
+  `/api/auth` et `/api/account`, corps de requête bornés.
+- Les jetons sont révocables malgré leur nature stateless : un compteur de génération par compte,
+  incrémenté au changement de mot de passe et à la déconnexion globale, invalide instantanément tous
+  les jetons plus anciens. Un jeton d'un compte supprimé ne passe plus.
+- Changer son mot de passe et supprimer son compte redemandent le mot de passe courant : un jeton
+  valide prouve la session, pas la personne devant l'appareil.
+- Les routes privées (`/api/library`, `/api/preferences`, `/api/account`, `/api/auth/me`) sont en
+  `no-store`, jamais mises en cache par un navigateur ou un CDN.
 
 ## Stack
 

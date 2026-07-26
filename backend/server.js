@@ -16,6 +16,7 @@ const tmdb = require('./tmdb');
 const store = require('./store');
 const auth = require('./auth');
 const { sanitizeLibrary, mergeLibraries } = require('./library');
+const { sanitizePreferences } = require('./preferences');
 const { cacheControl, noStore, TTL } = require('./http-cache');
 
 const app = express();
@@ -31,10 +32,13 @@ app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
 // Generous global limiter + a strict one for auth to blunt brute force.
+// `/api/account` is behind the strict one too: changing a password and deleting
+// an account both re-check the current password, so they are guessable surfaces
+// exactly like /api/auth/login.
 const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 600, standardHeaders: true, legacyHeaders: false });
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
 app.use('/api', apiLimiter);
-app.use('/api/auth', authLimiter);
+app.use(['/api/auth', '/api/account'], authLimiter);
 
 // Tiny request logger: quiet but useful in dev.
 app.use((req, _res, next) => {
@@ -178,8 +182,9 @@ app.post(
 
 /* ------------------------------- auth --------------------------------- */
 
-// Auth + library responses are per-user and must never be cached by anyone.
-app.use(['/api/auth', '/api/library'], noStore);
+// Auth, account, library and preference responses are per-user and must never
+// be cached by anyone.
+app.use(['/api/auth', '/api/account', '/api/library', '/api/preferences'], noStore);
 
 app.post(
     '/api/auth/register',
@@ -220,10 +225,118 @@ app.get('/api/auth/me', auth.requireAuth, (req, res) => {
     res.json({ user: store.publicUser(user) });
 });
 
+/* ------------------------------ account ------------------------------- */
+
+const ACCOUNT_NOT_FOUND = { error: 'Compte introuvable.', code: 'AUTH_ACCOUNT_NOT_FOUND' };
+const CURRENT_PASSWORD_INVALID = {
+    error: 'Mot de passe actuel incorrect.',
+    code: 'AUTH_CURRENT_PASSWORD_INVALID',
+};
+
+/**
+ * Re-checks the password of the authenticated account. A valid token proves the
+ * session, not the person holding the device, so both destructive account
+ * operations ask again.
+ */
+async function verifyCurrentPassword(userId, password) {
+    const user = store.getUserById(userId);
+    if (!user) return { user: null, ok: false };
+    const ok = Boolean(password) && (await auth.verifyPassword(String(password), user.passwordHash));
+    return { user, ok };
+}
+
+app.patch(
+    '/api/account/password',
+    auth.requireAuth,
+    route(async (req, res) => {
+        const { currentPassword, newPassword } = req.body || {};
+        const invalid = auth.validatePassword(newPassword);
+        if (invalid) return res.status(400).json(invalid);
+
+        const { user, ok } = await verifyCurrentPassword(req.userId, currentPassword);
+        if (!user) return res.status(404).json(ACCOUNT_NOT_FOUND);
+        if (!ok) return res.status(401).json(CURRENT_PASSWORD_INVALID);
+
+        const updated = await store.setPassword(req.userId, await auth.hashPassword(newPassword));
+        // The change revoked every token, including the one that made this call:
+        // hand back a fresh one so the device that did the right thing is not the
+        // one that gets logged out.
+        res.json({ token: auth.signToken(updated) });
+    }),
+);
+
+app.post(
+    '/api/account/logout-all',
+    auth.requireAuth,
+    route(async (req, res) => {
+        const updated = await store.revokeSessions(req.userId);
+        if (!updated) return res.status(404).json(ACCOUNT_NOT_FOUND);
+        res.json({ token: auth.signToken(updated) });
+    }),
+);
+
+/**
+ * Everything the account holds, in one document. `entries` sits at the top level
+ * on purpose: the file doubles as a library backup, so a full export can be fed
+ * straight back into the app's "Import" without any conversion.
+ */
+app.get('/api/account/export', auth.requireAuth, (req, res) => {
+    const user = store.getUserById(req.userId);
+    if (!user) return res.status(404).json(ACCOUNT_NOT_FOUND);
+    res.json({
+        app: 'neox',
+        type: 'account',
+        version: 1,
+        exportedAt: Date.now(),
+        account: store.publicUser(user),
+        preferences: store.getPreferences(req.userId),
+        entries: store.getLibrary(req.userId),
+    });
+});
+
+app.delete(
+    '/api/account',
+    auth.requireAuth,
+    route(async (req, res) => {
+        const { user, ok } = await verifyCurrentPassword(req.userId, req.body?.password);
+        if (!user) return res.status(404).json(ACCOUNT_NOT_FOUND);
+        if (!ok) return res.status(401).json(CURRENT_PASSWORD_INVALID);
+
+        await store.deleteUser(req.userId);
+        res.status(204).end();
+    }),
+);
+
+/* ---------------------------- preferences ----------------------------- */
+
+// `null` means "this account has never saved preferences", which the client
+// needs in order to tell a fresh account (adopt what is on this device) from a
+// deliberate reset (adopt what is on the server).
+app.get('/api/preferences', auth.requireAuth, (req, res) => {
+    res.json({ preferences: store.getPreferences(req.userId) });
+});
+
+app.put(
+    '/api/preferences',
+    auth.requireAuth,
+    route(async (req, res) => {
+        const incoming = req.body?.preferences;
+        if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) {
+            const err = new Error('Field "preferences" must be an object.');
+            err.status = 400;
+            err.code = 'PREFERENCES_INVALID_BODY';
+            throw err;
+        }
+        const preferences = sanitizePreferences(incoming, store.getPreferences(req.userId) || undefined);
+        await store.setPreferences(req.userId, preferences);
+        res.json({ preferences });
+    }),
+);
+
 /* ------------------------------ library ------------------------------- */
 
 app.get('/api/library', auth.requireAuth, (req, res) => {
-    res.json({ entries: store.getLibrary(req.userId) });
+    res.json({ entries: store.getLibrary(req.userId), rev: store.getLibraryRev(req.userId) });
 });
 
 app.put(
@@ -239,9 +352,25 @@ app.put(
             err.code = 'LIBRARY_INVALID_BODY';
             throw err;
         }
+
+        // Optimistic concurrency. A client that sends the revision it last saw is
+        // told to re-merge when the server has moved on, instead of overwriting
+        // what another device saved in the meantime: a full-replacement PUT is a
+        // silent data-loss weapon between two open tabs. Omitting `rev` keeps the
+        // old force-replace behaviour, for clients that don't track it.
+        const clientRev = req.body.rev;
+        const currentRev = store.getLibraryRev(req.userId);
+        if (Number.isInteger(clientRev) && clientRev !== currentRev) {
+            return res.status(409).json({
+                error: 'La bibliothèque a changé sur un autre appareil.',
+                code: 'LIBRARY_CONFLICT',
+                entries: store.getLibrary(req.userId),
+                rev: currentRev,
+            });
+        }
+
         const entries = sanitizeLibrary(req.body.entries);
-        await store.setLibrary(req.userId, entries);
-        res.json({ entries });
+        res.json(await store.setLibrary(req.userId, entries));
     }),
 );
 
@@ -251,8 +380,7 @@ app.post(
     route(async (req, res) => {
         const incoming = sanitizeLibrary(req.body?.entries);
         const merged = mergeLibraries(store.getLibrary(req.userId), incoming);
-        await store.setLibrary(req.userId, merged);
-        res.json({ entries: merged });
+        res.json(await store.setLibrary(req.userId, merged));
     }),
 );
 

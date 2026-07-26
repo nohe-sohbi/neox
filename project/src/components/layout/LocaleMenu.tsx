@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Globe } from 'lucide-react';
 import { getLocale, setLocale } from '../../lib/api';
+import { usePreferences } from '../../context/PreferencesContext';
 import { useT } from '../../lib/i18n';
 
 const LOCALES = [
@@ -19,6 +20,7 @@ export function LocaleMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const current = getLocale();
+  const { updateNow } = usePreferences();
   const { t } = useT();
 
   useEffect(() => {
@@ -29,12 +31,15 @@ export function LocaleMenu() {
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
-  const select = (region: string, language: string) => {
+  const select = async (region: string, language: string) => {
     if (region === current.region && language === current.language) {
       setOpen(false);
       return;
     }
     setLocale({ region, language });
+    // Awaited, not debounced: the reload below would kill an in-flight push, and
+    // the whole point is that the choice follows the account to the next device.
+    await updateNow({ region, language });
     // Hard reload guarantees every view refetches with the new locale.
     window.location.reload();
   };
@@ -59,7 +64,7 @@ export function LocaleMenu() {
               return (
                 <button
                   key={l.region}
-                  onClick={() => select(l.region, l.language)}
+                  onClick={() => void select(l.region, l.language)}
                   className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-white/80 transition-colors hover:bg-white/5 hover:text-white"
                 >
                   <span className="text-lg">{l.flag}</span>

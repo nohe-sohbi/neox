@@ -1,7 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
+// `requireAuth` checks the account behind the token, so the store must be
+// isolated before it (and therefore auth) is loaded.
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'neox-auth-test-'));
+process.env.DATA_DIR = tmpDir;
 
 const jwt = require('jsonwebtoken');
+const store = require('./store');
 const auth = require('./auth');
+
+afterAll(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
 
 /** Drives `requireAuth` with a stub req/res and reports what happened. */
 function callRequireAuth(token) {
@@ -46,14 +57,20 @@ describe('JWT secret configuration', () => {
 });
 
 describe('requireAuth', () => {
-  it('accepts a token the module signed itself', () => {
-    const token = auth.signToken({ id: 'u1', email: 'demo@neox.test' });
+  let user;
 
-    expect(callRequireAuth(token)).toMatchObject({ passed: true, userId: 'u1' });
+  beforeAll(async () => {
+    user = await store.createUser({ email: 'demo@neox.test', passwordHash: 'x' });
+  });
+
+  it('accepts a token the module signed itself', () => {
+    const token = auth.signToken(user);
+
+    expect(callRequireAuth(token)).toMatchObject({ passed: true, userId: user.id });
   });
 
   it('rejects a token signed with a different secret', () => {
-    const forged = jwt.sign({ sub: 'u1', email: 'demo@neox.test' }, 'not-the-server-secret');
+    const forged = jwt.sign({ sub: user.id, email: user.email }, 'not-the-server-secret');
 
     expect(callRequireAuth(forged)).toMatchObject({
       passed: false,
@@ -63,7 +80,7 @@ describe('requireAuth', () => {
   });
 
   it('rejects an expired token', () => {
-    const expired = jwt.sign({ sub: 'u1' }, 'neox-dev-secret-change-me', { expiresIn: '-1s' });
+    const expired = jwt.sign({ sub: user.id }, 'neox-dev-secret-change-me', { expiresIn: '-1s' });
 
     expect(callRequireAuth(expired)).toMatchObject({
       passed: false,
@@ -78,5 +95,37 @@ describe('requireAuth', () => {
       status: 401,
       body: { code: 'AUTH_REQUIRED' },
     });
+  });
+
+  it('rejects a well-signed token for an account that no longer exists', () => {
+    const orphan = auth.signToken({ id: 'deleted-user', email: 'gone@neox.test' });
+
+    expect(callRequireAuth(orphan)).toMatchObject({
+      passed: false,
+      status: 401,
+      body: { code: 'AUTH_SESSION_INVALID' },
+    });
+  });
+
+  it('accepts a token issued before the tokenVersion claim existed', () => {
+    // Legacy token: signed by an older build, so no `tv`. It must keep working
+    // against an account still on generation 0, otherwise deploying this change
+    // would log everyone out.
+    const legacy = jwt.sign({ sub: user.id, email: user.email }, 'neox-dev-secret-change-me');
+
+    expect(callRequireAuth(legacy)).toMatchObject({ passed: true, userId: user.id });
+  });
+
+  it('rejects tokens minted before the sessions were revoked', async () => {
+    const before = auth.signToken(store.getUserById(user.id));
+    const revoked = await store.revokeSessions(user.id);
+    const after = auth.signToken(revoked);
+
+    expect(callRequireAuth(before)).toMatchObject({
+      passed: false,
+      status: 401,
+      body: { code: 'AUTH_SESSION_INVALID' },
+    });
+    expect(callRequireAuth(after)).toMatchObject({ passed: true, userId: user.id });
   });
 });

@@ -12,7 +12,15 @@ recommandations « Pour toi », palette `Ctrl K`, rail « Reprends où tu en ét
 
 **Bibliothèque.** Statut À voir / Vu, note personnelle 1 à 10, tri, filtres, export et import JSON
 sans compte, panneau de statistiques calculé localement. Comptes optionnels (bcrypt + JWT, store
-JSON) avec fusion localStorage vers compte à la connexion.
+JSON) avec fusion localStorage vers compte à la connexion, et sync par révision : un `PUT` contre
+une révision périmée est refusé plutôt que d'écraser ce qu'un autre appareil vient d'enregistrer.
+
+**Compte.** Les préférences suivent le compte, pas l'appareil : plateformes de streaming, région et
+langue du catalogue, tri et filtre par défaut de la liste, réconciliés à la connexion en gardant le
+côté modifié le plus récemment. Panneau « Mon compte » : changement de mot de passe, déconnexion de
+tous les autres appareils, export intégral des données en un fichier réimportable, suppression
+définitive du compte. Les jetons portent une génération, ce qui les rend révocables sans table de
+sessions.
 
 **Interface.** Aucune couleur d'accent déclarée : la teinte vient de l'affiche du titre affiché,
 extraite dans le navigateur et rendue comme de la lumière. Design system Tailwind sur-mesure en
@@ -38,7 +46,7 @@ build depuis `VITE_SITE_URL`.
 
 **Packaging.** Image frontend multi-stage (`vite build` puis nginx), API proxyfiée en même-origine
 sous `/api`, conteneurs non-root avec `HEALTHCHECK`, `JWT_SECRET` obligatoire en production,
-licence MIT, 170 tests et CI GitHub Actions sur chaque PR.
+licence MIT, 210 tests et CI GitHub Actions sur chaque PR.
 
 ## Reste
 
@@ -54,6 +62,18 @@ licence MIT, 170 tests et CI GitHub Actions sur chaque PR.
 - [x] **Déployé sur https://neox.sohbi.dev**, derrière Traefik avec un certificat Let's Encrypt.
       La stack compose tourne telle quelle : nginx sert le bundle et proxifie `/api` vers le
       backend, qui n'expose aucun port publiquement. Chaque `git push` sur `main` redéploie.
+
+### Produit, pour aller plus loin sur la partie connectée
+
+- [ ] **Suivi des épisodes.** Le navigateur de saisons affiche déjà les épisodes, mais une entrée de
+      bibliothèque ne connaît que « À voir » / « Vu ». Marquer épisode par épisode débloque la
+      progression sur la carte, un rail « Prochain épisode » et des statistiques en heures. Point
+      d'attention : le store réécrit tout son fichier à chaque mutation, il faudra grouper les
+      écritures avant d'ouvrir la vanne.
+- [ ] **Listes personnalisées**, privées d'abord, puis partageables en lecture seule — la première
+      surface de NEOX qui mérite d'être indexée, là où `/library` est en `noindex` par nature.
+- [ ] **Journal de visionnage** (`watchedAt` par entrée) et rétrospective annuelle dérivée des
+      statistiques déjà calculées.
 
 ### Nécessite une infra externe, volontairement non codé en dur
 

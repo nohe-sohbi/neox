@@ -176,6 +176,36 @@ const fr: Dict = {
   'auth.err.session_invalid': 'Session expirée ou invalide. Reconnecte-toi.',
   'auth.email_placeholder': 'vous@email.com',
 
+  // Account
+  'nav.account_settings': 'Gérer mon compte',
+  'account.title': 'Mon compte',
+  'account.member_since': 'membre depuis {date}',
+  'account.security': 'Mot de passe',
+  'account.security_desc':
+    'Le changer déconnecte automatiquement tous tes autres appareils.',
+  'account.current_password': 'Mot de passe actuel',
+  'account.new_password': 'Nouveau mot de passe (8 caractères min.)',
+  'account.change_password': 'Changer le mot de passe',
+  'account.password_changed': 'Mot de passe modifié. Les autres appareils sont déconnectés.',
+  'account.sessions': 'Appareils connectés',
+  'account.sessions_desc':
+    'Un doute sur un appareil oublié quelque part ? Coupe toutes les sessions sauf celle-ci.',
+  'account.logout_all': 'Déconnecter les autres appareils',
+  'account.logout_all_done': 'Les autres appareils ont été déconnectés.',
+  'account.data': 'Mes données',
+  'account.data_desc':
+    'Compte, préférences et bibliothèque dans un seul fichier JSON, réimportable depuis Ma liste.',
+  'account.export_all': 'Tout exporter',
+  'account.danger': 'Supprimer mon compte',
+  'account.delete_desc':
+    'Efface le compte, ses préférences et sa bibliothèque, définitivement. Pense à exporter avant.',
+  'account.delete': 'Supprimer mon compte',
+  'account.delete_confirm': 'Confirme avec ton mot de passe',
+  'account.delete_cta': 'Supprimer',
+  'account.cancel': 'Annuler',
+  'account.deleted': 'Compte supprimé.',
+  'account.err.current_password': 'Mot de passe actuel incorrect.',
+
   // Detail modal
   'detail.loading': 'On récupère les infos…',
   'detail.trailer': 'Bande-annonce',
@@ -417,6 +447,35 @@ const en: Dict = {
   'auth.err.session_invalid': 'Session expired or invalid. Please sign in again.',
   'auth.email_placeholder': 'you@email.com',
 
+  // Account
+  'nav.account_settings': 'Manage my account',
+  'account.title': 'My account',
+  'account.member_since': 'member since {date}',
+  'account.security': 'Password',
+  'account.security_desc': 'Changing it automatically signs out all your other devices.',
+  'account.current_password': 'Current password',
+  'account.new_password': 'New password (8 characters min.)',
+  'account.change_password': 'Change password',
+  'account.password_changed': 'Password changed. Your other devices are signed out.',
+  'account.sessions': 'Signed-in devices',
+  'account.sessions_desc':
+    'Left a session open somewhere? Cut every device loose except this one.',
+  'account.logout_all': 'Sign out other devices',
+  'account.logout_all_done': 'Your other devices have been signed out.',
+  'account.data': 'My data',
+  'account.data_desc':
+    'Account, preferences and library in a single JSON file, re-importable from My list.',
+  'account.export_all': 'Export everything',
+  'account.danger': 'Delete my account',
+  'account.delete_desc':
+    'Erases the account, its preferences and its library, for good. Export first if in doubt.',
+  'account.delete': 'Delete my account',
+  'account.delete_confirm': 'Confirm with your password',
+  'account.delete_cta': 'Delete',
+  'account.cancel': 'Cancel',
+  'account.deleted': 'Account deleted.',
+  'account.err.current_password': 'Current password is incorrect.',
+
   'detail.loading': 'Fetching the details…',
   'detail.trailer': 'Trailer',
   'detail.play_trailer': 'Play trailer',
@@ -648,6 +707,34 @@ const es: Dict = {
   'auth.err.required': 'Autenticación requerida.',
   'auth.err.session_invalid': 'Sesión caducada o no válida. Vuelve a iniciar sesión.',
   'auth.email_placeholder': 'tu@email.com',
+
+  // Account
+  'nav.account_settings': 'Gestionar mi cuenta',
+  'account.title': 'Mi cuenta',
+  'account.member_since': 'miembro desde {date}',
+  'account.security': 'Contraseña',
+  'account.security_desc': 'Cambiarla cierra automáticamente la sesión en tus otros dispositivos.',
+  'account.current_password': 'Contraseña actual',
+  'account.new_password': 'Nueva contraseña (mín. 8 caracteres)',
+  'account.change_password': 'Cambiar la contraseña',
+  'account.password_changed': 'Contraseña cambiada. Tus otros dispositivos han sido desconectados.',
+  'account.sessions': 'Dispositivos conectados',
+  'account.sessions_desc': '¿Una sesión abierta en algún sitio? Ciérralas todas menos esta.',
+  'account.logout_all': 'Cerrar sesión en los demás dispositivos',
+  'account.logout_all_done': 'Tus otros dispositivos han sido desconectados.',
+  'account.data': 'Mis datos',
+  'account.data_desc':
+    'Cuenta, preferencias y biblioteca en un único archivo JSON, reimportable desde Mi lista.',
+  'account.export_all': 'Exportarlo todo',
+  'account.danger': 'Eliminar mi cuenta',
+  'account.delete_desc':
+    'Borra la cuenta, sus preferencias y su biblioteca, para siempre. Exporta antes si dudas.',
+  'account.delete': 'Eliminar mi cuenta',
+  'account.delete_confirm': 'Confirma con tu contraseña',
+  'account.delete_cta': 'Eliminar',
+  'account.cancel': 'Cancelar',
+  'account.deleted': 'Cuenta eliminada.',
+  'account.err.current_password': 'La contraseña actual es incorrecta.',
 
   'detail.loading': 'Obteniendo la información…',
   'detail.trailer': 'Tráiler',
@@ -882,6 +969,35 @@ const de: Dict = {
   'auth.err.session_invalid': 'Sitzung abgelaufen oder ungültig. Bitte erneut anmelden.',
   'auth.email_placeholder': 'du@email.com',
 
+  // Account
+  'nav.account_settings': 'Mein Konto verwalten',
+  'account.title': 'Mein Konto',
+  'account.member_since': 'Mitglied seit {date}',
+  'account.security': 'Passwort',
+  'account.security_desc': 'Eine Änderung meldet automatisch alle anderen Geräte ab.',
+  'account.current_password': 'Aktuelles Passwort',
+  'account.new_password': 'Neues Passwort (mind. 8 Zeichen)',
+  'account.change_password': 'Passwort ändern',
+  'account.password_changed': 'Passwort geändert. Deine anderen Geräte sind abgemeldet.',
+  'account.sessions': 'Angemeldete Geräte',
+  'account.sessions_desc':
+    'Irgendwo eine Sitzung offen gelassen? Melde alle Geräte außer diesem ab.',
+  'account.logout_all': 'Andere Geräte abmelden',
+  'account.logout_all_done': 'Deine anderen Geräte wurden abgemeldet.',
+  'account.data': 'Meine Daten',
+  'account.data_desc':
+    'Konto, Einstellungen und Bibliothek in einer JSON-Datei, wieder importierbar über Meine Liste.',
+  'account.export_all': 'Alles exportieren',
+  'account.danger': 'Konto löschen',
+  'account.delete_desc':
+    'Löscht Konto, Einstellungen und Bibliothek endgültig. Im Zweifel vorher exportieren.',
+  'account.delete': 'Mein Konto löschen',
+  'account.delete_confirm': 'Mit deinem Passwort bestätigen',
+  'account.delete_cta': 'Löschen',
+  'account.cancel': 'Abbrechen',
+  'account.deleted': 'Konto gelöscht.',
+  'account.err.current_password': 'Das aktuelle Passwort ist falsch.',
+
   'detail.loading': 'Infos werden geladen…',
   'detail.trailer': 'Trailer',
   'detail.play_trailer': 'Trailer abspielen',
@@ -1113,6 +1229,34 @@ const it: Dict = {
   'auth.err.required': 'Autenticazione richiesta.',
   'auth.err.session_invalid': 'Sessione scaduta o non valida. Accedi di nuovo.',
   'auth.email_placeholder': 'tu@email.com',
+
+  // Account
+  'nav.account_settings': 'Gestisci il mio account',
+  'account.title': 'Il mio account',
+  'account.member_since': 'iscritto da {date}',
+  'account.security': 'Password',
+  'account.security_desc': 'Cambiarla disconnette automaticamente tutti gli altri dispositivi.',
+  'account.current_password': 'Password attuale',
+  'account.new_password': 'Nuova password (min. 8 caratteri)',
+  'account.change_password': 'Cambia la password',
+  'account.password_changed': 'Password cambiata. Gli altri dispositivi sono stati disconnessi.',
+  'account.sessions': 'Dispositivi connessi',
+  'account.sessions_desc': 'Una sessione rimasta aperta da qualche parte? Chiudile tutte tranne questa.',
+  'account.logout_all': 'Disconnetti gli altri dispositivi',
+  'account.logout_all_done': 'Gli altri dispositivi sono stati disconnessi.',
+  'account.data': 'I miei dati',
+  'account.data_desc':
+    'Account, preferenze e libreria in un unico file JSON, reimportabile da La mia lista.',
+  'account.export_all': 'Esporta tutto',
+  'account.danger': 'Elimina il mio account',
+  'account.delete_desc':
+    "Cancella l'account, le preferenze e la libreria, per sempre. Nel dubbio esporta prima.",
+  'account.delete': 'Elimina il mio account',
+  'account.delete_confirm': 'Conferma con la tua password',
+  'account.delete_cta': 'Elimina',
+  'account.cancel': 'Annulla',
+  'account.deleted': 'Account eliminato.',
+  'account.err.current_password': 'La password attuale non è corretta.',
 
   'detail.loading': 'Recupero le informazioni…',
   'detail.trailer': 'Trailer',

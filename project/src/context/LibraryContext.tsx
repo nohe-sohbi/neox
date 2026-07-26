@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { api } from '../lib/api';
+import { ApiError, api, type LibrarySync } from '../lib/api';
 import { track } from '../lib/analytics';
 import { entryKey as keyOf, toggleEntry, upsertEntry } from '../lib/library-utils';
 import { mergeEntries } from '../lib/library-io';
@@ -53,21 +53,55 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
 
   const prevUserId = useRef<string | null>(null);
   const putTimer = useRef<ReturnType<typeof setTimeout>>();
+  /** Revision this device last saw; `undefined` until the first sync answers. */
+  const rev = useRef<number | undefined>(undefined);
 
   const persistLocal = (next: LibraryEntry[]) =>
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+
+  /**
+   * Pushes the library against the revision we last saw.
+   *
+   * A full-replacement PUT is a data-loss weapon between two open sessions: the
+   * slower one would erase what the other just saved. So the server refuses a
+   * stale write and hands back its own state; we union it into ours (most
+   * recently updated entry wins, same rule as the login merge) and push once
+   * more. Removals are the known limit of a tombstone-free model: an entry
+   * deleted here while another device still has it comes back. Losing a deletion
+   * beats losing a collection.
+   */
+  const pushLibrary = useCallback(async (next: LibraryEntry[]) => {
+    try {
+      rev.current = (await api.putLibrary(next, rev.current)).rev;
+      return;
+    } catch (err) {
+      const conflict = err instanceof ApiError && err.code === 'LIBRARY_CONFLICT'
+        ? (err.details as LibrarySync | undefined)
+        : undefined;
+      if (!conflict || !Array.isArray(conflict.entries)) {
+        /* offline or server-side trouble: the local copy stays authoritative */
+        return;
+      }
+      const merged = mergeEntries(next, conflict.entries);
+      rev.current = conflict.rev;
+      setEntries(merged);
+      persistLocal(merged);
+      try {
+        rev.current = (await api.putLibrary(merged, rev.current)).rev;
+      } catch {
+        /* a second conflict in the same second: the next change carries the
+           union up, and the login merge is the backstop */
+      }
+    }
+  }, []);
 
   const schedulePush = useCallback(
     (next: LibraryEntry[]) => {
       if (!user) return;
       clearTimeout(putTimer.current);
-      putTimer.current = setTimeout(() => {
-        api.putLibrary(next).catch(() => {
-          /* offline-tolerant: local copy stays authoritative */
-        });
-      }, 800);
+      putTimer.current = setTimeout(() => void pushLibrary(next), 800);
     },
-    [user],
+    [user, pushLibrary],
   );
 
   const apply = useCallback(
@@ -93,6 +127,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       api
         .mergeLibrary(readLocal())
         .then((res) => {
+          rev.current = res.rev;
           setEntries(res.entries);
           persistLocal(res.entries);
         })
@@ -104,6 +139,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       // Logout: cancel any pending push and reset local state + storage. The
       // list is safe on the account and comes back via merge on the next login.
       clearTimeout(putTimer.current);
+      rev.current = undefined;
       setEntries([]);
       persistLocal([]);
     }

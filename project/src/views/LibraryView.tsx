@@ -1,10 +1,12 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bookmark, Cloud, Download, Loader2, Trash2, Upload } from 'lucide-react';
-import type { LibraryEntry, LibraryStatus, MediaItem } from '../lib/types';
+import type { LibraryEntry, MediaItem } from '../lib/types';
 import { track } from '../lib/analytics';
 import { useAuth } from '../context/AuthContext';
 import { useLibrary } from '../context/LibraryContext';
+import { usePreferences } from '../context/PreferencesContext';
+import type { LibraryFilter } from '../lib/preferences';
 import {
   SORT_MODES,
   backupFilename,
@@ -20,9 +22,7 @@ import { useToast } from '../context/ToastContext';
 import { useT } from '../lib/i18n';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
-type Filter = 'all' | LibraryStatus;
-
-const FILTERS: { id: Filter; key: string }[] = [
+const FILTERS: { id: LibraryFilter; key: string }[] = [
   { id: 'all', key: 'filter.all' },
   { id: 'want', key: 'filter.want' },
   { id: 'watched', key: 'filter.watched' },
@@ -56,8 +56,12 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
   const { user } = useAuth();
   const toast = useToast();
   const { entries, clear, syncing, importEntries } = useLibrary();
-  const [filter, setFilter] = useState<Filter>('all');
-  const [sort, setSort] = useState<SortMode>('added_desc');
+  // Sort and filter are preferences, not view state: the order you read your own
+  // list in is a habit, and it should survive a reload and follow the account.
+  const { preferences, update } = usePreferences();
+  const { libraryFilter: filter, librarySort: sort } = preferences;
+  const setFilter = (next: LibraryFilter) => update({ libraryFilter: next });
+  const setSort = (next: SortMode) => update({ librarySort: next });
   const fileRef = useRef<HTMLInputElement>(null);
 
   const counts = {

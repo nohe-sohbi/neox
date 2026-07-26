@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Bookmark, LogOut, Search, User as UserIcon, X } from 'lucide-react';
+import { Bookmark, LogOut, Search, Settings, User as UserIcon, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLibrary } from '../../context/LibraryContext';
 import { Logo } from './Logo';
@@ -17,7 +17,13 @@ const NAV_ITEMS = [
   { to: '/tv', key: 'nav.tv', end: false },
 ];
 
-export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
+export function Navbar({
+  onOpenAuth,
+  onOpenAccount,
+}: {
+  onOpenAuth: () => void;
+  onOpenAccount: () => void;
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const [params] = useSearchParams();
@@ -151,10 +157,20 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
                   </div>
                   <button
                     onClick={() => {
-                      logout();
+                      onOpenAccount();
                       setMenuOpen(false);
                     }}
                     className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-white/80 transition-colors hover:bg-white/5 hover:text-white"
+                  >
+                    <Settings className="h-4 w-4" />
+                    {t('nav.account_settings')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      logout();
+                      setMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-white/80 transition-colors hover:bg-white/5 hover:text-white"
                   >
                     <LogOut className="h-4 w-4" />
                     {t('nav.logout')}

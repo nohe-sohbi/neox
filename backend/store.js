@@ -1,10 +1,10 @@
 /**
  * Tiny persistent JSON store: zero external dependencies.
  *
- * Good enough for a single-instance deployment: users + their libraries live in
- * one file, written atomically (tmp + rename) through a serialized queue so
- * concurrent requests can't corrupt it. Swap for Postgres/Redis when you scale
- * horizontally (see ROADMAP).
+ * Good enough for a single-instance deployment: users, their libraries and their
+ * preferences live in one file, written atomically (tmp + rename) through a
+ * serialized queue so concurrent requests can't corrupt it. Swap for
+ * Postgres/Redis when you scale horizontally (see ROADMAP).
  */
 const crypto = require('crypto');
 const fs = require('fs');
@@ -13,18 +13,28 @@ const path = require('path');
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const FILE = path.join(DATA_DIR, 'store.json');
 
-let state = { users: {}, libraries: {} };
+const emptyState = () => ({ users: {}, libraries: {}, libraryRevs: {}, preferences: {} });
+
+let state = emptyState();
 let writeQueue = Promise.resolve();
 
 function load() {
     try {
         if (fs.existsSync(FILE)) {
             const parsed = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-            state = { users: parsed.users || {}, libraries: parsed.libraries || {} };
+            // Every collection is defaulted individually: a store written by an
+            // older version simply has no `preferences` / `libraryRevs` key, and
+            // must keep working instead of needing a migration step.
+            state = {
+                users: parsed.users || {},
+                libraries: parsed.libraries || {},
+                libraryRevs: parsed.libraryRevs || {},
+                preferences: parsed.preferences || {},
+            };
         }
     } catch (err) {
         console.error('Could not read data store, starting fresh:', err.message);
-        state = { users: {}, libraries: {} };
+        state = emptyState();
     }
 }
 
@@ -86,12 +96,47 @@ async function createUser({ email, passwordHash }) {
         id,
         email: normalizedEmail,
         passwordHash,
+        // Stamped into every token this account signs. Bumping it invalidates
+        // all tokens already out there, which is how "log out everywhere" and
+        // "changing the password kicks out the thief" work without a session
+        // table: the check is one integer comparison, still stateless per token.
+        tokenVersion: 0,
         createdAt: Date.now(),
     };
     state.users[id] = user;
     state.libraries[id] = [];
     await persist();
     return user;
+}
+
+/** Replaces the password hash and revokes every token signed before now. */
+async function setPassword(userId, passwordHash) {
+    const user = state.users[userId];
+    if (!user) return null;
+    user.passwordHash = passwordHash;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await persist();
+    return user;
+}
+
+/** Invalidates every token currently in circulation for this account. */
+async function revokeSessions(userId) {
+    const user = state.users[userId];
+    if (!user) return null;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await persist();
+    return user;
+}
+
+/** Erases the account and everything attached to it. No tombstone, no orphans. */
+async function deleteUser(userId) {
+    if (!state.users[userId]) return false;
+    delete state.users[userId];
+    delete state.libraries[userId];
+    delete state.libraryRevs[userId];
+    delete state.preferences[userId];
+    await persist();
+    return true;
 }
 
 /** Strips secrets before sending a user to the client. */
@@ -105,17 +150,45 @@ function getLibrary(userId) {
     return state.libraries[userId] || [];
 }
 
+/**
+ * Monotonic counter bumped on every write, used for optimistic concurrency:
+ * a client that PUTs against a stale revision is told to re-merge instead of
+ * overwriting what another device just saved.
+ */
+function getLibraryRev(userId) {
+    return state.libraryRevs[userId] || 0;
+}
+
 async function setLibrary(userId, entries) {
     state.libraries[userId] = entries;
+    state.libraryRevs[userId] = getLibraryRev(userId) + 1;
     await persist();
-    return entries;
+    return { entries, rev: state.libraryRevs[userId] };
+}
+
+/* ----------------------------- preferences ---------------------------- */
+
+function getPreferences(userId) {
+    return state.preferences[userId] || null;
+}
+
+async function setPreferences(userId, preferences) {
+    state.preferences[userId] = preferences;
+    await persist();
+    return preferences;
 }
 
 module.exports = {
     findUserByEmail,
     getUserById,
     createUser,
+    setPassword,
+    revokeSessions,
+    deleteUser,
     publicUser,
     getLibrary,
+    getLibraryRev,
     setLibrary,
+    getPreferences,
+    setPreferences,
 };

@@ -104,9 +104,11 @@ export function Hero({ items }: { items: MediaItem[] }) {
               {current.year && <span>{current.year}</span>}
             </div>
 
-            <h1 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-balance text-white text-shadow-glow sm:text-6xl">
+            {/* h2, not h1: this is one slide of a rotating carousel, and the
+                page's heading is the site's own (see HomeView). */}
+            <h2 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-balance text-white text-shadow-glow sm:text-6xl">
               {current.title}
-            </h1>
+            </h2>
 
             <p className="mt-4 line-clamp-3 max-w-xl text-base text-white/70 sm:text-lg">
               {current.overview || t('hero.no_synopsis')}

@@ -14,16 +14,20 @@ import '@fontsource-variable/bricolage-grotesque';
 import '@fontsource-variable/instrument-sans';
 import './index.css';
 
-// Advertise the active UI language on the document. index.html ships a static
-// `lang="fr"`, but the UI language is resolved from the stored locale at load
-// and a locale switch hard-reloads, so setting these once here keeps the
-// document's language honest for screen readers and crawlers (plus og:locale
-// for link unfurlers).
+// Advertise the active UI language on the document. The prerendered shells ship
+// `lang="fr"` and `og:locale="fr_FR"`, but the UI language is resolved from the
+// stored locale at load and a locale switch hard-reloads, so correcting them
+// once here keeps the document honest for screen readers and crawlers.
 document.documentElement.lang = activeLang;
-const ogLocale = document.createElement('meta');
-ogLocale.setAttribute('property', 'og:locale');
+// Updated in place, not appended: the shell already carries an og:locale, and a
+// second one would leave unfurlers picking whichever they read first.
+let ogLocale = document.head.querySelector<HTMLMetaElement>('meta[property="og:locale"]');
+if (!ogLocale) {
+  ogLocale = document.createElement('meta');
+  ogLocale.setAttribute('property', 'og:locale');
+  document.head.appendChild(ogLocale);
+}
 ogLocale.setAttribute('content', localeTag(activeLang).replace('-', '_'));
-document.head.appendChild(ogLocale);
 
 // Auto-update the service worker in the background.
 registerSW({ immediate: true });

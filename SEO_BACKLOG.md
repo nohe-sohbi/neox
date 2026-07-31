@@ -38,23 +38,23 @@ Titre, description, canonique et données structurées n'existent qu'après hydr
 
 ## 🔴 Crawl & indexation
 
-- [ ] **1. Canonique unique pointant sur `/` pour toutes les URLs** — `/movies` et `/tv` sont dans le sitemap mais servent `canonical: https://neox.app/`. Signal contradictoire : Google lit « doublons de la home » et les désindexe. Le bug le plus coûteux du lot, et le moins cher à corriger. · **P0 / M**
-- [ ] **2. Title + description du HTML servi identiques sur toutes les routes** — celui de la home partout. `/movies` et `/tv` n'ont aucun signal on-page propre avant hydratation. · **P0 / M**
-- [ ] **3. `noindex` de `/search` et `/library` absent du HTML servi** — la directive n'apparaît qu'après JS. `robots.txt` documente pourtant l'intention (« crawl allowed, indexing refused ») : elle n'est pas tenue pour les crawlers qui ne rendent pas. · **P0 / S**
-- [ ] **4. Corps de page vide pour tout crawler sans exécution JS** — moteurs de réponse et crawlers IA (GPTBot, PerplexityBot, ClaudeBot…) reçoivent une page blanche. · **P0 / L**
+- [x] **1. Canonique unique pointant sur `/` pour toutes les URLs** — `/movies` et `/tv` sont dans le sitemap mais servent `canonical: https://neox.app/`. Signal contradictoire : Google lit « doublons de la home » et les désindexe. Le bug le plus coûteux du lot, et le moins cher à corriger. · **P0 / M**
+- [x] **2. Title + description du HTML servi identiques sur toutes les routes** — celui de la home partout. `/movies` et `/tv` n'ont aucun signal on-page propre avant hydratation. · **P0 / M**
+- [x] **3. `noindex` de `/search` et `/library` absent du HTML servi** — la directive n'apparaît qu'après JS. `robots.txt` documente pourtant l'intention (« crawl allowed, indexing refused ») : elle n'est pas tenue pour les crawlers qui ne rendent pas. · **P0 / S**
+- [x] **4. Corps de page vide pour tout crawler sans exécution JS** — moteurs de réponse et crawlers IA (GPTBot, PerplexityBot, ClaudeBot…) reçoivent une page blanche. · **P0 / L**
 - [ ] **5. Soft 404 sur toute URL inconnue** — `<Route path="*" element={<Navigate to="/" replace />} />` : `/nimportequoi` répond 200 et affiche la home. Google classe ça en soft 404 et, pire, chaque URL erronée devient un doublon de l'accueil. · **P0 / M**
 - [ ] **6. Fiches et profils totalement orphelins** — `MediaCard` est un `<div role="button">`, le casting des `<button>`. Aucun `<a href>` ne pointe vers `?watch=` ou `?person=` : aucune fiche n'est découvrable au crawl, et le lien n'est ni ouvrable dans un nouvel onglet ni annoncé comme lien aux lecteurs d'écran. · **P0 / M**
 - [ ] **7. Pas d'unicité trailing slash** — `try_files $uri $uri/` fait répondre 200 à `/movies` **et** `/movies/`. Doublon strict. · **P1 / S**
-- [ ] **8. Aucun JSON-LD dans le HTML servi** — `WebSite` + `SearchAction` (donc l'éligibilité au sitelinks searchbox) ne sont visibles qu'après rendu JS. · **P1 / M**
-- [ ] **9. Sitemap sans `lastmod` et désynchronisé du code** — liste statique maintenue à la main, rien ne casse si une route est ajoutée ou renommée. · **P1 / S**
+- [x] **8. Aucun JSON-LD dans le HTML servi** — `WebSite` + `SearchAction` (donc l'éligibilité au sitelinks searchbox) ne sont visibles qu'après rendu JS. · **P1 / M**
+- [x] **9. Sitemap désynchronisé du code** — liste statique maintenue à la main, rien ne casse si une route est ajoutée ou renommée. Désormais généré depuis le manifeste. `lastmod` volontairement omis : la seule date connue du build est la sienne, et l'estampiller sur des pages dont le catalogue change tous les jours sous-évaluerait leur fraîcheur dès qu'un déploiement s'espace. · **P1 / S**
 - [ ] **10. `/api/*` crawlable** — les endpoints JSON de lecture ne sont pas interdits dans `robots.txt`. · **P2 / S**
 
 ## 🟡 On-page & données structurées
 
 - [ ] **11. Le H1 de la home est un titre de film qui change toutes les 7 secondes** — le carrousel du hero porte le seul `<h1>` de la page. L'accueil n'a aucun titre stable qui le décrive, et un lecteur d'écran qui navigue par titres tombe sur un slide. · **P1 / S**
-- [ ] **12. `Organization` absent** — seul `WebSite` est émis. L'entité éditrice n'est jamais déclarée. · **P2 / S**
-- [ ] **13. `og:locale` injecté en JS** — ajouté par `main.tsx`, donc absent du HTML lu par les unfurlers qui n'exécutent rien. · **P2 / S**
-- [ ] **14. `og:image:alt` et `twitter:site` absents** — l'aperçu social n'a pas d'alternative textuelle. · **P2 / S**
+- [x] **12. `Organization` absent** — seul `WebSite` est émis. L'entité éditrice n'est jamais déclarée. · **P2 / S**
+- [x] **13. `og:locale` injecté en JS** — ajouté par `main.tsx`, donc absent du HTML lu par les unfurlers qui n'exécutent rien. · **P2 / S**
+- [x] **14. `og:image:alt` absent** — l'aperçu social n'avait pas d'alternative textuelle. `twitter:site` reste absent : NEOX n'a pas de compte connu, et en inventer un serait une fausse déclaration. · **P2 / S**
 - [ ] **15. Liens internes sans ancre descriptive vers les rubriques** — le footer ne renvoie nulle part ; le maillage repose entièrement sur la navbar. · **P2 / S**
 - [ ] **16. Pas de `BreadcrumbList`** — pas de fil d'Ariane, mais l'arborescence est plate (une seule profondeur) : le gain est faible et le markup serait artificiel. *Écarté volontairement, voir « Non retenu ».* · **P2 / M**
 

@@ -64,8 +64,8 @@ Titre, description, canonique et données structurées n'existent qu'après hydr
 - [x] **18. Le hero télécharge les 5 backdrops d'un coup** — tous les slides sont montés, `opacity-0` ne dispense pas du téléchargement, et l'image LCP n'a pas de `fetchpriority`. · **P1 / M**
 - [x] **19. `loading="lazy"` sur toutes les cartes, y compris above-the-fold** — sur `/movies` et `/tv` la première rangée est l'élément LCP et part en chargement différé. · **P1 / S**
 - [x] **20. Pas de `width`/`height` sur les `<img>`** — le CLS est déjà tenu par les conteneurs `aspect-[2/3]`, mais les attributs manquent pour les cas non contraints. · **P2 / S**
-- [ ] **21. Bundle monolithique (316 kB / 96 kB gzip), pas de code splitting par route** — `/library` embarque le lecteur de saisons, la palette, la modale de détail. *Reporté, voir « Non retenu ».* · **P2 / M**
-- [ ] **22. Polices non préchargées** — `font-display: swap` est bien en place (fontsource), mais le woff2 de Bricolage Grotesque, utilisé par le H1, n'est découvert qu'après le CSS. *Reporté, voir « Non retenu ».* · **P2 / M**
+- [ ] **21. Bundle monolithique (322 kB / 98 kB gzip), pas de code splitting par route** — `/library` embarque le lecteur de saisons, la palette, la modale de détail. *Non retenu, voir plus bas.* · **P2 / M**
+- [x] **22. Polices non préchargées** — `font-display: swap` était bien en place, mais le woff2 de Bricolage Grotesque, utilisé par les H1, n'était découvert qu'à la fin du CSS. Le plugin de build connaît les noms hashés : il pose un `preload` des deux sous-ensembles latins dans chaque shell. Vérifié au navigateur : un seul fetch par police, pas de double téléchargement. · **P2 / M**
 
 ---
 
@@ -88,9 +88,13 @@ produit ou une validation qui ne peut pas se faire depuis le dépôt.
    301 : **décision produit**, pas une correction technique.
 3. **`BreadcrumbList`** — arborescence plate, le fil d'Ariane serait du markup pour
    du contenu qui n'est pas à l'écran. Écarté au nom de l'honnêteté du balisage.
-4. **Code splitting par route + preload des polices** — gains CWV réels mais
-   mesurables uniquement sur un déploiement réel (Lighthouse / CrUX). À faire après
-   une mesure de terrain, pas à l'aveugle.
+4. **Code splitting par route** — 98 kB gzip pour un SPA React n'est pas aberrant,
+   et découper par route via `React.lazy` ajoute un aller-retour réseau avant le
+   premier rendu de `/movies` et `/tv` : possiblement un LCP *dégradé* sur les deux
+   pages qui comptent le plus, contre un gain de bundle non mesuré. Le faire suppose
+   une mesure de terrain (Lighthouse sur le déploiement, CrUX), pas une intuition.
+   Le preload des polices, initialement groupé ici, a lui été fait : le gain était
+   net et vérifiable au navigateur.
 5. **Vérifications impossibles depuis le dépôt** — rendu Googlebot live, Rich
    Results Test, couverture Search Console, positions réelles. Le JSON-LD est validé
    structurellement par les tests unitaires, pas par l'outil de Google.

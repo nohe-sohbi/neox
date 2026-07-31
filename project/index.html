@@ -12,6 +12,13 @@
     <link rel="preconnect" href="https://image.tmdb.org" />
     <link rel="dns-prefetch" href="https://image.tmdb.org" />
 
+    <!--build:preload-->
+    <!-- The build fills this in with the two latin woff2 subsets the first
+         screen is written in. Their filenames are content-hashed, so they can
+         only be named once the bundle exists; `vite dev` serves the fonts
+         unhashed and needs no hint. -->
+    <!--/build:preload-->
+
     <!--seo:head-->
     <!-- ──────────────────────────────────────────────────────────────
          The build replaces everything between the seo:head markers, once

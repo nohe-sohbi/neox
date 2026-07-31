@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import { Navbar } from './components/layout/Navbar';
 import { MobileNav } from './components/layout/MobileNav';
 import { Footer } from './components/layout/Footer';
@@ -12,6 +12,7 @@ import { HomeView } from './views/HomeView';
 import { DiscoverView } from './views/DiscoverView';
 import { SearchView } from './views/SearchView';
 import { LibraryView } from './views/LibraryView';
+import { NotFoundView } from './views/NotFoundView';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { initAnalytics } from './lib/analytics';
 import { useT } from './lib/i18n';
@@ -49,7 +50,10 @@ function App() {
             <Route path="/tv" element={<DiscoverView key="tv" mediaType="tv" />} />
             <Route path="/search" element={<SearchView />} />
             <Route path="/library" element={<LibraryView onOpenAuth={() => setAuthOpen(true)} />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {/* Not a redirect to `/`: that answered 200 with the home page's
+                content, which made every dead link a duplicate of the home
+                page and a soft 404. nginx serves this shell with a 404. */}
+            <Route path="*" element={<NotFoundView />} />
           </Routes>
         </ErrorBoundary>
       </main>

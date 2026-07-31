@@ -6,5 +6,10 @@ Allow: /
 # disallowed here: a disallowed URL is never crawled, so the noindex the app
 # serves on those routes would never be read. Crawl allowed, indexing refused.
 
+# /api is not disallowed either, for a different reason: the app is client
+# rendered, so Googlebot fetches those endpoints while rendering the page.
+# Blocking them here would leave it rendering an empty app. The API answers
+# with `X-Robots-Tag: noindex` instead — fetchable, never indexed.
+
 
 Sitemap: https://neox.app/sitemap.xml

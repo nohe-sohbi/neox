@@ -26,6 +26,7 @@ const fr: Dict = {
 
   // Footer
   'footer.tagline': 'ton radar cinéma & séries.',
+  'footer.sections': 'Sections du site',
   'footer.data_by': 'Données & disponibilités fournies par',
   'footer.data_suffix': "& JustWatch. NEOX ne stocke ni n’héberge aucun contenu.",
 
@@ -284,6 +285,7 @@ const en: Dict = {
   'locale.title': 'Region & language',
 
   'footer.tagline': 'your movie & TV radar.',
+  'footer.sections': 'Site sections',
   'footer.data_by': 'Data & availability provided by',
   'footer.data_suffix': '& JustWatch. NEOX neither stores nor hosts any content.',
 
@@ -524,6 +526,7 @@ const es: Dict = {
   'locale.title': 'Región e idioma',
 
   'footer.tagline': 'tu radar de cine y series.',
+  'footer.sections': 'Secciones del sitio',
   'footer.data_by': 'Datos y disponibilidad proporcionados por',
   'footer.data_suffix': '& JustWatch. NEOX no almacena ni aloja ningún contenido.',
 
@@ -764,6 +767,7 @@ const de: Dict = {
   'locale.title': 'Region & Sprache',
 
   'footer.tagline': 'dein Film- & Serienradar.',
+  'footer.sections': 'Bereiche der Website',
   'footer.data_by': 'Daten & Verfügbarkeit bereitgestellt von',
   'footer.data_suffix': '& JustWatch. NEOX speichert und hostet keine Inhalte.',
 
@@ -1005,6 +1009,7 @@ const it: Dict = {
   'locale.title': 'Regione e lingua',
 
   'footer.tagline': 'il tuo radar di film e serie.',
+  'footer.sections': 'Sezioni del sito',
   'footer.data_by': 'Dati e disponibilità forniti da',
   'footer.data_suffix': '& JustWatch. NEOX non memorizza né ospita alcun contenuto.',
 

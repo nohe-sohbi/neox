@@ -1,10 +1,20 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, type MouseEvent } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { track } from '../lib/analytics';
 import type { MediaType } from '../lib/types';
 
 const WATCH = 'watch';
 const PERSON = 'person';
+
+/**
+ * True when a click on a link must be left to the browser: a middle click, or
+ * ctrl/cmd/shift/alt, all of which mean "open this somewhere else". Overlays
+ * are opened by intercepting a plain left click, and intercepting these too
+ * would break the one thing an href buys a user over a button.
+ */
+export function isModifiedClick(e: MouseEvent): boolean {
+  return e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
+}
 
 /** Encodes a media item into a shareable `?watch=movie-550` deep link. */
 export function useOpenDetail() {

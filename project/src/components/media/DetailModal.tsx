@@ -3,12 +3,18 @@ import { Bookmark, Calendar, Check, Clock, Eye, Film, Play, Star, Trash2, Tv, X 
 import { api, ApiError } from '../../lib/api';
 import { track } from '../../lib/analytics';
 import { SITE_URL } from '../../lib/seo';
+import { detailPath, personPath } from '../../lib/routes';
 import { buildMediaSchema } from '../../lib/structured-data';
 import { useFilmColor } from '../../hooks/useFilmColor';
 import type { MediaDetails, MediaType } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
 import { useToast } from '../../context/ToastContext';
-import { useDetailTarget, useOpenDetail, useOpenPerson } from '../../hooks/useDetailRoute';
+import {
+  isModifiedClick,
+  useDetailTarget,
+  useOpenDetail,
+  useOpenPerson,
+} from '../../hooks/useDetailRoute';
 import { useModal } from '../../hooks/useModal';
 import { rememberViewed } from '../../lib/recently-viewed';
 import { DocumentMeta } from '../../hooks/useDocumentMeta';
@@ -129,10 +135,10 @@ export function DetailModal() {
               description={details.overview || details.tagline}
               image={details.backdrop || details.poster}
               type={details.mediaType === 'tv' ? 'video.tv_show' : 'video.movie'}
-              path={`/?watch=${details.mediaType}-${details.id}`}
+              path={detailPath(details.mediaType, details.id)}
               jsonLd={buildMediaSchema(
                 details,
-                `${SITE_URL}/?watch=${details.mediaType}-${details.id}`,
+                `${SITE_URL}${detailPath(details.mediaType, details.id)}`,
               )}
             />
             <div className="relative h-56 sm:h-80">
@@ -329,9 +335,14 @@ export function DetailModal() {
                   </h3>
                   <div className="no-scrollbar flex gap-4 overflow-x-auto pb-2">
                     {details.cast.map((member) => (
-                      <button
+                      <a
                         key={member.id}
-                        onClick={() => openPerson(member.id)}
+                        href={personPath(member.id)}
+                        onClick={(e) => {
+                          if (isModifiedClick(e)) return;
+                          e.preventDefault();
+                          openPerson(member.id);
+                        }}
                         className="group w-20 shrink-0 text-center"
                       >
                         {member.photo ? (
@@ -350,7 +361,7 @@ export function DetailModal() {
                           {member.name}
                         </p>
                         <p className="truncate text-[11px] text-white/40">{member.character}</p>
-                      </button>
+                      </a>
                     ))}
                   </div>
                 </div>
@@ -365,9 +376,14 @@ export function DetailModal() {
                     {details.recommendations.map((rec) => {
                       const recImg = rec.poster ? posterImg(rec.poster, '112px') : null;
                       return (
-                      <button
+                      <a
                         key={`${rec.mediaType}-${rec.id}`}
-                        onClick={() => openDetail(rec)}
+                        href={detailPath(rec.mediaType, rec.id)}
+                        onClick={(e) => {
+                          if (isModifiedClick(e)) return;
+                          e.preventDefault();
+                          openDetail(rec);
+                        }}
                         className="group w-28 shrink-0 text-left"
                       >
                         <div className="flex aspect-[2/3] items-center justify-center overflow-hidden rounded-lg bg-ink-700 text-white/30 ring-1 ring-white/5 transition-transform group-hover:scale-[1.03]">
@@ -390,7 +406,7 @@ export function DetailModal() {
                         <p className="mt-1.5 truncate text-xs font-medium text-white/80">
                           {rec.title}
                         </p>
-                      </button>
+                      </a>
                       );
                     })}
                   </div>

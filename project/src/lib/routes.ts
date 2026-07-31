@@ -123,6 +123,24 @@ export const SPA_PATHS: readonly string[] = SITE_ROUTES.filter((r) => r.id !== '
   (r) => r.path,
 );
 
+/* ------------------------------- Deep links -------------------------------- */
+
+/**
+ * Canonical URL of a title's overlay. Titles have no route of their own: they
+ * open over whatever page you are on, and `?watch=` can therefore ride any
+ * path. Everything that *links* to a title uses this form — always rooted at
+ * `/` — so a crawler is only ever offered the one address the overlay declares
+ * canonical, instead of `/movies?watch=…` and `/tv?watch=…` for the same film.
+ */
+export function detailPath(mediaType: string, id: number): string {
+  return `/?watch=${mediaType}-${id}`;
+}
+
+/** Same, for a cast or crew member's overlay. */
+export function personPath(id: number): string {
+  return `/?person=${id}`;
+}
+
 /* ------------------------------ Per-route meta ----------------------------- */
 
 /**

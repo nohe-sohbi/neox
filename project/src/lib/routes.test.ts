@@ -58,8 +58,9 @@ describe('routeMeta', () => {
     expect(routeMeta('movies', 'fr').robots).toBeUndefined();
   });
 
-  it('withholds a path from the shell that answers for every unknown URL', () => {
+  it('refuses a canonical on the shell that answers for every unknown URL', () => {
     expect(routeMeta('notFound', 'fr').path).toBeUndefined();
+    expect(routeMeta('notFound', 'fr').canonical).toBe(false);
   });
 });
 

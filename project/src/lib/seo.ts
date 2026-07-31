@@ -47,6 +47,13 @@ export interface MetaInput {
   /** Path (+ optional query) of the current view, for canonical / og:url. */
   path?: string;
   /**
+   * Set false on a view that answers for more than one URL — the 404 shell —
+   * so it claims no canonical at all. Defaulting to the site root there would
+   * declare every dead URL a duplicate of the home page, which is the soft-404
+   * the shell exists to avoid.
+   */
+  canonical?: boolean;
+  /**
    * `robots` directive for views with no search value (per-user surfaces, search
    * result pages). Left undefined the tag is removed, which is the indexable
    * default; robots.txt is deliberately not used for these, since a disallowed
@@ -61,7 +68,8 @@ export interface ResolvedMeta {
   image: string;
   imageAlt: string;
   type: string;
-  url: string;
+  /** Canonical + og:url, or null on a view that must claim neither. */
+  url: string | null;
   robots?: string;
 }
 
@@ -96,8 +104,10 @@ export function buildMeta(input: MetaInput = {}, defaults: MetaDefaults = {}): R
     input.imageAlt?.trim() || (rawImage ? title : defaults.imageAlt || DEFAULT_TITLE);
   const type = input.type?.trim() || 'website';
 
-  let url = SITE_URL;
-  if (input.path) {
+  let url: string | null = SITE_URL;
+  if (input.canonical === false) {
+    url = null;
+  } else if (input.path) {
     url = `${SITE_URL}${input.path.startsWith('/') ? '' : '/'}${input.path}`;
   }
 
@@ -131,20 +141,32 @@ const META_TAGS: { attr: 'name' | 'property'; key: string; from: keyof ResolvedM
   { attr: 'name', key: 'twitter:image:alt', from: 'imageAlt' },
 ];
 
-function upsertMeta(attr: 'name' | 'property', key: string, content: string): void {
-  let el = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`);
-  if (!el) {
-    el = document.createElement('meta');
+function upsertMeta(
+  attr: 'name' | 'property',
+  key: string,
+  content: string | null | undefined,
+): void {
+  const existing = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`);
+  if (content == null) {
+    existing?.remove();
+    return;
+  }
+  const el = existing ?? document.createElement('meta');
+  if (!existing) {
     el.setAttribute(attr, key);
     document.head.appendChild(el);
   }
   el.setAttribute('content', content);
 }
 
-function upsertCanonical(url: string): void {
-  let el = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-  if (!el) {
-    el = document.createElement('link');
+function upsertCanonical(url: string | null): void {
+  const existing = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  if (url == null) {
+    existing?.remove();
+    return;
+  }
+  const el = existing ?? document.createElement('link');
+  if (!existing) {
     el.setAttribute('rel', 'canonical');
     document.head.appendChild(el);
   }
@@ -196,13 +218,17 @@ export function applyMeta(meta: ResolvedMeta): void {
   upsertOrRemoveRobots(meta.robots);
 }
 
-/** Restore a previously captured snapshot (used when an overlay closes). */
+/**
+ * Restore a previously captured snapshot (used when an overlay closes). A tag
+ * absent from the snapshot is removed rather than left behind: the page under
+ * the overlay did not have it, and inheriting an overlay's canonical would
+ * point the wrong URL at the wrong content.
+ */
 export function restoreMeta(snapshot: MetaSnapshot): void {
   document.title = snapshot.title;
   for (const { attr, key } of META_TAGS) {
-    const content = snapshot.tags[`${attr}:${key}`];
-    if (content != null) upsertMeta(attr, key, content);
+    upsertMeta(attr, key, snapshot.tags[`${attr}:${key}`]);
   }
-  if (snapshot.canonical != null) upsertCanonical(snapshot.canonical);
+  upsertCanonical(snapshot.canonical);
   upsertOrRemoveRobots(snapshot.robots ?? undefined);
 }

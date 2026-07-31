@@ -118,11 +118,6 @@ export function routeById(id: RouteId): SiteRoute {
   return route;
 }
 
-/** Routes the SPA router serves — everything but the 404 shell. */
-export const SPA_PATHS: readonly string[] = SITE_ROUTES.filter((r) => r.id !== 'notFound').map(
-  (r) => r.path,
-);
-
 /* ------------------------------- Deep links -------------------------------- */
 
 /**
@@ -151,6 +146,7 @@ export interface RouteMeta {
   title?: string;
   description?: string;
   path?: string;
+  canonical?: boolean;
   robots?: string;
 }
 
@@ -165,6 +161,10 @@ export function routeMeta(id: RouteId, lang: Lang): RouteMeta {
     title: route.titleKey ? t(route.titleKey) : undefined,
     description: route.descriptionKey ? t(route.descriptionKey) : undefined,
     path: route.canonical === false ? undefined : route.path,
+    // Explicit, not merely absent: without a path the resolver falls back to
+    // the site root, which would have the 404 shell declare every dead URL a
+    // duplicate of the home page — the soft 404 it exists to avoid.
+    canonical: route.canonical,
     robots: route.robots,
   };
 }

@@ -83,7 +83,9 @@ Ce qui n'est pas visible à l'écran mais tient l'app debout :
   au lieu de tout annuler : un bouton qui ne réagit plus du tout se lit comme cassé, pas comme calme.
 - **Typographie auto-hébergée.** Bricolage Grotesque pour les titres, Instrument Sans pour
   l'interface, en variable woff2 servi par le bundle. Aucune requête vers un CDN de polices, ce qui
-  serait incohérent pour une app qui ne charge même pas de script d'analytics par défaut.
+  serait incohérent pour une app qui ne charge même pas de script d'analytics par défaut. Les deux
+  sous-ensembles latins sont préchargés depuis le shell : leurs noms étant hashés par le build,
+  c'est lui qui pose les balises.
 - **Perf client.** Cache mémoire SWR avec dédup des requêtes en vol, `srcset` dérivé côté client des
   URLs TMDB, `ErrorBoundary` global au lieu d'un écran blanc.
 - **L'interface n'a pas de couleur d'accent.** Elle emprunte celle du titre affiché : la teinte
@@ -92,12 +94,25 @@ Ce qui n'est pas visible à l'écran mais tient l'app debout :
   aucun titre n'est en contexte, comme la barre de navigation, l'état actif reste un blanc neutre.
   Coût : zéro travail serveur, `image.tmdb.org` répondant `access-control-allow-origin: *`, et un
   échantillon `w92` de quelques kilo-octets mis en cache un an.
-- **SEO.** Le `<head>` suit la route et la fiche ouverte (`title`, `description`, Open Graph,
-  Twitter Card, canonique), avec des données structurées schema.org : `WebSite` + `SearchAction` sur
-  l'accueil, `Movie` ou `TVSeries` sur une fiche, `Person` sur un profil. `aggregateRating` n'est
-  émis que si un vrai nombre de votes le porte, parce que Google rejette une note sans compteur.
-  Les surfaces sans valeur de recherche (`/search`, `/library`) sont servies en `noindex` plutôt que
-  bloquées dans `robots.txt` : une URL interdite au crawl ne fait jamais lire son `noindex`.
+- **SEO : un shell prérendu par route.** Un SPA n'émet qu'un `index.html`, donc toutes les URLs
+  reçoivent le `<head>` de l'accueil — même titre, même canonique. Ici le build en génère un par
+  route depuis un manifeste unique (`src/lib/routes.ts`), qui pilote aussi le `sitemap.xml` et
+  ce que les vues réappliquent après hydratation : le document vivant ne contredit jamais le shell
+  qui l'a servi. Chaque page arrive donc avec son `title`, sa `description`, sa canonique, ses
+  balises Open Graph / Twitter et, sur l'accueil, un `@graph` `WebSite` + `Organization`. Le corps
+  porte un bloc `noscript` avec le titre, la description et les liens de section : ce que lit un
+  moteur qui n'exécute pas JS. Une fois l'app démarrée, le `<head>` suit la route et la fiche
+  ouverte, avec `Movie` / `TVSeries` sur une fiche et `Person` sur un profil — `aggregateRating`
+  n'étant émis que si un vrai nombre de votes le porte, parce que Google rejette une note sans
+  compteur. Les surfaces sans valeur de recherche (`/search`, `/library`) sont servies en `noindex`
+  plutôt que bloquées dans `robots.txt` : une URL interdite au crawl ne fait jamais lire son
+  `noindex`. Même raison pour `/api`, qui répond `X-Robots-Tag: noindex` : Googlebot appelle ces
+  endpoints pendant le rendu, les bloquer lui ferait rendre une application vide.
+- **Une URL par page.** `/movies/` est redirigée en 301 vers `/movies`, et une adresse inconnue
+  répond un vrai 404 portant la vue « page introuvable » — pas une redirection silencieuse vers
+  l'accueil, qui ferait de chaque lien mort un doublon de la page d'accueil. Les fiches sont
+  atteignables : les cartes sont de vraies ancres vers `/?watch=type-id`, la forme que la fiche
+  déclare canonique.
 - **Analytics optionnelle et sans cookie.** Aucun script n'est chargé tant que
   `VITE_UMAMI_WEBSITE_ID` n'est pas défini. Quand elle est active, une instance
   [Umami](https://umami.is) auto-hébergée compte les pages et dix actions produit (`Open Detail`,
@@ -123,11 +138,11 @@ neox/
 │   └── library.js      validation et merge des bibliothèques
 └── project/            Frontend React + TypeScript + Vite + Tailwind
     └── src/
-        ├── lib/        client API typé, query (SWR + dédup), i18n, library-io, seo, structured-data, film-color, img
+        ├── lib/        client API typé, query (SWR + dédup), i18n, library-io, routes (manifeste SEO), seo, structured-data, film-color, img
         ├── context/    AuthContext, LibraryContext
         ├── hooks/      useQuery, useDebounce, useMyPlatforms, useModal, useDocumentMeta, useFilmColor
         ├── components/ layout, media, home, auth, ui, command
-        └── views/      Home, Discover, Search, Library
+        └── views/      Home, Discover, Search, Library, NotFound
 ```
 
 La bibliothèque est localStorage-first, puis fusionnée au compte à la connexion.
@@ -160,7 +175,7 @@ même domaine en `/api`. Le navigateur ne fait aucun appel cross-origin, le back
 port publiquement, et il ne reste qu'un port à placer derrière ton terminateur TLS.
 
 Pour un déploiement sur ton domaine, renseigne aussi `VITE_SITE_URL` : elle pilote les URLs
-canoniques et Open Graph, et réécrit `robots.txt` + `sitemap.xml` au build.
+canoniques et Open Graph, et réécrit `robots.txt`, `sitemap.xml` et les shells prérendus au build.
 
 > Vite inline ses variables au build, pas au démarrage du conteneur. Après avoir changé un `VITE_*`,
 > reconstruis l'image (`docker compose up --build`).
@@ -206,10 +221,10 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 
 ## Qualité
 
-- **170 tests** : 67 côté `backend/` (auth et sync via supertest, garde du secret JWT, cache HTTP,
-  cache LRU et snapshot/hydrate, single-flight, params discover, saisons) et 103 côté `project/`
-  (bibliothèque, export/import, i18n, SEO, données structurées, extraction de teinte, cache SWR,
-  vu récemment, srcset).
+- **202 tests** : 69 côté `backend/` (auth et sync via supertest, garde du secret JWT, cache HTTP,
+  cache LRU et snapshot/hydrate, single-flight, params discover, saisons, directives crawler) et
+  133 côté `project/` (bibliothèque, export/import, i18n, manifeste de routes et shells prérendus,
+  SEO, données structurées, extraction de teinte, cache SWR, vu récemment, srcset).
 - **Vérifs** : `npm run lint`, `npm run typecheck`, `npm run build`.
 - **CI** : GitHub Actions lance lint, typecheck, tests et build sur chaque PR
   (`.github/workflows/ci.yml`).

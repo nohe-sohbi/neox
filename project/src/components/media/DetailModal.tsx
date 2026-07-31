@@ -157,6 +157,8 @@ export function DetailModal() {
                       src={backdrop.src}
                       srcSet={backdrop.srcSet}
                       sizes={backdrop.sizes}
+                      width={backdrop.width}
+                      height={backdrop.height}
                       alt=""
                       decoding="async"
                       className="h-full w-full object-cover object-top"
@@ -187,6 +189,8 @@ export function DetailModal() {
                     src={poster.src}
                     srcSet={poster.srcSet}
                     sizes={poster.sizes}
+                    width={poster.width}
+                    height={poster.height}
                     alt={details.title}
                     decoding="async"
                     className="hidden w-28 shrink-0 rounded-xl shadow-card ring-1 ring-white/10 sm:block"
@@ -349,6 +353,8 @@ export function DetailModal() {
                           <img
                             src={member.photo}
                             alt={member.name}
+                            width={80}
+                            height={80}
                             loading="lazy"
                             className="mb-1.5 h-20 w-20 rounded-full object-cover ring-1 ring-white/10 transition-all group-hover:ring-[color-mix(in_srgb,var(--film,#ffffff)_55%,transparent)]"
                           />
@@ -392,6 +398,8 @@ export function DetailModal() {
                               src={recImg.src}
                               srcSet={recImg.srcSet}
                               sizes={recImg.sizes}
+                              width={recImg.width}
+                              height={recImg.height}
                               alt={rec.title}
                               loading="lazy"
                               decoding="async"

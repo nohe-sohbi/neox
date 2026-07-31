@@ -15,6 +15,12 @@ export function Hero({ items }: { items: MediaItem[] }) {
   const { isSaved, toggle } = useLibrary();
   const toast = useToast();
   const [active, setActive] = useState(0);
+  // Highest slide reached so far. Every slide used to be mounted from the
+  // start: `opacity-0` hides an image, it does not stop the browser
+  // downloading it, so the hero pulled five full-width backdrops before the
+  // first one had finished — in front of the LCP element, which is one of them.
+  const [reached, setReached] = useState(0);
+  useEffect(() => setReached((max) => Math.max(max, active)), [active]);
 
   // Auto-advance.
   useEffect(() => {
@@ -23,14 +29,18 @@ export function Hero({ items }: { items: MediaItem[] }) {
     return () => clearInterval(id);
   }, [items.length]);
 
-  // Preload the next backdrop for a seamless cross-fade.
+  // Preload the next backdrop for a seamless cross-fade. Through the same
+  // srcset the slide will render with, so the browser warms the variant it is
+  // actually going to use instead of a second, wider one.
   useEffect(() => {
     if (items.length <= 1) return;
     const next = items[(active + 1) % items.length];
-    if (next?.backdrop) {
-      const img = new Image();
-      img.src = next.backdrop;
-    }
+    if (!next?.backdrop) return;
+    const bd = backdropImg(next.backdrop);
+    const img = new Image();
+    if (bd.srcSet) img.srcset = bd.srcSet;
+    if (bd.sizes) img.sizes = bd.sizes;
+    img.src = bd.src;
   }, [active, items]);
 
   // Every hook runs before the empty-list guard: an early return above a hook
@@ -48,6 +58,9 @@ export function Hero({ items }: { items: MediaItem[] }) {
       style={film ? ({ '--film': film.light } as CSSProperties) : undefined}
     >
       {items.map((item, i) => {
+        // Not yet shown, and the next one is warmed by the effect above, so
+        // there is nothing to render and nothing to fetch.
+        if (i > reached) return null;
         const bd = item.backdrop ? backdropImg(item.backdrop) : null;
         return (
           <div
@@ -61,8 +74,14 @@ export function Hero({ items }: { items: MediaItem[] }) {
                 src={bd.src}
                 srcSet={bd.srcSet}
                 sizes={bd.sizes}
+                width={bd.width}
+                height={bd.height}
                 alt=""
-                decoding="async"
+                // The first slide is the largest thing above the fold, so it is
+                // the LCP element on the home page: it goes to the front of the
+                // queue instead of competing with the bundle.
+                fetchPriority={i === 0 ? 'high' : 'auto'}
+                decoding={i === 0 ? 'sync' : 'async'}
                 className="h-full w-full object-cover object-top"
               />
             )}

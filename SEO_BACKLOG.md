@@ -51,7 +51,7 @@ Titre, description, canonique et données structurées n'existent qu'après hydr
 
 ## 🟡 On-page & données structurées
 
-- [ ] **11. Le H1 de la home est un titre de film qui change toutes les 7 secondes** — le carrousel du hero porte le seul `<h1>` de la page. L'accueil n'a aucun titre stable qui le décrive, et un lecteur d'écran qui navigue par titres tombe sur un slide. · **P1 / S**
+- [x] **11. Le H1 de la home est un titre de film qui change toutes les 7 secondes** — le carrousel du hero porte le seul `<h1>` de la page. L'accueil n'a aucun titre stable qui le décrive, et un lecteur d'écran qui navigue par titres tombe sur un slide. · **P1 / S**
 - [x] **12. `Organization` absent** — seul `WebSite` est émis. L'entité éditrice n'est jamais déclarée. · **P2 / S**
 - [x] **13. `og:locale` injecté en JS** — ajouté par `main.tsx`, donc absent du HTML lu par les unfurlers qui n'exécutent rien. · **P2 / S**
 - [x] **14. `og:image:alt` absent** — l'aperçu social n'avait pas d'alternative textuelle. `twitter:site` reste absent : NEOX n'a pas de compte connu, et en inventer un serait une fausse déclaration. · **P2 / S**
@@ -60,10 +60,10 @@ Titre, description, canonique et données structurées n'existent qu'après hydr
 
 ## 🟢 Core Web Vitals & performance
 
-- [ ] **17. Pas de `preconnect` vers `image.tmdb.org`** — toutes les affiches viennent de ce hôte, et la connexion (DNS + TLS) n'est ouverte qu'après le parsing du bundle et la réponse de l'API. Coût direct sur le LCP. · **P1 / S**
-- [ ] **18. Le hero télécharge les 5 backdrops d'un coup** — tous les slides sont montés, `opacity-0` ne dispense pas du téléchargement, et l'image LCP n'a pas de `fetchpriority`. · **P1 / M**
-- [ ] **19. `loading="lazy"` sur toutes les cartes, y compris above-the-fold** — sur `/movies` et `/tv` la première rangée est l'élément LCP et part en chargement différé. · **P1 / S**
-- [ ] **20. Pas de `width`/`height` sur les `<img>`** — le CLS est déjà tenu par les conteneurs `aspect-[2/3]`, mais les attributs manquent pour les cas non contraints. · **P2 / S**
+- [x] **17. Pas de `preconnect` vers `image.tmdb.org`** — toutes les affiches viennent de ce hôte, et la connexion (DNS + TLS) n'est ouverte qu'après le parsing du bundle et la réponse de l'API. Coût direct sur le LCP. · **P1 / S**
+- [x] **18. Le hero télécharge les 5 backdrops d'un coup** — tous les slides sont montés, `opacity-0` ne dispense pas du téléchargement, et l'image LCP n'a pas de `fetchpriority`. · **P1 / M**
+- [x] **19. `loading="lazy"` sur toutes les cartes, y compris above-the-fold** — sur `/movies` et `/tv` la première rangée est l'élément LCP et part en chargement différé. · **P1 / S**
+- [x] **20. Pas de `width`/`height` sur les `<img>`** — le CLS est déjà tenu par les conteneurs `aspect-[2/3]`, mais les attributs manquent pour les cas non contraints. · **P2 / S**
 - [ ] **21. Bundle monolithique (316 kB / 96 kB gzip), pas de code splitting par route** — `/library` embarque le lecteur de saisons, la palette, la modale de détail. *Reporté, voir « Non retenu ».* · **P2 / M**
 - [ ] **22. Polices non préchargées** — `font-display: swap` est bien en place (fontsource), mais le woff2 de Bricolage Grotesque, utilisé par le H1, n'est découvert qu'après le CSS. *Reporté, voir « Non retenu ».* · **P2 / M**
 

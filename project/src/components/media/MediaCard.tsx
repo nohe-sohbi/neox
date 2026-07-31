@@ -10,7 +10,12 @@ import { useFilmColor } from '../../hooks/useFilmColor';
 import { RatingBadge } from '../ui/RatingBadge';
 import { useT } from '../../lib/i18n';
 
-export function MediaCard({ item }: { item: MediaItem }) {
+/**
+ * `priority` marks a card the viewport shows immediately. Every poster used to
+ * be `loading="lazy"`, including the first row: on /movies and /tv that row
+ * holds the LCP element, and deferring it is exactly the wrong trade.
+ */
+export function MediaCard({ item, priority = false }: { item: MediaItem; priority?: boolean }) {
   const { t } = useT();
   const openDetail = useOpenDetail();
   const { isSaved, statusOf, toggle } = useLibrary();
@@ -51,8 +56,10 @@ export function MediaCard({ item }: { item: MediaItem }) {
             src={poster.src}
             srcSet={poster.srcSet}
             sizes={poster.sizes}
+            width={poster.width}
+            height={poster.height}
             alt={item.title}
-            loading="lazy"
+            loading={priority ? 'eager' : 'lazy'}
             decoding="async"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />

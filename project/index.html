@@ -6,6 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#06060B" />
 
+    <!-- Every poster, backdrop and provider logo comes from this host, and the
+         first backdrop is the LCP element. Without this, DNS + TLS only start
+         once the bundle has parsed and the API has answered. -->
+    <link rel="preconnect" href="https://image.tmdb.org" />
+    <link rel="dns-prefetch" href="https://image.tmdb.org" />
+
     <!--seo:head-->
     <!-- ──────────────────────────────────────────────────────────────
          The build replaces everything between the seo:head markers, once

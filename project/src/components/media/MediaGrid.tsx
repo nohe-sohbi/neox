@@ -12,7 +12,15 @@ export function MediaGrid({ items, loading, skeletonCount = 12 }: MediaGridProps
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       {loading
         ? Array.from({ length: skeletonCount }).map((_, i) => <MediaCardSkeleton key={i} />)
-        : items.map((item) => <MediaCard key={`${item.mediaType}-${item.id}`} item={item} />)}
+        : items.map((item, i) => (
+            <MediaCard
+              key={`${item.mediaType}-${item.id}`}
+              item={item}
+              // One full row at the widest breakpoint: what the viewport shows
+              // before any scrolling, so nothing here should be deferred.
+              priority={i < 6}
+            />
+          ))}
     </div>
   );
 }

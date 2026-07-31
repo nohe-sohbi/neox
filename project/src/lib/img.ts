@@ -17,6 +17,14 @@ export interface ResponsiveImg {
   src: string;
   srcSet?: string;
   sizes?: string;
+  /**
+   * Intrinsic size of `src`. The layout is driven by CSS, so these never change
+   * how the image renders; they give the browser the aspect ratio before the
+   * stylesheet has applied, which is what keeps an image from reserving no box
+   * and shifting the page when it lands.
+   */
+  width?: number;
+  height?: number;
 }
 
 // Captures the size token segment right after "/t/p/" (e.g. w500, original,
@@ -24,15 +32,16 @@ export interface ResponsiveImg {
 // anything else is passed through untouched.
 const TMDB_IMG_RE = /^(https?:\/\/image\.tmdb\.org\/t\/p\/)[^/]+(\/.+)$/;
 
-function build(url: string, widths: number[], sizes: string): ResponsiveImg {
+function build(url: string, widths: number[], sizes: string, ratio: number): ResponsiveImg {
   const match = url.match(TMDB_IMG_RE);
   if (!match) return { src: url };
   const [, prefix, tail] = match;
   const srcSet = widths.map((w) => `${prefix}w${w}${tail} ${w}w`).join(', ');
   // The largest variant is the plain-`src` fallback for browsers that ignore
   // srcset, keeping behaviour identical to the previous fixed URL.
-  const src = `${prefix}w${widths[widths.length - 1]}${tail}`;
-  return { src, srcSet, sizes };
+  const width = widths[widths.length - 1];
+  const src = `${prefix}w${width}${tail}`;
+  return { src, srcSet, sizes, width, height: Math.round(width / ratio) };
 }
 
 // Poster grids: ~2 columns on phones, up to a fixed card width on desktop.
@@ -40,17 +49,17 @@ const POSTER_SIZES = '(min-width: 1024px) 220px, (min-width: 640px) 30vw, 45vw';
 
 /** Poster artwork (2:3). API serves w500. */
 export function posterImg(url: string, sizes: string = POSTER_SIZES): ResponsiveImg {
-  return build(url, [185, 342, 500], sizes);
+  return build(url, [185, 342, 500], sizes, 2 / 3);
 }
 
-/** Full-bleed backdrop artwork. API serves w1280. */
+/** Full-bleed backdrop artwork (16:9). API serves w1280. */
 export function backdropImg(url: string, sizes = '100vw'): ResponsiveImg {
-  return build(url, [780, 1280], sizes);
+  return build(url, [780, 1280], sizes, 16 / 9);
 }
 
 /** Episode still (16:9). API serves w300. */
 export function stillImg(url: string, sizes = '(min-width: 640px) 160px, 40vw'): ResponsiveImg {
-  return build(url, [185, 300], sizes);
+  return build(url, [185, 300], sizes, 16 / 9);
 }
 
 /** Convenience: responsive poster for a media item, or null when it has none. */

@@ -30,6 +30,7 @@ export function useDocumentMeta(input: MetaInput, jsonLd?: JsonLd | null): void 
       buildMeta(input, {
         title: t('seo.default_title'),
         description: t('seo.default_description'),
+        imageAlt: t('seo.og_image_alt'),
       }),
     );
     if (jsonLd !== undefined) applyJsonLd(jsonLd);

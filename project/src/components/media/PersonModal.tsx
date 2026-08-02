@@ -5,6 +5,7 @@ import type { Person } from '../../lib/types';
 import { SITE_URL } from '../../lib/seo';
 import { buildPersonSchema } from '../../lib/structured-data';
 import { usePersonTarget } from '../../hooks/useDetailRoute';
+import { personPath } from '../../lib/routes';
 import { useModal } from '../../hooks/useModal';
 import { DocumentMeta } from '../../hooks/useDocumentMeta';
 import { ErrorState, FullSpinner } from '../ui/States';
@@ -98,8 +99,8 @@ export function PersonModal() {
               description={person.biography || `${person.name}, ${knownFor}`}
               image={person.photo}
               type="profile"
-              path={`/?person=${person.id}`}
-              jsonLd={buildPersonSchema(person, `${SITE_URL}/?person=${person.id}`)}
+              path={personPath(person.id)}
+              jsonLd={buildPersonSchema(person, `${SITE_URL}${personPath(person.id)}`)}
             />
             <div className="flex flex-col gap-5 sm:flex-row">
               {person.photo ? (

@@ -1,32 +1,37 @@
 /**
- * SEO / social-preview metadata.
+ * SEO / social-preview metadata, applied to the live document.
  *
- * NEOX is a client-rendered SPA, so this does not replace server-side rendering
- * for crawlers that don't execute JS. What it does do, and what visibly
- * matters, is keep the document head honest as the user navigates:
+ * The *served* head now comes from the route manifest: the build prerenders one
+ * shell per route (`routes.ts` + `scripts/seo-prerender.ts`), so a crawler that
+ * never runs JS already gets the right title, description and canonical. This
+ * module keeps that head correct once the app is running:
  *
  *   - the browser tab + bookmarks show the title of the page or title you're on,
- *   - link-unfurlers and crawlers that run JS (Google, Slack with JS, etc.) read
- *     accurate Open Graph / Twitter tags for the *current* route or open title,
+ *   - unfurlers and crawlers that run JS read accurate Open Graph / Twitter tags
+ *     for the *current* route or open title,
  *   - deep links (`/?watch=movie-550`) carry their own title, description and
  *     poster image instead of the generic site default.
+ *
+ * Views take their input from `routeMeta()` so what React applies is what the
+ * build already wrote: the document never contradicts the shell it came from.
  *
  * `buildMeta` is a pure function (no DOM) so it is trivially unit-testable; the
  * DOM application lives in `applyMeta` and is only ever called from a hook in
  * the browser.
  */
+import { OG_IMAGE_PATH, PLACEHOLDER_ORIGIN, SITE_NAME } from './routes';
 
-export const SITE_NAME = 'NEOX';
+export { SITE_NAME };
 
 /** Absolute site origin, used for canonical + og:url. Configurable per deploy. */
-export const SITE_URL = (import.meta.env.VITE_SITE_URL || 'https://neox.app').replace(/\/+$/, '');
+export const SITE_URL = (import.meta.env.VITE_SITE_URL || PLACEHOLDER_ORIGIN).replace(/\/+$/, '');
 
 export const DEFAULT_TITLE = 'NEOX · Ton radar cinéma & séries';
 export const DEFAULT_DESCRIPTION =
   'Découvre les films et séries du moment, regarde les bandes-annonces et trouve instantanément où les voir en streaming légal. Crée ta watchlist en un clic.';
 // 1200x630 PNG: the unfurlers (Facebook, X, LinkedIn, Slack) do not render SVG,
 // so an SVG og:image means every share has no preview at all.
-export const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
+export const DEFAULT_IMAGE = `${SITE_URL}${OG_IMAGE_PATH}`;
 
 const MAX_DESCRIPTION = 200;
 
@@ -35,10 +40,19 @@ export interface MetaInput {
   title?: string;
   description?: string;
   image?: string | null;
+  /** Alternative text for `image`, so a shared card is not a mute rectangle. */
+  imageAlt?: string | null;
   /** Open Graph object type, e.g. "website", "video.movie", "profile". */
   type?: string;
   /** Path (+ optional query) of the current view, for canonical / og:url. */
   path?: string;
+  /**
+   * Set false on a view that answers for more than one URL — the 404 shell —
+   * so it claims no canonical at all. Defaulting to the site root there would
+   * declare every dead URL a duplicate of the home page, which is the soft-404
+   * the shell exists to avoid.
+   */
+  canonical?: boolean;
   /**
    * `robots` directive for views with no search value (per-user surfaces, search
    * result pages). Left undefined the tag is removed, which is the indexable
@@ -52,8 +66,10 @@ export interface ResolvedMeta {
   title: string;
   description: string;
   image: string;
+  imageAlt: string;
   type: string;
-  url: string;
+  /** Canonical + og:url, or null on a view that must claim neither. */
+  url: string | null;
   robots?: string;
 }
 
@@ -69,6 +85,7 @@ export function truncate(text: string, max = MAX_DESCRIPTION): string {
 export interface MetaDefaults {
   title?: string;
   description?: string;
+  imageAlt?: string;
 }
 
 /** Resolve a partial meta input into a complete, defaulted set of tags. */
@@ -79,15 +96,30 @@ export function buildMeta(input: MetaInput = {}, defaults: MetaDefaults = {}): R
   const rawDescription = input.description?.trim();
   const description = truncate(rawDescription || defaults.description || DEFAULT_DESCRIPTION);
 
-  const image = input.image?.trim() || DEFAULT_IMAGE;
+  const rawImage = input.image?.trim();
+  const image = rawImage || DEFAULT_IMAGE;
+  // An alt describing the default card would be a lie over a poster, so the
+  // fallback only applies while the default image is the one being shared.
+  const imageAlt =
+    input.imageAlt?.trim() || (rawImage ? title : defaults.imageAlt || DEFAULT_TITLE);
   const type = input.type?.trim() || 'website';
 
-  let url = SITE_URL;
-  if (input.path) {
+  let url: string | null = SITE_URL;
+  if (input.canonical === false) {
+    url = null;
+  } else if (input.path) {
     url = `${SITE_URL}${input.path.startsWith('/') ? '' : '/'}${input.path}`;
   }
 
-  return { title, description, image, type, url, robots: input.robots?.trim() || undefined };
+  return {
+    title,
+    description,
+    image,
+    imageAlt,
+    type,
+    url,
+    robots: input.robots?.trim() || undefined,
+  };
 }
 
 /* ----------------------------- DOM application ---------------------------- */
@@ -99,28 +131,42 @@ const META_TAGS: { attr: 'name' | 'property'; key: string; from: keyof ResolvedM
   { attr: 'property', key: 'og:title', from: 'title' },
   { attr: 'property', key: 'og:description', from: 'description' },
   { attr: 'property', key: 'og:image', from: 'image' },
+  { attr: 'property', key: 'og:image:alt', from: 'imageAlt' },
   { attr: 'property', key: 'og:type', from: 'type' },
   { attr: 'property', key: 'og:url', from: 'url' },
   { attr: 'name', key: 'twitter:card', from: 'image' /* overridden below */ },
   { attr: 'name', key: 'twitter:title', from: 'title' },
   { attr: 'name', key: 'twitter:description', from: 'description' },
   { attr: 'name', key: 'twitter:image', from: 'image' },
+  { attr: 'name', key: 'twitter:image:alt', from: 'imageAlt' },
 ];
 
-function upsertMeta(attr: 'name' | 'property', key: string, content: string): void {
-  let el = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`);
-  if (!el) {
-    el = document.createElement('meta');
+function upsertMeta(
+  attr: 'name' | 'property',
+  key: string,
+  content: string | null | undefined,
+): void {
+  const existing = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`);
+  if (content == null) {
+    existing?.remove();
+    return;
+  }
+  const el = existing ?? document.createElement('meta');
+  if (!existing) {
     el.setAttribute(attr, key);
     document.head.appendChild(el);
   }
   el.setAttribute('content', content);
 }
 
-function upsertCanonical(url: string): void {
-  let el = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-  if (!el) {
-    el = document.createElement('link');
+function upsertCanonical(url: string | null): void {
+  const existing = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  if (url == null) {
+    existing?.remove();
+    return;
+  }
+  const el = existing ?? document.createElement('link');
+  if (!existing) {
     el.setAttribute('rel', 'canonical');
     document.head.appendChild(el);
   }
@@ -172,13 +218,17 @@ export function applyMeta(meta: ResolvedMeta): void {
   upsertOrRemoveRobots(meta.robots);
 }
 
-/** Restore a previously captured snapshot (used when an overlay closes). */
+/**
+ * Restore a previously captured snapshot (used when an overlay closes). A tag
+ * absent from the snapshot is removed rather than left behind: the page under
+ * the overlay did not have it, and inheriting an overlay's canonical would
+ * point the wrong URL at the wrong content.
+ */
 export function restoreMeta(snapshot: MetaSnapshot): void {
   document.title = snapshot.title;
   for (const { attr, key } of META_TAGS) {
-    const content = snapshot.tags[`${attr}:${key}`];
-    if (content != null) upsertMeta(attr, key, content);
+    upsertMeta(attr, key, snapshot.tags[`${attr}:${key}`]);
   }
-  if (snapshot.canonical != null) upsertCanonical(snapshot.canonical);
+  upsertCanonical(snapshot.canonical);
   upsertOrRemoveRobots(snapshot.robots ?? undefined);
 }

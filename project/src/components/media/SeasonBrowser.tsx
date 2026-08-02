@@ -155,6 +155,8 @@ export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: Season
                           src={still.src}
                           srcSet={still.srcSet}
                           sizes={still.sizes}
+                          width={still.width}
+                          height={still.height}
                           alt=""
                           loading="lazy"
                           decoding="async"

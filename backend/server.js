@@ -36,6 +36,16 @@ const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeade
 app.use('/api', apiLimiter);
 app.use('/api/auth', authLimiter);
 
+// API responses are data, not pages. They must stay crawlable — Googlebot
+// fetches them while rendering the SPA, and a `Disallow: /api/` in robots.txt
+// would leave it rendering an empty app — but a JSON payload has no business
+// turning up as a search result. This header says exactly that, and unlike
+// robots.txt it is read *after* the fetch, so nothing is blocked.
+app.use('/api', (_req, res, next) => {
+    res.set('X-Robots-Tag', 'noindex');
+    next();
+});
+
 // Tiny request logger: quiet but useful in dev.
 app.use((req, _res, next) => {
     if (process.env.NODE_ENV !== 'production') {

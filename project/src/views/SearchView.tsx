@@ -8,22 +8,24 @@ import { MediaGrid } from '../components/media/MediaGrid';
 import { EmptyState, ErrorState } from '../components/ui/States';
 import { useT } from '../lib/i18n';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
+import { routeMeta } from '../lib/routes';
 import { rememberSearch } from '../lib/recent-searches';
 
 export function SearchView() {
   const [params] = useSearchParams();
   const query = params.get('q') ?? '';
   const debounced = useDebounce(query.trim(), 350);
-  const { t, tn, formatNumber } = useT();
+  const { t, tn, formatNumber, lang } = useT();
 
+  // The manifest carries the route's baseline (description, and the
+  // `noindex, follow` the build already prerendered); the query only refines
+  // the title and the canonical it points at.
   useDocumentMeta({
-    title: debounced
-      ? `${t('search.results_for')} ${t('search.quoted', { term: debounced })}`
-      : t('search.title'),
-    path: debounced ? `/search?q=${encodeURIComponent(debounced)}` : '/search',
-    // A search result page is thin, duplicated and infinite: crawlable so the
-    // directive is actually read, but never indexed.
-    robots: 'noindex, follow',
+    ...routeMeta('search', lang),
+    ...(debounced && {
+      title: `${t('search.results_for')} ${t('search.quoted', { term: debounced })}`,
+      path: `/search?q=${encodeURIComponent(debounced)}`,
+    }),
   });
 
   const [results, setResults] = useState<MediaItem[]>([]);

@@ -61,3 +61,24 @@ describe('itemPoster', () => {
     expect(itemPoster({ poster: null })).toBeNull();
   });
 });
+
+describe('intrinsic dimensions', () => {
+  // CSS drives the layout, so these only give the browser the aspect ratio
+  // before the stylesheet applies. Wrong values would reserve the wrong box.
+  it('sizes a poster to the 2:3 of its largest variant', () => {
+    const out = posterImg('https://image.tmdb.org/t/p/w500/a.jpg');
+    expect([out.width, out.height]).toEqual([500, 750]);
+  });
+
+  it('sizes a backdrop and a still to 16:9', () => {
+    expect(backdropImg('https://image.tmdb.org/t/p/w1280/a.jpg').width).toBe(1280);
+    expect(backdropImg('https://image.tmdb.org/t/p/w1280/a.jpg').height).toBe(720);
+    expect(stillImg('https://image.tmdb.org/t/p/w300/a.jpg').height).toBe(169);
+  });
+
+  it('claims no dimensions for a URL it cannot resize', () => {
+    const out = posterImg('https://example.com/poster.jpg');
+    expect(out.width).toBeUndefined();
+    expect(out.height).toBeUndefined();
+  });
+});

@@ -10,9 +10,11 @@
  * property is worse than an absent one, because Google reports it as invalid.
  */
 import type { CastMember, MediaDetails, Person } from './types';
-import { SITE_NAME, SITE_URL, truncate } from './seo';
+import { SITE_URL, truncate } from './seo';
+import { buildHomeGraphLd, buildWebSiteLd, type JsonLd } from './routes';
+import type { Lang } from './i18n/core';
 
-export type JsonLd = Record<string, unknown>;
+export type { JsonLd };
 
 /** Drop null/undefined/empty entries so no property is emitted half-filled. */
 function compact(obj: JsonLd): JsonLd {
@@ -39,24 +41,21 @@ export function isoDuration(minutes: number | null): string | null {
 }
 
 /**
- * Site-level graph for the home page: identifies the site and declares the
- * search endpoint, which is what a sitelinks searchbox is built from.
+ * Site-level identity: what the site is, plus the search endpoint a sitelinks
+ * searchbox is built from. Defined in the route manifest so the build can emit
+ * the very same object into the prerendered shell.
  */
 export function buildWebSite(): JsonLd {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: SITE_NAME,
-    url: `${SITE_URL}/`,
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: {
-        '@type': 'EntryPoint',
-        urlTemplate: `${SITE_URL}/search?q={search_term_string}`,
-      },
-      'query-input': 'required name=search_term_string',
-    },
-  };
+  return buildWebSiteLd(SITE_URL);
+}
+
+/**
+ * `WebSite` + `Organization` for the home page, in the single block this module
+ * owns. Must stay identical to what `renderSeoHead` prerenders, or the crawler
+ * reads one graph and the rendered page replaces it with another.
+ */
+export function buildHomeGraph(lang: Lang): JsonLd {
+  return buildHomeGraphLd(SITE_URL, lang);
 }
 
 function buildCast(cast: CastMember[], max = 8): JsonLd[] {

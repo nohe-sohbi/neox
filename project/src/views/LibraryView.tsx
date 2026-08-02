@@ -19,6 +19,7 @@ import { EmptyState } from '../components/ui/States';
 import { useToast } from '../context/ToastContext';
 import { useT } from '../lib/i18n';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
+import { routeMeta } from '../lib/routes';
 
 type Filter = 'all' | LibraryStatus;
 
@@ -46,12 +47,10 @@ function toMediaItem(entry: LibraryEntry): MediaItem {
 }
 
 export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
-  const { t, tn } = useT();
-  useDocumentMeta({
-    title: t('library.title'),
-    path: '/library',
-    robots: 'noindex, nofollow',
-  });
+  const { t, tn, lang } = useT();
+  // Manifest-driven, `noindex, nofollow` included: a per-user surface is never
+  // the same page twice, and the build already prerendered that directive.
+  useDocumentMeta(routeMeta('library', lang));
   const navigate = useNavigate();
   const { user } = useAuth();
   const toast = useToast();

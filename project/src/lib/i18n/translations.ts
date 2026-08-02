@@ -26,6 +26,7 @@ const fr: Dict = {
 
   // Footer
   'footer.tagline': 'ton radar cinéma & séries.',
+  'footer.sections': 'Sections du site',
   'footer.data_by': 'Données & disponibilités fournies par',
   'footer.data_suffix': "& JustWatch. NEOX ne stocke ni n’héberge aucun contenu.",
 
@@ -35,6 +36,13 @@ const fr: Dict = {
   'seo.default_title': 'NEOX · Ton radar cinéma & séries',
   'seo.default_description':
     'Découvre les films et séries du moment, regarde les bandes-annonces et trouve instantanément où les voir en streaming légal. Crée ta watchlist en un clic.',
+  'seo.og_image_alt': 'Le logo NEOX et sa signature : ton radar cinéma & séries.',
+  'noscript.notice':
+    'NEOX a besoin de JavaScript pour afficher le catalogue. Active-le pour explorer les films, les séries et leur disponibilité en streaming légal.',
+  'notfound.title': 'Page introuvable',
+  'notfound.desc':
+    'Cette adresse ne mène à rien. Le titre a peut-être changé de lien, ou l’URL comporte une faute.',
+  'notfound.cta': 'Retour à l’accueil',
   'api.network': 'Impossible de joindre le serveur. Vérifie ta connexion.',
   'api.server': 'Erreur serveur ({status})',
   'error.title': 'Aïe, ça a coincé',
@@ -45,6 +53,7 @@ const fr: Dict = {
   'a11y.skip': 'Aller au contenu',
 
   // Home
+  'home.heading': 'Ton radar cinéma & séries',
   'home.row.now_playing': 'À l’affiche en ce moment',
   'home.row.trending_tv': 'Séries qui cartonnent',
   'home.row.popular_movies': 'Les films du moment',
@@ -276,6 +285,7 @@ const en: Dict = {
   'locale.title': 'Region & language',
 
   'footer.tagline': 'your movie & TV radar.',
+  'footer.sections': 'Site sections',
   'footer.data_by': 'Data & availability provided by',
   'footer.data_suffix': '& JustWatch. NEOX neither stores nor hosts any content.',
 
@@ -284,6 +294,13 @@ const en: Dict = {
   'seo.default_title': 'NEOX · Your movie & TV radar',
   'seo.default_description':
     'Discover trending movies and shows, watch trailers, and instantly find where to stream them legally. Build your watchlist in one click.',
+  'seo.og_image_alt': 'The NEOX logo and its line: your movie & TV radar.',
+  'noscript.notice':
+    'NEOX needs JavaScript to show the catalogue. Turn it on to browse movies, TV shows and where to watch them legally.',
+  'notfound.title': 'Page not found',
+  'notfound.desc':
+    'This address leads nowhere. The title may have moved, or the URL has a typo.',
+  'notfound.cta': 'Back to home',
   'api.network': 'Couldn’t reach the server. Check your connection.',
   'api.server': 'Server error ({status})',
   'error.title': 'Oops, that broke',
@@ -292,6 +309,7 @@ const en: Dict = {
   'error.reload': 'Reload the page',
   'a11y.skip': 'Skip to content',
 
+  'home.heading': 'Your movie & TV radar',
   'home.row.now_playing': 'In theaters now',
   'home.row.trending_tv': 'Trending shows',
   'home.row.popular_movies': 'Popular movies',
@@ -508,6 +526,7 @@ const es: Dict = {
   'locale.title': 'Región e idioma',
 
   'footer.tagline': 'tu radar de cine y series.',
+  'footer.sections': 'Secciones del sitio',
   'footer.data_by': 'Datos y disponibilidad proporcionados por',
   'footer.data_suffix': '& JustWatch. NEOX no almacena ni aloja ningún contenido.',
 
@@ -516,6 +535,13 @@ const es: Dict = {
   'seo.default_title': 'NEOX · Tu radar de cine y series',
   'seo.default_description':
     'Descubre las películas y series del momento, mira los tráilers y encuentra al instante dónde verlas en streaming legal. Crea tu lista en un clic.',
+  'seo.og_image_alt': 'El logo de NEOX y su lema: tu radar de cine y series.',
+  'noscript.notice':
+    'NEOX necesita JavaScript para mostrar el catálogo. Actívalo para explorar películas, series y dónde verlas legalmente.',
+  'notfound.title': 'Página no encontrada',
+  'notfound.desc':
+    'Esta dirección no lleva a ninguna parte. Puede que el título haya cambiado de enlace o que la URL tenga una errata.',
+  'notfound.cta': 'Volver al inicio',
   'api.network': 'No se pudo conectar con el servidor. Revisa tu conexión.',
   'api.server': 'Error del servidor ({status})',
   'error.title': 'Vaya, algo falló',
@@ -524,6 +550,7 @@ const es: Dict = {
   'error.reload': 'Recargar la página',
   'a11y.skip': 'Saltar al contenido',
 
+  'home.heading': 'Tu radar de cine y series',
   'home.row.now_playing': 'En cartelera ahora',
   'home.row.trending_tv': 'Series en tendencia',
   'home.row.popular_movies': 'Películas populares',
@@ -740,6 +767,7 @@ const de: Dict = {
   'locale.title': 'Region & Sprache',
 
   'footer.tagline': 'dein Film- & Serienradar.',
+  'footer.sections': 'Bereiche der Website',
   'footer.data_by': 'Daten & Verfügbarkeit bereitgestellt von',
   'footer.data_suffix': '& JustWatch. NEOX speichert und hostet keine Inhalte.',
 
@@ -748,6 +776,13 @@ const de: Dict = {
   'seo.default_title': 'NEOX · Dein Film- & Serienradar',
   'seo.default_description':
     'Entdecke aktuelle Filme und Serien, sieh dir Trailer an und finde sofort, wo du sie legal streamen kannst. Erstelle deine Watchlist mit einem Klick.',
+  'seo.og_image_alt': 'Das NEOX-Logo und sein Claim: dein Film- & Serienradar.',
+  'noscript.notice':
+    'NEOX braucht JavaScript, um den Katalog anzuzeigen. Aktiviere es, um Filme, Serien und ihre legale Verfügbarkeit zu entdecken.',
+  'notfound.title': 'Seite nicht gefunden',
+  'notfound.desc':
+    'Diese Adresse führt ins Leere. Vielleicht hat der Titel einen neuen Link, oder die URL enthält einen Tippfehler.',
+  'notfound.cta': 'Zurück zur Startseite',
   'api.network': 'Server nicht erreichbar. Prüfe deine Verbindung.',
   'api.server': 'Serverfehler ({status})',
   'error.title': 'Hoppla, da ging was schief',
@@ -757,6 +792,7 @@ const de: Dict = {
   'error.reload': 'Seite neu laden',
   'a11y.skip': 'Zum Inhalt springen',
 
+  'home.heading': 'Dein Film- & Serienradar',
   'home.row.now_playing': 'Jetzt im Kino',
   'home.row.trending_tv': 'Angesagte Serien',
   'home.row.popular_movies': 'Beliebte Filme',
@@ -973,6 +1009,7 @@ const it: Dict = {
   'locale.title': 'Regione e lingua',
 
   'footer.tagline': 'il tuo radar di film e serie.',
+  'footer.sections': 'Sezioni del sito',
   'footer.data_by': 'Dati e disponibilità forniti da',
   'footer.data_suffix': '& JustWatch. NEOX non memorizza né ospita alcun contenuto.',
 
@@ -981,6 +1018,13 @@ const it: Dict = {
   'seo.default_title': 'NEOX · Il tuo radar per film e serie',
   'seo.default_description':
     'Scopri i film e le serie del momento, guarda i trailer e trova subito dove vederli in streaming legale. Crea la tua watchlist con un clic.',
+  'seo.og_image_alt': 'Il logo NEOX e la sua firma: il tuo radar per film e serie.',
+  'noscript.notice':
+    'NEOX ha bisogno di JavaScript per mostrare il catalogo. Attivalo per esplorare film, serie e dove guardarli legalmente.',
+  'notfound.title': 'Pagina non trovata',
+  'notfound.desc':
+    'Questo indirizzo non porta da nessuna parte. Forse il titolo ha cambiato link, o l’URL contiene un errore.',
+  'notfound.cta': 'Torna alla home',
   'api.network': 'Impossibile raggiungere il server. Controlla la connessione.',
   'api.server': 'Errore del server ({status})',
   'error.title': 'Ops, qualcosa è andato storto',
@@ -989,6 +1033,7 @@ const it: Dict = {
   'error.reload': 'Ricarica la pagina',
   'a11y.skip': 'Vai al contenuto',
 
+  'home.heading': 'Il tuo radar per film e serie',
   'home.row.now_playing': 'Ora al cinema',
   'home.row.trending_tv': 'Serie del momento',
   'home.row.popular_movies': 'Film popolari',

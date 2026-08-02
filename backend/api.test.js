@@ -100,3 +100,20 @@ describe('tv season endpoint', () => {
     if (res.status === 503) expect(res.body.code).toBe('TMDB_NOT_CONFIGURED');
   });
 });
+
+describe('crawler directives', () => {
+  // A JSON payload has no business ranking as a document, but the endpoints
+  // must stay fetchable: the app is client rendered, so Googlebot calls them
+  // while rendering. Hence a header rather than a robots.txt Disallow, which
+  // would be read before the fetch and leave it rendering an empty app.
+  it('marks API responses noindex without blocking the fetch', async () => {
+    const res = await request(app).get('/api/health');
+    expect(res.status).toBe(200);
+    expect(res.headers['x-robots-tag']).toBe('noindex');
+  });
+
+  it('marks error responses too, so a 404 body cannot be indexed either', async () => {
+    const res = await request(app).get('/api/movie/abc');
+    expect(res.headers['x-robots-tag']).toBe('noindex');
+  });
+});

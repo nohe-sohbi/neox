@@ -8,6 +8,7 @@ import { MediaGrid } from '../components/media/MediaGrid';
 import { EmptyState, ErrorState, Spinner } from '../components/ui/States';
 import { useT } from '../lib/i18n';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
+import { routeMeta } from '../lib/routes';
 
 const MOVIE_SORTS = [
   { id: 'popularity.desc', key: 'sort.popularity' },
@@ -32,7 +33,7 @@ const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: CURRENT_YEAR - 1950 + 1 }, (_, i) => CURRENT_YEAR - i);
 
 export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
-  const { t } = useT();
+  const { t, lang } = useT();
   const platforms = useMyPlatforms();
 
   const [genres, setGenres] = useState<Genre[]>([]);
@@ -52,11 +53,9 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
 
   const sorts = mediaType === 'tv' ? TV_SORTS : MOVIE_SORTS;
 
-  useDocumentMeta({
-    title: mediaType === 'tv' ? t('discover.tv_title') : t('discover.movies_title'),
-    description: mediaType === 'tv' ? t('discover.tv_sub') : t('discover.movies_sub'),
-    path: mediaType === 'tv' ? '/tv' : '/movies',
-  });
+  // From the manifest the build prerendered this route's shell from, so the
+  // head React applies is the one the crawler was already served.
+  useDocumentMeta(routeMeta(mediaType === 'tv' ? 'tv' : 'movies', lang));
 
   // Genres + providers for this media type. These barely change, so they're
   // cached: switching tabs (or coming back) reuses the data instead of refetching.

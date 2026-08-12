@@ -42,7 +42,7 @@ export function LibraryStats({ entries }: { entries: LibraryEntry[] }) {
 
       {open && (
         <div className="animate-fade-in mt-3 space-y-4">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             <Tile label={t('stats.total')} value={formatNumber(stats.total)} />
             <Tile
               label={t('stats.watched')}
@@ -62,6 +62,19 @@ export function LibraryStats({ entries }: { entries: LibraryEntry[] }) {
               sub={
                 stats.ratedCount > 0
                   ? t('stats.rated_count', { count: formatNumber(stats.ratedCount) })
+                  : undefined
+              }
+            />
+            {/* Computed since day one, displayed never — until now. The delta
+                says whether you rate above or below the TMDB crowd. */}
+            <Tile
+              label={t('stats.avg_tmdb')}
+              value={stats.avgTmdbRating != null ? stats.avgTmdbRating.toFixed(1) : '—'}
+              sub={
+                stats.personalVsTmdb != null
+                  ? t('stats.vs_tmdb', {
+                      delta: `${stats.personalVsTmdb > 0 ? '+' : ''}${stats.personalVsTmdb.toFixed(1)}`,
+                    })
                   : undefined
               }
             />

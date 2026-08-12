@@ -67,6 +67,18 @@ describe('computeStats', () => {
     expect(s.avgTmdbRating).toBe(8); // (7+9)/2
   });
 
+  it('measures how far personal ratings sit from the TMDB crowd', () => {
+    const s = computeStats([
+      entry({ personalRating: 9, rating: 7 }), // +2
+      entry({ personalRating: 6, rating: 7 }), // -1
+      entry({ personalRating: 8, rating: null }), // no pair → excluded
+      entry({ personalRating: null, rating: 6 }), // no pair → excluded
+    ]);
+    expect(s.personalVsTmdb).toBe(0.5); // (+2 - 1) / 2
+
+    expect(computeStats([entry({ personalRating: 8, rating: null })]).personalVsTmdb).toBeNull();
+  });
+
   it('buckets personal ratings into a 1..10 histogram', () => {
     const s = computeStats([
       entry({ personalRating: 1 }),

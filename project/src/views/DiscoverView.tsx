@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { SlidersHorizontal, Star } from 'lucide-react';
+import { Shuffle, SlidersHorizontal, Star } from 'lucide-react';
 import { api, ApiError, getLocale } from '../lib/api';
 import { STATIC_TTL, queryCache } from '../lib/query';
 import type { Genre, MediaItem, MediaType, Provider } from '../lib/types';
 import { useMyPlatforms } from '../hooks/useMyPlatforms';
+import { useOpenDetail } from '../hooks/useDetailRoute';
 import { MediaGrid } from '../components/media/MediaGrid';
 import { EmptyState, ErrorState, Spinner } from '../components/ui/States';
 import { useT } from '../lib/i18n';
@@ -128,6 +129,37 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
   }, [mediaType]);
 
   const platformIds = platforms.ids.join(',');
+  const openDetail = useOpenDetail();
+  const [surprising, setSurprising] = useState(false);
+
+  // A dice roll that honors the current filters: pick a random page of the
+  // same discover query, then a random title on it. TMDB caps discover at
+  // 500 pages, and the deep pages of any sort are noise anyway — 20 is scope
+  // enough for a surprise.
+  const surpriseMe = useCallback(async () => {
+    if (surprising) return;
+    setSurprising(true);
+    try {
+      const opts = {
+        genre: activeGenre,
+        sort,
+        year,
+        minRating: minRating || undefined,
+        providers: platformIds ? platformIds.split(',').map(Number) : undefined,
+      };
+      const first = await api.discover(mediaType, { ...opts, page: 1 });
+      const pool = Math.max(1, Math.min(first.totalPages, 20));
+      const page = 1 + Math.floor(Math.random() * pool);
+      const res = page === 1 ? first : await api.discover(mediaType, { ...opts, page });
+      const items = res.results.length ? res.results : first.results;
+      if (items.length === 0) return;
+      openDetail(items[Math.floor(Math.random() * items.length)]);
+    } catch {
+      /* a failed dice roll is no error worth an alert */
+    } finally {
+      setSurprising(false);
+    }
+  }, [surprising, mediaType, activeGenre, sort, year, minRating, platformIds, openDetail]);
 
   const fetchPage = useCallback(
     async (targetPage: number, replace: boolean) => {
@@ -212,8 +244,16 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
           </button>
         ))}
         <button
+          onClick={() => void surpriseMe()}
+          disabled={surprising}
+          className="ml-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm font-medium text-white/70 transition-all hover:bg-white/10 disabled:opacity-60"
+        >
+          <Shuffle className={`h-4 w-4 ${surprising ? 'animate-spin' : ''}`} />
+          {t('discover.surprise')}
+        </button>
+        <button
           onClick={() => setShowPlatforms((s) => !s)}
-          className={`ml-auto inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
             platformsActive
               ? 'bg-white text-ink-950'
               : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'

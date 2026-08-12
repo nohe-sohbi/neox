@@ -73,6 +73,32 @@ export function SeasonBrowser({
   // switched away from is ignored instead of clobbering the current one.
   const reqId = useRef(0);
 
+  // Roving tabindex: one tab stop for the whole tablist, arrows move between
+  // seasons (wrapping), Home/End jump to the edges — the keyboard contract
+  // role="tablist" promises.
+  const tabRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
+  const moveTo = (seasonNumber: number) => {
+    setSelected(seasonNumber);
+    tabRefs.current.get(seasonNumber)?.focus();
+  };
+  const onTabKeyDown = (e: React.KeyboardEvent) => {
+    const idx = ordered.findIndex((s) => s.seasonNumber === selected);
+    if (idx === -1) return;
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      moveTo(ordered[(idx + 1) % ordered.length].seasonNumber);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      moveTo(ordered[(idx - 1 + ordered.length) % ordered.length].seasonNumber);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      moveTo(ordered[0].seasonNumber);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      moveTo(ordered[ordered.length - 1].seasonNumber);
+    }
+  };
+
   // Seasons live in the shared query cache (keyed per show + season + locale)
   // rather than a per-mount Map, so closing and reopening the fiche keeps
   // them warm too.
@@ -118,15 +144,25 @@ export function SeasonBrowser({
       </h3>
 
       {/* Season selector */}
-      <div className="no-scrollbar mb-4 flex gap-2 overflow-x-auto pb-1" role="tablist">
+      <div
+        className="no-scrollbar mb-4 flex gap-2 overflow-x-auto pb-1"
+        role="tablist"
+        aria-label={t('detail.episodes')}
+        onKeyDown={onTabKeyDown}
+      >
         {ordered.map((season) => {
           const isActive = season.seasonNumber === selected;
           const seenCount = seenInSeason(season.seasonNumber);
           return (
             <button
               key={season.seasonNumber}
+              ref={(el) => {
+                if (el) tabRefs.current.set(season.seasonNumber, el);
+                else tabRefs.current.delete(season.seasonNumber);
+              }}
               role="tab"
               aria-selected={isActive}
+              tabIndex={isActive ? 0 : -1}
               onClick={() => setSelected(season.seasonNumber)}
               className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
                 isActive

@@ -253,6 +253,8 @@ const fr: Dict = {
   'hero.in_list': 'Dans ma liste',
   'hero.add_list': 'Ma liste',
   'hero.goto_slide': 'Aller à la diapositive {n}',
+  'hero.pause': 'Mettre le carrousel en pause',
+  'hero.play': 'Relancer le carrousel',
 
   // Media card
   'card.add': 'Ajouter à ma liste',
@@ -540,6 +542,8 @@ const en: Dict = {
   'hero.in_list': 'In my list',
   'hero.add_list': 'My list',
   'hero.goto_slide': 'Go to slide {n}',
+  'hero.pause': 'Pause the carousel',
+  'hero.play': 'Resume the carousel',
 
   'card.add': 'Add to my list',
   'card.remove': 'Remove from my list',
@@ -820,6 +824,8 @@ const es: Dict = {
   'hero.in_list': 'En mi lista',
   'hero.add_list': 'Mi lista',
   'hero.goto_slide': 'Ir a la diapositiva {n}',
+  'hero.pause': 'Pausar el carrusel',
+  'hero.play': 'Reanudar el carrusel',
 
   'card.add': 'Añadir a mi lista',
   'card.remove': 'Quitar de mi lista',
@@ -1101,6 +1107,8 @@ const de: Dict = {
   'hero.in_list': 'In meiner Liste',
   'hero.add_list': 'Meine Liste',
   'hero.goto_slide': 'Zu Folie {n} springen',
+  'hero.pause': 'Karussell anhalten',
+  'hero.play': 'Karussell fortsetzen',
 
   'card.add': 'Zu meiner Liste hinzufügen',
   'card.remove': 'Aus meiner Liste entfernen',
@@ -1381,6 +1389,8 @@ const it: Dict = {
   'hero.in_list': 'Nella mia lista',
   'hero.add_list': 'La mia lista',
   'hero.goto_slide': 'Vai alla slide {n}',
+  'hero.pause': 'Metti in pausa il carosello',
+  'hero.play': 'Riprendi il carosello',
 
   'card.add': 'Aggiungi alla mia lista',
   'card.remove': 'Rimuovi dalla mia lista',

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bookmark, Info, Star } from 'lucide-react';
+import { Bookmark, Info, Pause, Play, Star } from 'lucide-react';
 import type { MediaItem } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
 import { useToast } from '../../context/ToastContext';
@@ -15,6 +15,8 @@ export function Hero({ items }: { items: MediaItem[] }) {
   const { isSaved, toggle } = useLibrary();
   const toast = useToast();
   const [active, setActive] = useState(0);
+  // WCAG 2.2.2: anything that auto-advances must be stoppable by the user.
+  const [paused, setPaused] = useState(false);
   // Highest slide reached so far. Every slide used to be mounted from the
   // start: `opacity-0` hides an image, it does not stop the browser
   // downloading it, so the hero pulled five full-width backdrops before the
@@ -22,12 +24,12 @@ export function Hero({ items }: { items: MediaItem[] }) {
   const [reached, setReached] = useState(0);
   useEffect(() => setReached((max) => Math.max(max, active)), [active]);
 
-  // Auto-advance.
+  // Auto-advance, unless the user asked it to hold still.
   useEffect(() => {
-    if (items.length <= 1) return;
+    if (items.length <= 1 || paused) return;
     const id = setInterval(() => setActive((i) => (i + 1) % items.length), 7000);
     return () => clearInterval(id);
-  }, [items.length]);
+  }, [items.length, paused]);
 
   // Preload the next backdrop for a seamless cross-fade. Through the same
   // srcset the slide will render with, so the browser warms the variant it is
@@ -155,6 +157,14 @@ export function Hero({ items }: { items: MediaItem[] }) {
 
       {items.length > 1 && (
         <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1">
+          <button
+            onClick={() => setPaused((p) => !p)}
+            aria-label={paused ? t('hero.play') : t('hero.pause')}
+            aria-pressed={paused}
+            className="mr-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/40 text-white/70 backdrop-blur-sm transition-colors hover:text-white"
+          >
+            {paused ? <Play className="h-3 w-3 fill-current" /> : <Pause className="h-3 w-3 fill-current" />}
+          </button>
           {items.map((item, i) => (
             // The bar stays 6px tall, but the button carries vertical padding so the
             // hit area clears the 24x24 floor of WCAG 2.5.8 on a touch screen.

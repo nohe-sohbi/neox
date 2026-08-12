@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Cake, MapPin, X } from 'lucide-react';
+import { Cake, MapPin, Share2, X } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
+import { track } from '../../lib/analytics';
+import { shareUrl } from '../../lib/share';
+import { useToast } from '../../context/ToastContext';
 import type { Person } from '../../lib/types';
 import { SITE_URL } from '../../lib/seo';
 import { buildPersonSchema } from '../../lib/structured-data';
@@ -24,6 +27,7 @@ function age(birthday: string | null): number | null {
 export function PersonModal() {
   const { t } = useT();
   const { personId, close } = usePersonTarget();
+  const toast = useToast();
   const [person, setPerson] = useState<Person | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +59,14 @@ export function PersonModal() {
 
   const years = person ? age(person.birthday) : null;
   const knownFor = person ? departmentLabel(t, person.knownFor) : '';
+
+  const handleShare = async () => {
+    if (!person) return;
+    const outcome = await shareUrl(person.name, `${SITE_URL}${personPath(person.id)}`);
+    if (outcome === 'copied') toast.success(t('toast.link_copied'));
+    else if (outcome === 'failed') toast.error(t('toast.link_copy_failed'));
+    if (outcome === 'shared' || outcome === 'copied') track('Share', { mediaType: 'person' });
+  };
 
   return (
     <div
@@ -122,6 +134,13 @@ export function PersonModal() {
                       {person.placeOfBirth}
                     </span>
                   )}
+                  <button
+                    onClick={() => void handleShare()}
+                    className="inline-flex items-center gap-1.5 text-white/60 transition-colors hover:text-white"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    {t('detail.share')}
+                  </button>
                 </div>
                 {person.biography && (
                   <p className="mt-3 line-clamp-5 text-sm leading-relaxed text-white/70">

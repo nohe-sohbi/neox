@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type CSSProperties } from 'react';
-import { Bookmark, Calendar, Check, Clock, Eye, Film, Play, PlayCircle, Star, Trash2, Tv, X } from 'lucide-react';
+import { Bookmark, Calendar, Check, Clock, Eye, Film, Play, PlayCircle, Share2, Star, Trash2, Tv, X } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { track } from '../../lib/analytics';
 import { SITE_URL } from '../../lib/seo';
@@ -17,6 +17,7 @@ import {
 } from '../../hooks/useDetailRoute';
 import { useModal } from '../../hooks/useModal';
 import { rememberViewed } from '../../lib/recently-viewed';
+import { shareUrl } from '../../lib/share';
 import { DocumentMeta } from '../../hooks/useDocumentMeta';
 import { ErrorState, FullSpinner } from '../ui/States';
 import { StarRating } from '../ui/StarRating';
@@ -72,6 +73,19 @@ export function DetailModal() {
     setShowTrailer(true);
     if (details) track('Trailer Play', { mediaType: details.mediaType });
   }, [details]);
+
+  // The card URL is already canonical and shareable; this finally hands it to
+  // the user. System share sheet where there is one, clipboard elsewhere.
+  const handleShare = useCallback(async () => {
+    if (!details) return;
+    const url = `${SITE_URL}${detailPath(details.mediaType, details.id)}`;
+    const outcome = await shareUrl(details.title, url);
+    if (outcome === 'copied') toast.success(t('toast.link_copied'));
+    else if (outcome === 'failed') toast.error(t('toast.link_copy_failed'));
+    if (outcome === 'shared' || outcome === 'copied') {
+      track('Share', { mediaType: details.mediaType });
+    }
+  }, [details, toast, t]);
 
   // Record successful opens so Home + ⌘K can resurface them.
   useEffect(() => {
@@ -291,6 +305,10 @@ export function DetailModal() {
                     <Eye className="h-5 w-5" />
                   )}
                   {status === 'watched' ? t('filter.watched') : t('detail.mark_watched')}
+                </button>
+                <button onClick={() => void handleShare()} className="btn-ghost">
+                  <Share2 className="h-5 w-5" />
+                  {t('detail.share')}
                 </button>
                 {saved && (
                   <button

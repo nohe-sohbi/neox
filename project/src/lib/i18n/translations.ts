@@ -82,6 +82,8 @@ const fr: Dict = {
   // Discover
   'discover.movies_title': 'Films',
   'discover.tv_title': 'Séries',
+  'discover.count_one': '{count} titre trouvé',
+  'discover.count_other': '{count} titres trouvés',
   'discover.movies_sub':
     'Du blockbuster au film culte : explore, filtre, trouve ta prochaine séance.',
   'discover.tv_sub': 'Des pépites à binge-watcher, triées sur le volet.',
@@ -355,6 +357,8 @@ const en: Dict = {
 
   'discover.movies_title': 'Movies',
   'discover.tv_title': 'TV Shows',
+  'discover.count_one': '{count} title found',
+  'discover.count_other': '{count} titles found',
   'discover.movies_sub':
     'From blockbusters to cult classics: explore, filter, find your next session.',
   'discover.tv_sub': 'Binge-worthy gems, hand-picked for you.',
@@ -615,6 +619,8 @@ const es: Dict = {
 
   'discover.movies_title': 'Películas',
   'discover.tv_title': 'Series',
+  'discover.count_one': '{count} título encontrado',
+  'discover.count_other': '{count} títulos encontrados',
   'discover.movies_sub':
     'Del taquillazo al clásico de culto: explora, filtra y encuentra tu próxima sesión.',
   'discover.tv_sub': 'Joyas para maratonear, seleccionadas con mimo.',
@@ -876,6 +882,8 @@ const de: Dict = {
 
   'discover.movies_title': 'Filme',
   'discover.tv_title': 'Serien',
+  'discover.count_one': '{count} Titel gefunden',
+  'discover.count_other': '{count} Titel gefunden',
   'discover.movies_sub':
     'Vom Blockbuster bis zum Kultfilm: entdecken, filtern, nächsten Film finden.',
   'discover.tv_sub': 'Binge-würdige Perlen, handverlesen für dich.',
@@ -1136,6 +1144,8 @@ const it: Dict = {
 
   'discover.movies_title': 'Film',
   'discover.tv_title': 'Serie',
+  'discover.count_one': '{count} titolo trovato',
+  'discover.count_other': '{count} titoli trovati',
   'discover.movies_sub':
     'Dal blockbuster al cult: esplora, filtra, trova la tua prossima visione.',
   'discover.tv_sub': 'Gemme da maratona, selezionate con cura.',

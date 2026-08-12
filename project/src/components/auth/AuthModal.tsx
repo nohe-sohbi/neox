@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Lock, Mail, X } from 'lucide-react';
+import { Loader2, Mail, X } from 'lucide-react';
 import { ApiError } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useModal } from '../../hooks/useModal';
 import { useT } from '../../lib/i18n';
 import { ERROR_CODE_KEYS } from './auth-errors';
+import { PasswordInput } from './PasswordInput';
 
 interface AuthModalProps {
   open: boolean;
@@ -94,18 +95,14 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               className="w-full rounded-xl border border-white/15 bg-white/5 py-3 pl-11 pr-4 text-white placeholder-white/40 outline-none transition-all focus:border-white/40 focus:ring-2 focus:ring-white/20"
             />
           </div>
-          <div className="relative">
-            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
-            <input
-              type="password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={mode === 'register' ? t('auth.password_min') : t('auth.password_placeholder')}
-              className="w-full rounded-xl border border-white/15 bg-white/5 py-3 pl-11 pr-4 text-white placeholder-white/40 outline-none transition-all focus:border-white/40 focus:ring-2 focus:ring-white/20"
-            />
-          </div>
+          <PasswordInput
+            required
+            minLength={8}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder={mode === 'register' ? t('auth.password_min') : t('auth.password_placeholder')}
+            autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+          />
 
           {error && (
             <p className="rounded-lg border border-red-500/30 bg-red-900/20 px-3 py-2 text-sm text-red-300">

@@ -1,19 +1,17 @@
 import { useEffect, useState } from 'react';
-import { KeyRound, Loader2, Lock, Trash2, X } from 'lucide-react';
+import { KeyRound, Loader2, Trash2, X } from 'lucide-react';
 import { ApiError } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useModal } from '../../hooks/useModal';
 import { useT } from '../../lib/i18n';
 import { ERROR_CODE_KEYS } from './auth-errors';
+import { PasswordInput } from './PasswordInput';
 
 interface AccountModalProps {
   open: boolean;
   onClose: () => void;
 }
-
-const inputClass =
-  'w-full rounded-xl border border-white/15 bg-white/5 py-3 pl-11 pr-4 text-white placeholder-white/40 outline-none transition-all focus:border-white/40 focus:ring-2 focus:ring-white/20';
 
 /**
  * Account management: change the password, or delete the account entirely.
@@ -117,31 +115,22 @@ export function AccountModal({ open, onClose }: AccountModalProps) {
           <h3 className="text-sm font-bold uppercase tracking-wider text-white/50">
             {t('account.change_password')}
           </h3>
-          <div className="relative">
-            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
-            <input
-              type="password"
-              required
-              autoComplete="current-password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder={t('account.current_password')}
-              className={inputClass}
-            />
-          </div>
-          <div className="relative">
-            <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
-            <input
-              type="password"
-              required
-              minLength={8}
-              autoComplete="new-password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder={t('account.new_password')}
-              className={inputClass}
-            />
-          </div>
+          <PasswordInput
+            required
+            autoComplete="current-password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            placeholder={t('account.current_password')}
+          />
+          <PasswordInput
+            required
+            minLength={8}
+            autoComplete="new-password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder={t('account.new_password')}
+            leftIcon={<KeyRound className="h-5 w-5" />}
+          />
           <button type="submit" disabled={busy !== null} className="btn-primary w-full">
             {busy === 'change' ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -161,18 +150,13 @@ export function AccountModal({ open, onClose }: AccountModalProps) {
             </h3>
             <p className="mt-1 text-sm text-white/50">{t('account.delete_desc')}</p>
           </div>
-          <div className="relative">
-            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
-            <input
-              type="password"
-              required
-              autoComplete="current-password"
-              value={deletePassword}
-              onChange={(e) => setDeletePassword(e.target.value)}
-              placeholder={t('account.delete_password')}
-              className={inputClass}
-            />
-          </div>
+          <PasswordInput
+            required
+            autoComplete="current-password"
+            value={deletePassword}
+            onChange={(e) => setDeletePassword(e.target.value)}
+            placeholder={t('account.delete_password')}
+          />
           <button
             type="submit"
             disabled={busy !== null}

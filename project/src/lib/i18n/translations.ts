@@ -75,6 +75,7 @@ const fr: Dict = {
   'search.empty_desc':
     'Tape le titre d’un film ou d’une série, on te dit instantanément où le voir légalement.',
   'search.none_title': 'Aucun résultat',
+  'search.people': 'Personnes',
   'search.none_desc':
     'Rien trouvé pour « {query} ». Vérifie l’orthographe ou essaie un autre titre.',
 
@@ -350,6 +351,7 @@ const en: Dict = {
   'search.none_title': 'No results',
   'search.none_desc':
     'Nothing found for “{query}”. Check the spelling or try another title.',
+  'search.people': 'People',
 
   'discover.movies_title': 'Movies',
   'discover.tv_title': 'TV Shows',
@@ -609,6 +611,7 @@ const es: Dict = {
   'search.none_title': 'Sin resultados',
   'search.none_desc':
     'No se encontró nada para «{query}». Revisa la ortografía o prueba otro título.',
+  'search.people': 'Personas',
 
   'discover.movies_title': 'Películas',
   'discover.tv_title': 'Series',
@@ -869,6 +872,7 @@ const de: Dict = {
   'search.none_title': 'Keine Ergebnisse',
   'search.none_desc':
     'Nichts gefunden für „{query}“. Prüfe die Schreibweise oder probiere einen anderen Titel.',
+  'search.people': 'Personen',
 
   'discover.movies_title': 'Filme',
   'discover.tv_title': 'Serien',
@@ -1128,6 +1132,7 @@ const it: Dict = {
   'search.none_title': 'Nessun risultato',
   'search.none_desc':
     'Niente trovato per «{query}». Controlla l’ortografia o prova un altro titolo.',
+  'search.people': 'Persone',
 
   'discover.movies_title': 'Film',
   'discover.tv_title': 'Serie',

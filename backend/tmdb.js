@@ -459,11 +459,33 @@ async function list(mediaType, kind, page = 1, opts = {}) {
     );
 }
 
+/** Compact person shape for search results (full profiles come from getPerson). */
+function normalizeSearchPerson(item) {
+    return {
+        id: item.id,
+        name: item.name || '',
+        photo: img(item.profile_path, PROFILE_SIZE),
+        knownFor: item.known_for_department || '',
+    };
+}
+
 async function search(query, page = 1, opts = {}) {
-    if (!query || !query.trim()) return { page: 1, totalPages: 1, totalResults: 0, results: [] };
-    return normalizeList(
-        await tmdbGet('/search/multi', { query: query.trim(), page: String(page), ...locale(opts) }),
-    );
+    if (!query || !query.trim()) {
+        return { page: 1, totalPages: 1, totalResults: 0, results: [], people: [] };
+    }
+    const data = await tmdbGet('/search/multi', {
+        query: query.trim(),
+        page: String(page),
+        ...locale(opts),
+    });
+    // `/search/multi` interleaves people with titles; normalizeList drops them
+    // from `results`, so surface them separately instead of losing them —
+    // actors and directors are searched by name too.
+    const people = (data.results || [])
+        .filter((item) => item.media_type === 'person')
+        .map(normalizeSearchPerson)
+        .slice(0, 8);
+    return { ...normalizeList(data), people };
 }
 
 async function details(mediaType, id, region = DEFAULT_REGION, opts = {}) {

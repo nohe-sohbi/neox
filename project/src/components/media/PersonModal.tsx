@@ -11,25 +11,14 @@ import { DocumentMeta } from '../../hooks/useDocumentMeta';
 import { ErrorState, FullSpinner } from '../ui/States';
 import { MediaGrid } from './MediaGrid';
 import { useT, activeLang } from '../../lib/i18n';
-import { localeTag, type Translator } from '../../lib/i18n/core';
+import { localeTag } from '../../lib/i18n/core';
+import { departmentLabel } from '../../lib/person';
 
 function age(birthday: string | null): number | null {
   if (!birthday) return null;
   const diff = Date.now() - new Date(birthday).getTime();
   const years = Math.floor(diff / (365.25 * 24 * 3600 * 1000));
   return years > 0 && years < 130 ? years : null;
-}
-
-/**
- * TMDB's `known_for_department` is always English ("Acting", "Directing"…).
- * Map it to the UI language, falling back to the raw value for any department
- * we don't have a translation for (t() returns the key when it's missing).
- */
-function departmentLabel(t: Translator, dept: string): string {
-  if (!dept) return '';
-  const key = `person.dept.${dept}`;
-  const label = t(key);
-  return label === key ? dept : label;
 }
 
 export function PersonModal() {

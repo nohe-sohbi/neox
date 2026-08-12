@@ -43,6 +43,13 @@ beforeAll(async () => {
                         vote_average: 7.25,
                         vote_count: 100,
                     },
+                    {
+                        id: 7,
+                        media_type: 'person',
+                        name: 'Fixture Actor',
+                        profile_path: '/actor.jpg',
+                        known_for_department: 'Acting',
+                    },
                 ],
             }),
         );
@@ -90,6 +97,14 @@ describe('tmdb client over the wire', () => {
             rating: 7.3,
         });
         expect(res.results[0].poster).toContain('/fixture.jpg');
+    });
+
+    it('surfaces people alongside titles instead of dropping them', async () => {
+        const res = await tmdb.search('people please');
+        expect(res.results).toHaveLength(1); // the person is not a title…
+        expect(res.people).toHaveLength(1); // …but it is not lost either
+        expect(res.people[0]).toMatchObject({ id: 7, name: 'Fixture Actor', knownFor: 'Acting' });
+        expect(res.people[0].photo).toContain('/actor.jpg');
     });
 
     it('retries after a 429 and succeeds', async () => {

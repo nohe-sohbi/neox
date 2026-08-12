@@ -10,6 +10,7 @@ import type {
   Paginated,
   Person,
   Provider,
+  SearchResults,
   SeasonDetail,
   User,
 } from './types';
@@ -145,7 +146,7 @@ export const api = {
   home: () => request<HomePayload>(withLocale('/api/home')),
 
   search: (query: string, page = 1) =>
-    request<Paginated<MediaItem>>(withLocale(`/api/search?q=${encodeURIComponent(query)}&page=${page}`)),
+    request<SearchResults>(withLocale(`/api/search?q=${encodeURIComponent(query)}&page=${page}`)),
 
   genres: (mediaType: MediaType) =>
     request<{ genres: Genre[] }>(withLocale(`/api/genres/${mediaType}`)),

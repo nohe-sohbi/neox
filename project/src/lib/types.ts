@@ -85,6 +85,18 @@ export interface Paginated<T> {
   results: T[];
 }
 
+/** Compact person as returned inside search results. */
+export interface SearchPerson {
+  id: number;
+  name: string;
+  photo: string | null;
+  knownFor: string;
+}
+
+export interface SearchResults extends Paginated<MediaItem> {
+  people: SearchPerson[];
+}
+
 export interface HomeRow {
   id: string;
   items: MediaItem[];

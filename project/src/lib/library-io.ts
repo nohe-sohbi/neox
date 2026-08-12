@@ -43,6 +43,57 @@ export function backupFilename(now = new Date()): string {
   return `neox-library-${now.toISOString().slice(0, 10)}.json`;
 }
 
+/* ------------------------------- CSV export ------------------------------ */
+
+const CSV_HEADER = [
+  'title',
+  'type',
+  'year',
+  'status',
+  'personal_rating',
+  'tmdb_rating',
+  'seen_episodes',
+  'added_at',
+  'updated_at',
+];
+
+/** RFC 4180 field: quoted (with doubled quotes) only when it needs to be. */
+function csvField(value: string | number | null | undefined): string {
+  const s = value == null ? '' : String(value);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/**
+ * The library as a spreadsheet: one row per entry, CRLF line ends, and a BOM
+ * prefix so Excel reads accented titles as UTF-8 instead of mojibake. The
+ * JSON backup stays the round-trippable format; CSV is a one-way door for
+ * spreadsheets, so it favors readable columns (ISO dates, episode counts)
+ * over rehydratable ones.
+ */
+export function serializeLibraryCsv(entries: LibraryEntry[]): string {
+  const rows = entries.map((e) =>
+    [
+      e.title,
+      e.mediaType,
+      e.year,
+      e.status,
+      e.personalRating ?? '',
+      e.rating ?? '',
+      e.seenEpisodes?.length ?? '',
+      new Date(e.addedAt).toISOString(),
+      new Date(e.updatedAt).toISOString(),
+    ]
+      .map(csvField)
+      .join(','),
+  );
+  return `\uFEFF${CSV_HEADER.join(',')}\r\n${rows.join('\r\n')}\r\n`;
+}
+
+/** Suggested filename for a CSV download. */
+export function csvFilename(now = new Date()): string {
+  return `neox-library-${now.toISOString().slice(0, 10)}.csv`;
+}
+
 function sanitizeEntry(raw: unknown): LibraryEntry | null {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Record<string, unknown>;

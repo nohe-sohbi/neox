@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bookmark, Cloud, Download, Loader2, Search, Trash2, Upload } from 'lucide-react';
+import { Bookmark, Cloud, Download, FileSpreadsheet, Loader2, Search, Trash2, Upload } from 'lucide-react';
 import type { LibraryEntry, LibraryStatus, MediaItem, MediaType } from '../lib/types';
 import { matchesQuery } from '../lib/library-utils';
 import { track } from '../lib/analytics';
@@ -9,8 +9,10 @@ import { useLibrary } from '../context/LibraryContext';
 import {
   SORT_MODES,
   backupFilename,
+  csvFilename,
   parseLibrary,
   serializeLibrary,
+  serializeLibraryCsv,
   sortEntries,
   type SortMode,
 } from '../lib/library-io';
@@ -92,15 +94,26 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
   // "no match", not "your watchlist is empty".
   const narrowed = search.trim() !== '' || kind !== 'all';
 
-  const handleExport = () => {
-    const blob = new Blob([serializeLibrary(entries)], { type: 'application/json' });
+  const download = (content: string, filename: string, type: string) => {
+    const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = backupFilename();
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
-    track('Library Export', { count: entries.length });
+  };
+
+  const handleExport = () => {
+    download(serializeLibrary(entries), backupFilename(), 'application/json');
+    track('Library Export', { count: entries.length, format: 'json' });
+    toast.success(t('toast.exported'));
+  };
+
+  // JSON is the round-trippable backup; CSV is for spreadsheets.
+  const handleExportCsv = () => {
+    download(serializeLibraryCsv(entries), csvFilename(), 'text/csv');
+    track('Library Export', { count: entries.length, format: 'csv' });
     toast.success(t('toast.exported'));
   };
 
@@ -163,6 +176,15 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
             >
               <Download className="h-4 w-4" />
               {t('library.export')}
+            </button>
+          )}
+          {entries.length > 0 && (
+            <button
+              onClick={handleExportCsv}
+              className="inline-flex items-center gap-2 text-sm text-white/50 transition-colors hover:text-white"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              {t('library.export_csv')}
             </button>
           )}
           {entries.length > 0 && (

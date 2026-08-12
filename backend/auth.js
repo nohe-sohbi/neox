@@ -4,6 +4,7 @@
  */
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const store = require('./store');
 
 const SECRET = process.env.JWT_SECRET || 'neox-dev-secret-change-me';
 const TOKEN_TTL = '30d';
@@ -31,7 +32,12 @@ function assertSecretConfigured(nodeEnv = process.env.NODE_ENV, secret = process
 assertSecretConfigured();
 
 function signToken(user) {
-    return jwt.sign({ sub: user.id, email: user.email }, SECRET, { expiresIn: TOKEN_TTL });
+    const payload = { sub: user.id, email: user.email };
+    // The token pins the password-change timestamp it was issued against, so
+    // requireAuth can reject every token that predates a change exactly: the
+    // `iat` claim only counts seconds, which is too coarse for that.
+    if (user.passwordChangedAt) payload.pwc = user.passwordChangedAt;
+    return jwt.sign(payload, SECRET, { expiresIn: TOKEN_TTL });
 }
 
 function hashPassword(password) {
@@ -51,6 +57,18 @@ function requireAuth(req, res, next) {
     }
     try {
         const payload = jwt.verify(token, SECRET);
+        // A valid signature is not enough: the token must still map to a live
+        // account (a deleted account's tokens die instantly), and its `pwc`
+        // claim must match the account's last password change: changing the
+        // password is the user's "log every other session out" lever, which
+        // stateless JWTs can't offer otherwise.
+        const user = store.getUserById(payload.sub);
+        const stale = user && user.passwordChangedAt && payload.pwc !== user.passwordChangedAt;
+        if (!user || stale) {
+            return res
+                .status(401)
+                .json({ error: 'Session expirée ou invalide.', code: 'AUTH_SESSION_INVALID' });
+        }
         req.userId = payload.sub;
         next();
     } catch {

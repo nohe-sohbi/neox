@@ -97,6 +97,24 @@ async function createUser({ email, passwordHash }) {
     return user;
 }
 
+/** Merges a patch into an existing user (e.g. a new password hash). */
+async function updateUser(id, patch) {
+    const user = state.users[id];
+    if (!user) return null;
+    Object.assign(user, patch);
+    await persist();
+    return user;
+}
+
+/** Removes the account and its library. Returns whether anything was deleted. */
+async function deleteUser(id) {
+    if (!state.users[id]) return false;
+    delete state.users[id];
+    delete state.libraries[id];
+    await persist();
+    return true;
+}
+
 /** Strips secrets before sending a user to the client. */
 function publicUser(user) {
     return { id: user.id, email: user.email, createdAt: user.createdAt };
@@ -118,6 +136,8 @@ module.exports = {
     findUserByEmail,
     getUserById,
     createUser,
+    updateUser,
+    deleteUser,
     publicUser,
     getLibrary,
     setLibrary,

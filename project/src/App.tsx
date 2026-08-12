@@ -6,6 +6,7 @@ import { Footer } from './components/layout/Footer';
 import { DetailModal } from './components/media/DetailModal';
 import { PersonModal } from './components/media/PersonModal';
 import { AuthModal } from './components/auth/AuthModal';
+import { AccountModal } from './components/auth/AccountModal';
 import { CommandPalette } from './components/command/CommandPalette';
 import { ToastViewport } from './components/ui/ToastViewport';
 import { HomeView } from './views/HomeView';
@@ -20,6 +21,7 @@ import { useT } from './lib/i18n';
 function App() {
   const { t } = useT();
   const [authOpen, setAuthOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   useEffect(() => {
     initAnalytics();
@@ -37,7 +39,7 @@ function App() {
 
       <div aria-hidden className="pointer-events-none fixed inset-0 bg-aurora opacity-20 transition-colors duration-700" />
 
-      <Navbar onOpenAuth={() => setAuthOpen(true)} />
+      <Navbar onOpenAuth={() => setAuthOpen(true)} onOpenAccount={() => setAccountOpen(true)} />
 
       <main id="main-content" tabIndex={-1} className="relative flex-1 outline-none">
         <ErrorBoundary>
@@ -67,6 +69,7 @@ function App() {
       <DetailModal />
       <PersonModal />
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+      <AccountModal open={accountOpen} onClose={() => setAccountOpen(false)} />
       <CommandPalette />
 
       {/* Global, accessible action feedback */}

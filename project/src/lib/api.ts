@@ -194,6 +194,18 @@ export const api = {
 
   me: () => request<{ user: User }>('/api/auth/me'),
 
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<AuthResponse>('/api/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+
+  deleteAccount: (password: string) =>
+    request<{ ok: boolean }>('/api/auth/account', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    }),
+
   // ── Library sync ──
   getLibrary: () => request<{ entries: LibraryEntry[] }>('/api/library'),
 

@@ -1,7 +1,20 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
+// Isolated store: requireAuth now checks tokens against live accounts, so the
+// data dir must be set before ./auth pulls in ./store.
+const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'neox-auth-test-'));
+process.env.DATA_DIR = dataDir;
 
 const jwt = require('jsonwebtoken');
 const auth = require('./auth');
+const store = require('./store');
+
+afterAll(() => {
+    fs.rmSync(dataDir, { recursive: true, force: true });
+});
 
 /** Drives `requireAuth` with a stub req/res and reports what happened. */
 function callRequireAuth(token) {
@@ -46,10 +59,41 @@ describe('JWT secret configuration', () => {
 });
 
 describe('requireAuth', () => {
-  it('accepts a token the module signed itself', () => {
-    const token = auth.signToken({ id: 'u1', email: 'demo@neox.test' });
+  it('accepts a token for a live account', async () => {
+    const user = await store.createUser({ email: 'demo@neox.test', passwordHash: 'x' });
+    const token = auth.signToken(user);
 
-    expect(callRequireAuth(token)).toMatchObject({ passed: true, userId: 'u1' });
+    expect(callRequireAuth(token)).toMatchObject({ passed: true, userId: user.id });
+  });
+
+  it('rejects a valid token whose account no longer exists', () => {
+    const token = auth.signToken({ id: 'ghost', email: 'ghost@neox.test' });
+
+    expect(callRequireAuth(token)).toMatchObject({
+      passed: false,
+      status: 401,
+      body: { code: 'AUTH_SESSION_INVALID' },
+    });
+  });
+
+  it('rejects a token issued before the last password change', async () => {
+    const user = await store.createUser({ email: 'rotate@neox.test', passwordHash: 'x' });
+    const old = auth.signToken(user); // no `pwc` claim yet
+    await store.updateUser(user.id, { passwordChangedAt: Date.now() });
+
+    expect(callRequireAuth(old)).toMatchObject({
+      passed: false,
+      status: 401,
+      body: { code: 'AUTH_SESSION_INVALID' },
+    });
+  });
+
+  it('accepts the fresh token issued right after a password change', async () => {
+    const user = await store.createUser({ email: 'fresh@neox.test', passwordHash: 'x' });
+    await store.updateUser(user.id, { passwordChangedAt: Date.now() });
+    const fresh = auth.signToken(user); // carries the matching `pwc` claim
+
+    expect(callRequireAuth(fresh)).toMatchObject({ passed: true, userId: user.id });
   });
 
   it('rejects a token signed with a different secret', () => {

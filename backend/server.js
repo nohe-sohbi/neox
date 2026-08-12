@@ -248,6 +248,58 @@ app.get('/api/auth/me', auth.requireAuth, (req, res) => {
     res.json({ user: store.publicUser(user) });
 });
 
+app.post(
+    '/api/auth/change-password',
+    auth.requireAuth,
+    route(async (req, res) => {
+        const { currentPassword, newPassword } = req.body || {};
+        if (typeof currentPassword !== 'string' || !currentPassword) {
+            return res.status(400).json({ error: 'Mot de passe actuel requis.', code: 'AUTH_CREDENTIALS_REQUIRED' });
+        }
+        if (typeof newPassword !== 'string' || newPassword.length < 8) {
+            return res.status(400).json({ error: 'Le mot de passe doit faire au moins 8 caractères.', code: 'AUTH_PASSWORD_TOO_SHORT' });
+        }
+
+        const user = store.getUserById(req.userId);
+        if (!user) return res.status(404).json({ error: 'Compte introuvable.', code: 'AUTH_ACCOUNT_NOT_FOUND' });
+
+        // 403, not 401: a wrong current password is a failed confirmation, not
+        // an expired session, and the client logs itself out on any 401.
+        if (!(await auth.verifyPassword(currentPassword, user.passwordHash))) {
+            return res.status(403).json({ error: 'Mot de passe incorrect.', code: 'AUTH_INVALID_CREDENTIALS' });
+        }
+
+        const passwordHash = await auth.hashPassword(newPassword);
+        await store.updateUser(user.id, { passwordHash, passwordChangedAt: Date.now() });
+        // Every previously issued token is now stale (see requireAuth); hand
+        // back a fresh one so the session doing the change survives it.
+        res.json({ token: auth.signToken(user), user: store.publicUser(user) });
+    }),
+);
+
+app.delete(
+    '/api/auth/account',
+    auth.requireAuth,
+    route(async (req, res) => {
+        const { password } = req.body || {};
+        if (typeof password !== 'string' || !password) {
+            return res.status(400).json({ error: 'Mot de passe requis.', code: 'AUTH_CREDENTIALS_REQUIRED' });
+        }
+
+        const user = store.getUserById(req.userId);
+        if (!user) return res.status(404).json({ error: 'Compte introuvable.', code: 'AUTH_ACCOUNT_NOT_FOUND' });
+
+        if (!(await auth.verifyPassword(password, user.passwordHash))) {
+            return res.status(403).json({ error: 'Mot de passe incorrect.', code: 'AUTH_INVALID_CREDENTIALS' });
+        }
+
+        // Removes the account and its synced library; requireAuth then rejects
+        // any token that still references the deleted account.
+        await store.deleteUser(user.id);
+        res.json({ ok: true });
+    }),
+);
+
 /* ------------------------------ library ------------------------------- */
 
 app.get('/api/library', auth.requireAuth, (req, res) => {

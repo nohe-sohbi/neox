@@ -4,25 +4,12 @@ import { ApiError } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useModal } from '../../hooks/useModal';
 import { useT } from '../../lib/i18n';
+import { ERROR_CODE_KEYS } from './auth-errors';
 
 interface AuthModalProps {
   open: boolean;
   onClose: () => void;
 }
-
-// Backend error codes → i18n keys, so auth errors follow the UI language
-// instead of the server's hardcoded French. Unknown codes fall back to the
-// (localized) server message, then to a generic error.
-const ERROR_CODE_KEYS: Record<string, string> = {
-  AUTH_EMAIL_INVALID: 'auth.err.email_invalid',
-  AUTH_PASSWORD_TOO_SHORT: 'auth.err.password_short',
-  AUTH_EMAIL_TAKEN: 'auth.err.email_taken',
-  AUTH_CREDENTIALS_REQUIRED: 'auth.err.credentials_required',
-  AUTH_INVALID_CREDENTIALS: 'auth.err.invalid_credentials',
-  AUTH_ACCOUNT_NOT_FOUND: 'auth.err.account_not_found',
-  AUTH_REQUIRED: 'auth.err.required',
-  AUTH_SESSION_INVALID: 'auth.err.session_invalid',
-};
 
 export function AuthModal({ open, onClose }: AuthModalProps) {
   const { t } = useT();

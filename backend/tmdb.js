@@ -368,6 +368,21 @@ async function trending(mediaType, window = 'week', opts = {}) {
     );
 }
 
+// Every sort order the product exposes. An arbitrary string here would leak
+// verbatim into the upstream URL and mint a junk cache key per variant.
+const DISCOVER_SORTS = new Set([
+    'popularity.desc',
+    'popularity.asc',
+    'vote_average.desc',
+    'vote_average.asc',
+    'primary_release_date.desc',
+    'primary_release_date.asc',
+    'first_air_date.desc',
+    'first_air_date.asc',
+    'revenue.desc',
+    'revenue.asc',
+]);
+
 /**
  * Pure builder for TMDB /discover query params. Kept separate from the network
  * call so the filter logic (genre, sort, year, rating, providers) is trivially
@@ -378,7 +393,7 @@ function buildDiscoverParams(
     { genre, sort = 'popularity.desc', page = 1, providers, region, language, year, minRating } = {},
 ) {
     const params = {
-        sort_by: sort,
+        sort_by: DISCOVER_SORTS.has(sort) ? sort : 'popularity.desc',
         page: String(page),
         // A floor of 50 votes keeps obscure entries out, but a user asking for
         // a minimum rating wants a stricter signal, so raise the floor then.

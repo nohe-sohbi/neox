@@ -68,12 +68,26 @@ function assertMediaType(value) {
     return value;
 }
 
-// Pulls region + language overrides off any request.
+// Pulls region + language overrides off any request. Malformed values are
+// dropped (the server defaults apply) rather than 400ed: they would otherwise
+// reach TMDB verbatim and mint a distinct junk cache key per variant.
+const REGION_RE = /^[A-Za-z]{2}$/;
+const LANG_RE = /^[a-z]{2,3}(-[A-Za-z]{2})?$/i;
+
 function localeFrom(req) {
+    const region = req.query.region ? req.query.region.toString() : '';
+    const language = req.query.lang ? req.query.lang.toString() : '';
     return {
-        region: req.query.region ? req.query.region.toString().toUpperCase() : undefined,
-        language: req.query.lang ? req.query.lang.toString() : undefined,
+        region: REGION_RE.test(region) ? region.toUpperCase() : undefined,
+        language: LANG_RE.test(language) ? language : undefined,
     };
+}
+
+// TMDB rejects pages beyond 500; clamping (instead of erroring) lets a
+// deep-scrolling client degrade gracefully.
+function pageFrom(req) {
+    const page = Math.trunc(Number(req.query.page) || 1);
+    return Math.min(500, Math.max(1, page));
 }
 
 app.get('/api/health', noStore, (_req, res) => {
@@ -98,9 +112,8 @@ app.get(
     '/api/search',
     cacheControl(TTL.dynamic),
     route(async (req, res) => {
-        const q = (req.query.q || '').toString();
-        const page = Math.max(1, Number(req.query.page) || 1);
-        res.json(await tmdb.search(q, page, localeFrom(req)));
+        const q = (req.query.q || '').toString().slice(0, 200);
+        res.json(await tmdb.search(q, pageFrom(req), localeFrom(req)));
     }),
 );
 
@@ -118,7 +131,7 @@ app.get(
     cacheControl(TTL.static),
     route(async (req, res) => {
         const mediaType = assertMediaType(req.params.mediaType);
-        const region = (req.query.region || tmdb.DEFAULT_REGION).toString().toUpperCase();
+        const region = localeFrom(req).region || tmdb.DEFAULT_REGION;
         res.json({ providers: await tmdb.getProviders(mediaType, region) });
     }),
 );
@@ -128,25 +141,28 @@ app.get(
     cacheControl(TTL.dynamic),
     route(async (req, res) => {
         const mediaType = assertMediaType(req.params.mediaType);
-        const { genre, sort, providers, region, year, minRating } = req.query;
-        const page = Math.max(1, Number(req.query.page) || 1);
+        const { genre, sort, providers, year, minRating } = req.query;
+        const { region, language } = localeFrom(req);
+        // Provider ids are TMDB integers: anything else is noise, and a bound
+        // keeps a hostile query from fanning out into an absurd upstream URL.
         const providerIds = providers
             ? providers
                   .toString()
                   .split(',')
                   .map((id) => id.trim())
-                  .filter(Boolean)
+                  .filter((id) => /^\d+$/.test(id))
+                  .slice(0, 50)
             : undefined;
         res.json(
             await tmdb.discover(mediaType, {
                 genre: genre ? Number(genre) : undefined,
                 sort: sort ? sort.toString() : undefined,
                 providers: providerIds,
-                region: region ? region.toString() : undefined,
-                language: req.query.lang ? req.query.lang.toString() : undefined,
+                region,
+                language,
                 year: year ? Number(year) : undefined,
                 minRating: minRating ? Number(minRating) : undefined,
-                page,
+                page: pageFrom(req),
             }),
         );
     }),
@@ -212,7 +228,9 @@ app.post(
     '/api/auth/login',
     route(async (req, res) => {
         const { email, password } = req.body || {};
-        if (!email || !password) {
+        // Type-checked, not just truthy: a number or array here used to reach
+        // the store and crash the route with a 500.
+        if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
             return res.status(400).json({ error: 'E-mail et mot de passe requis.', code: 'AUTH_CREDENTIALS_REQUIRED' });
         }
         const user = store.findUserByEmail(email);
@@ -259,7 +277,15 @@ app.post(
     '/api/library/merge',
     auth.requireAuth,
     route(async (req, res) => {
-        const incoming = sanitizeLibrary(req.body?.entries);
+        // Same contract as PUT: a malformed body is an error, not an empty
+        // merge that silently reports the server library back as "merged".
+        if (!Array.isArray(req.body?.entries)) {
+            const err = new Error('Field "entries" must be an array.');
+            err.status = 400;
+            err.code = 'LIBRARY_INVALID_BODY';
+            throw err;
+        }
+        const incoming = sanitizeLibrary(req.body.entries);
         const merged = mergeLibraries(store.getLibrary(req.userId), incoming);
         await store.setLibrary(req.userId, merged);
         res.json({ entries: merged });
@@ -301,13 +327,16 @@ app.get(
 // 404 for unknown API routes.
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));
 
-// Centralized error handler.
+// Centralized error handler. An error that set its own `status` carries a
+// message written for the client; an unexpected exception (plain 500) must
+// not leak internals ("x.trim is not a function") to the outside — the full
+// error, stack included, goes to the server log instead.
 // eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {
     const status = err.status || 500;
-    if (status >= 500) console.error('API error:', err.message);
+    if (status >= 500) console.error('API error:', err);
     res.status(status).json({
-        error: err.message || 'Internal server error',
+        error: err.status ? err.message || 'Internal server error' : 'Internal server error',
         code: err.code,
     });
 });

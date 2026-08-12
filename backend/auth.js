@@ -63,10 +63,12 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Returns { error, code } on failure (so clients can localize by code, with the
 // message as a fallback), or null when the credentials are well-formed.
 function validateCredentials({ email, password }) {
-    if (!email || !EMAIL_RE.test(String(email))) {
+    // Types first: a JSON body can carry anything (arrays, objects, numbers),
+    // and String([]) coercions used to let some of it through to the store.
+    if (typeof email !== 'string' || !EMAIL_RE.test(email)) {
         return { error: 'Adresse e-mail invalide.', code: 'AUTH_EMAIL_INVALID' };
     }
-    if (!password || String(password).length < 8) {
+    if (typeof password !== 'string' || password.length < 8) {
         return { error: 'Le mot de passe doit faire au moins 8 caractères.', code: 'AUTH_PASSWORD_TOO_SHORT' };
     }
     return null;

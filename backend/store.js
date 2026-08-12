@@ -61,6 +61,9 @@ load();
 /* ------------------------------- users -------------------------------- */
 
 function findUserByEmail(email) {
+    // A non-string can only come from an unvalidated request body; answering
+    // "no such user" beats crashing the route with a 500.
+    if (typeof email !== 'string') return null;
     const normalized = email.trim().toLowerCase();
     return Object.values(state.users).find((u) => u.email === normalized) || null;
 }

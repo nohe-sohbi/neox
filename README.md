@@ -42,23 +42,30 @@ disponibilité légale (JustWatch via TMDB).
 ## Ce que ça fait
 
 - **Découvrir** : accueil éditorialisé (hero rotatif, rails « À l'affiche », « Tendances séries »,
-  « Acclamés par la critique »), recherche instantanée sur les films et les séries.
+  « Acclamés par la critique »), recherche instantanée sur les films, les séries et les personnes
+  (acteurs, réalisateurs), chargée page après page en scroll infini.
 - **Savoir où regarder** : la section « Où regarder (légalement) » de chaque fiche liste le
   streaming, la location et l'achat pour ta région, avec un filtre « Mes plateformes » qui ne garde
   que tes services.
 - **Explorer finement** : genre, année de sortie, note minimale (6+/7+/8+/9+), tri par popularité,
-  note, date ou box-office, en scroll infini.
+  note, date ou box-office, en scroll infini avec compteur de résultats. Les filtres vivent dans
+  l'URL : une vue filtrée se partage, se met en favori et se retrouve au retour.
 - **Naviguer au clavier** : palette `Ctrl K` globale pour chercher un titre, sauter vers une page ou
   reprendre une recherche récente, sans quitter le clavier.
 - **Suivre ses séries** : navigateur par saison dans la fiche, liste des épisodes avec vignette,
   code `SxEx`, date, durée et note, chargée à la demande.
-- **Tenir sa liste** : statut À voir / Vu, note personnelle de 1 à 10, tri, filtres, et un panneau
-  de statistiques calculé localement (progression, répartition films/séries, note moyenne,
-  histogramme des notes, décennies de prédilection).
-- **Retrouver sa liste partout** : compte optionnel (inscription, connexion) qui synchronise la
-  bibliothèque entre appareils. Sans compte, tout reste en local, avec export et import JSON.
+- **Tenir sa liste** : statut À voir / En cours / Vu, note personnelle de 1 à 10, tri, filtres par
+  statut et par type, recherche texte insensible aux accents, et un panneau de statistiques calculé
+  localement (progression, répartition films/séries, note moyenne, histogramme des notes, décennies
+  de prédilection).
+- **Partager une fiche** : chaque fiche titre ou personne porte un bouton Partager — feuille de
+  partage système quand elle existe, copie du lien canonique sinon.
+- **Retrouver sa liste partout** : compte optionnel (inscription, connexion, changement de mot de
+  passe, suppression du compte) qui synchronise la bibliothèque entre appareils. Sans compte, tout
+  reste en local, avec export et import JSON.
 - **Installer l'app** : PWA avec shell hors-ligne et images en cache, interface traduite en
-  français, anglais, espagnol, allemand et italien.
+  français, anglais, espagnol, allemand et italien — la langue suit celle du navigateur au premier
+  lancement.
 
 ## Sous le capot
 
@@ -75,7 +82,14 @@ Ce qui n'est pas visible à l'écran mais tient l'app debout :
 - **Cache HTTP.** Les endpoints de lecture envoient `Cache-Control` et des ETags forts, les routes
   privées sont en `no-store`.
 - **Auth self-contained.** bcrypt + JWT + store JSON atomique, aucun SaaS tiers. L'API refuse de
-  démarrer en production sans `JWT_SECRET`.
+  démarrer en production sans `JWT_SECRET`. Changer son mot de passe révoque chaque jeton déjà
+  émis (le jeton porte l'horodatage du dernier changement), et le jeton d'un compte supprimé meurt
+  immédiatement au lieu de survivre trente jours.
+- **Entrées bornées et typées.** Le tri d'Explorer passe par une allowlist, la pagination est
+  plafonnée au maximum TMDB, les identifiants de plateformes doivent être numériques et une
+  région ou langue malformée est ignorée : aucune chaîne arbitraire ne mine de clé de cache ni
+  n'atteint l'amont. Une exception inattendue répond un message générique, le détail restant dans
+  le log serveur.
 - **Accessibilité.** Les quatre overlays partagent un hook `useModal` (piège de focus, restauration,
   `Escape`, verrou de scroll, `role="dialog"`), les actions passent par une région `aria-live`, il y
   a un skip-link. Contrastes mesurés, pas estimés : tout le texte passe le 4.5:1 de WCAG AA sur le
@@ -115,9 +129,9 @@ Ce qui n'est pas visible à l'écran mais tient l'app debout :
   déclare canonique.
 - **Analytics optionnelle et sans cookie.** Aucun script n'est chargé tant que
   `VITE_UMAMI_WEBSITE_ID` n'est pas défini. Quand elle est active, une instance
-  [Umami](https://umami.is) auto-hébergée compte les pages et dix actions produit (`Open Detail`,
+  [Umami](https://umami.is) auto-hébergée compte les pages et onze actions produit (`Open Detail`,
   `Trailer Play`, `Providers Click`, `Palette Open`, `Rating Set`, `Library Add`, `Library Import`,
-  `Library Export`, `Signup`, `Login`). Aucune propriété d'événement ne porte de donnée personnelle :
+  `Library Export`, `Share`, `Signup`, `Login`). Aucune propriété d'événement ne porte de donnée personnelle :
   pas d'e-mail, pas de terme de recherche, seulement des compteurs et des types de média.
   `VITE_UMAMI_DOMAINS` limite le tracker au domaine de production, donc une session locale ne
   pollue pas les statistiques.
@@ -200,9 +214,9 @@ même-origine (`/api`), ce que fait l'image Docker.
 |---|---|---|
 | GET | `/api/health` | État du service, config TMDB, métriques cache et disjoncteur |
 | GET | `/api/home` | Payload accueil (hero + rails) |
-| GET | `/api/search?q=&page=` | Recherche multi (films + séries) |
+| GET | `/api/search?q=&page=` | Recherche multi (films + séries, personnes dans `people`) |
 | GET | `/api/trending/:type?window=week\|day` | Tendances (`all`/`movie`/`tv`) |
-| GET | `/api/discover/:type?genre=&sort=&year=&minRating=&page=` | Exploration filtrée |
+| GET | `/api/discover/:type?genre=&sort=&year=&minRating=&providers=&page=` | Exploration filtrée |
 | GET | `/api/genres/:type` | Genres (`movie`/`tv`) |
 | GET | `/api/providers/:type?region=` | Plateformes de streaming d'une région |
 | GET | `/api/person/:id` | Profil et filmographie d'une personne |
@@ -212,6 +226,8 @@ même-origine (`/api`), ce que fait l'image Docker.
 | POST | `/api/auth/register` | Création de compte, renvoie `{ token, user }` |
 | POST | `/api/auth/login` | Connexion, renvoie `{ token, user }` |
 | GET | `/api/auth/me` 🔒 | Profil du token courant |
+| POST | `/api/auth/change-password` 🔒 | Change le mot de passe, révoque les anciens jetons |
+| DELETE | `/api/auth/account` 🔒 | Supprime le compte et sa bibliothèque (confirmation par mot de passe) |
 | GET | `/api/library` 🔒 | Bibliothèque du compte |
 | PUT | `/api/library` 🔒 | Remplace la bibliothèque |
 | POST | `/api/library/merge` 🔒 | Fusionne local et serveur |
@@ -221,10 +237,14 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 
 ## Qualité
 
-- **202 tests** : 69 côté `backend/` (auth et sync via supertest, garde du secret JWT, cache HTTP,
-  cache LRU et snapshot/hydrate, single-flight, params discover, saisons, directives crawler) et
-  133 côté `project/` (bibliothèque, export/import, i18n, manifeste de routes et shells prérendus,
-  SEO, données structurées, extraction de teinte, cache SWR, vu récemment, srcset).
+- **243 tests** : 95 côté `backend/` (auth, gestion de compte et sync via supertest, garde du
+  secret JWT, révocation de jetons, durcissement des entrées, cache HTTP, cache LRU et
+  snapshot/hydrate, single-flight, params discover, saisons, directives crawler, et le chemin
+  réseau du client TMDB — retry, 429, snapshot sans secret — contre un serveur fixture injecté via
+  `TMDB_BASE_URL`) et 148 côté `project/` (bibliothèque, export/import, recherche de titres,
+  partage, détection de langue, i18n avec test de parité des cinq dictionnaires, manifeste de
+  routes et shells prérendus, SEO, données structurées, extraction de teinte, cache SWR, vu
+  récemment, srcset).
 - **Vérifs** : `npm run lint`, `npm run typecheck`, `npm run build`.
 - **CI** : GitHub Actions lance lint, typecheck, tests et build sur chaque PR
   (`.github/workflows/ci.yml`).
@@ -236,7 +256,9 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 - L'API refuse de démarrer en `NODE_ENV=production` sans `JWT_SECRET` : un secret de repli connu de
   tous vaut une absence d'authentification.
 - Mots de passe hachés bcrypt, jetons JWT signés, `helmet`, rate-limit global et limiteur strict sur
-  `/api/auth`, corps de requête bornés.
+  `/api/auth`, corps de requête bornés et typés (un e-mail non-string répond 400, jamais 500).
+- La clé TMDB n'entre jamais dans les clés de cache : le snapshot disque n'en contient aucune
+  trace, et une rotation de clé ne vide pas le cache.
 - Les routes privées (`/api/library`, `/api/auth/me`) sont en `no-store`, jamais mises en cache par
   un navigateur ou un CDN.
 

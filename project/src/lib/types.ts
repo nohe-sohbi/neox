@@ -124,6 +124,8 @@ export interface LibraryEntry {
   rating: number | null;
   status: LibraryStatus;
   personalRating: number | null;
+  /** Episodes ticked as watched, as "season:episode" codes. TV only, absent when empty. */
+  seenEpisodes?: string[];
   addedAt: number;
   updatedAt: number;
 }

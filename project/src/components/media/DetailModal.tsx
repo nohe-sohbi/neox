@@ -350,7 +350,12 @@ export function DetailModal() {
               )}
 
               {details.mediaType === 'tv' && details.seasons.length > 0 && (
-                <SeasonBrowser key={details.id} tvId={details.id} seasons={details.seasons} />
+                <SeasonBrowser
+                  key={details.id}
+                  tvId={details.id}
+                  seasons={details.seasons}
+                  item={details}
+                />
               )}
 
               <div>

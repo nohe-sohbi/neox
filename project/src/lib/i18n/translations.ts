@@ -230,6 +230,9 @@ const fr: Dict = {
   'season.specials': 'Épisodes spéciaux',
   'season.episodes_one': '{count} épisode',
   'season.episodes_other': '{count} épisodes',
+  'season.progress': '{seen}/{total} vus',
+  'episode.mark_seen': 'Marquer {code} comme vu',
+  'episode.seen': '{code} vu — cliquer pour retirer',
   'season.loading': 'On récupère les épisodes…',
   'season.empty': 'Aucun épisode pour cette saison.',
 
@@ -506,6 +509,9 @@ const en: Dict = {
   'season.specials': 'Specials',
   'season.episodes_one': '{count} episode',
   'season.episodes_other': '{count} episodes',
+  'season.progress': '{seen}/{total} watched',
+  'episode.mark_seen': 'Mark {code} as watched',
+  'episode.seen': '{code} watched — click to unmark',
   'season.loading': 'Fetching episodes…',
   'season.empty': 'No episodes for this season.',
 
@@ -774,6 +780,9 @@ const es: Dict = {
   'season.specials': 'Especiales',
   'season.episodes_one': '{count} episodio',
   'season.episodes_other': '{count} episodios',
+  'season.progress': '{seen}/{total} vistos',
+  'episode.mark_seen': 'Marcar {code} como visto',
+  'episode.seen': '{code} visto — clic para quitar',
   'season.loading': 'Obteniendo los episodios…',
   'season.empty': 'No hay episodios para esta temporada.',
 
@@ -1043,6 +1052,9 @@ const de: Dict = {
   'season.specials': 'Specials',
   'season.episodes_one': '{count} Folge',
   'season.episodes_other': '{count} Folgen',
+  'season.progress': '{seen}/{total} gesehen',
+  'episode.mark_seen': '{code} als gesehen markieren',
+  'episode.seen': '{code} gesehen — klicken zum Entfernen',
   'season.loading': 'Folgen werden geladen…',
   'season.empty': 'Keine Folgen für diese Staffel.',
 
@@ -1311,6 +1323,9 @@ const it: Dict = {
   'season.specials': 'Speciali',
   'season.episodes_one': '{count} episodio',
   'season.episodes_other': '{count} episodi',
+  'season.progress': '{seen}/{total} visti',
+  'episode.mark_seen': 'Segna {code} come visto',
+  'episode.seen': '{code} visto — clic per rimuovere',
   'season.loading': 'Recupero gli episodi…',
   'season.empty': 'Nessun episodio per questa stagione.',
 

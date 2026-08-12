@@ -9,7 +9,7 @@
  * the backend's `sanitizeLibrary`.
  */
 import type { LibraryEntry, LibraryStatus, MediaType } from './types';
-import { entryKey } from './library-utils';
+import { entryKey, sanitizeSeenEpisodes } from './library-utils';
 
 export const EXPORT_VERSION = 1;
 const MAX_ENTRIES = 2000;
@@ -57,6 +57,10 @@ function sanitizeEntry(raw: unknown): LibraryEntry | null {
     if (Number.isFinite(n)) personalRating = Math.min(10, Math.max(1, Math.round(n)));
   }
 
+  // Episode progress only makes sense on shows; a movie entry carrying one is
+  // malformed input and the field is dropped.
+  const seenEpisodes = r.mediaType === 'tv' ? sanitizeSeenEpisodes(r.seenEpisodes) : undefined;
+
   const now = Date.now();
   return {
     id,
@@ -67,6 +71,7 @@ function sanitizeEntry(raw: unknown): LibraryEntry | null {
     rating: Number.isFinite(Number(r.rating)) ? Number(r.rating) : null,
     status: STATUSES.includes(r.status as LibraryStatus) ? (r.status as LibraryStatus) : 'want',
     personalRating,
+    ...(seenEpisodes ? { seenEpisodes } : {}),
     addedAt: Number.isFinite(Number(r.addedAt)) ? Number(r.addedAt) : now,
     updatedAt: Number.isFinite(Number(r.updatedAt)) ? Number(r.updatedAt) : now,
   };

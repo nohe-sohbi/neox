@@ -54,6 +54,17 @@ describe('serializeLibrary / parseLibrary', () => {
     expect(entry.personalRating).toBe(10);
   });
 
+  it('round-trips episode progress on shows and drops it on movies', () => {
+    const parsed = parseLibrary(
+      JSON.stringify([
+        { id: 1396, mediaType: 'tv', seenEpisodes: ['1:1', '1:2', 'junk'] },
+        { id: 550, mediaType: 'movie', seenEpisodes: ['1:1'] },
+      ]),
+    );
+    expect(parsed.find((e) => e.id === 1396)?.seenEpisodes).toEqual(['1:1', '1:2']);
+    expect(parsed.find((e) => e.id === 550)?.seenEpisodes).toBeUndefined();
+  });
+
   it('preserves the watching status and rejects unknown ones', () => {
     const parsed = parseLibrary(
       JSON.stringify([

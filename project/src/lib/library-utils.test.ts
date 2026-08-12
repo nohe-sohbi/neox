@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { entryKey, matchesQuery, toEntry, toggleEntry, upsertEntry } from './library-utils';
+import {
+  entryKey,
+  episodeCode,
+  matchesQuery,
+  sanitizeSeenEpisodes,
+  toEntry,
+  toggleEntry,
+  toggleEpisodeCode,
+  upsertEntry,
+} from './library-utils';
 import type { MediaItem } from './types';
 
 const movie: MediaItem = {
@@ -43,6 +52,34 @@ describe('toggleEntry', () => {
     const added = toggleEntry([], movie);
     expect(added).toHaveLength(1);
     expect(toggleEntry(added, movie)).toHaveLength(0);
+  });
+});
+
+describe('episode progress helpers', () => {
+  it('builds stable season:episode codes', () => {
+    expect(episodeCode(2, 5)).toBe('2:5');
+    expect(episodeCode(0, 1)).toBe('0:1'); // specials
+  });
+
+  it('toggles a code in and out, collapsing to undefined when empty', () => {
+    const one = toggleEpisodeCode(undefined, '1:1');
+    expect(one).toEqual(['1:1']);
+    const two = toggleEpisodeCode(one, '1:2');
+    expect(two).toContain('1:2');
+    expect(toggleEpisodeCode(['1:1'], '1:1')).toBeUndefined();
+  });
+
+  it('sanitizes untrusted lists: bad codes out, duplicates collapsed', () => {
+    expect(
+      sanitizeSeenEpisodes(['1:1', '1:1', '2:10', 'lol', '1-2', ':3', 42, null]),
+    ).toEqual(['1:1', '2:10']);
+    expect(sanitizeSeenEpisodes([])).toBeUndefined();
+    expect(sanitizeSeenEpisodes('1:1')).toBeUndefined();
+  });
+
+  it('bounds the list size', () => {
+    const huge = Array.from({ length: 5000 }, (_, i) => `1:${i + 1}`);
+    expect(sanitizeSeenEpisodes(huge)!.length).toBeLessThanOrEqual(2000);
   });
 });
 

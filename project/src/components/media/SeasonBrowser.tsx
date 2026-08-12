@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Star } from 'lucide-react';
+import { Check, Star } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
-import type { SeasonDetail, SeasonSummary } from '../../lib/types';
+import type { MediaItem, SeasonDetail, SeasonSummary } from '../../lib/types';
 import { formatEpisodeCode, orderedSeasons } from '../../lib/seasons';
+import { episodeCode } from '../../lib/library-utils';
+import { useLibrary } from '../../context/LibraryContext';
 import { stillImg } from '../../lib/img';
 import { useT, activeLang } from '../../lib/i18n';
 import { localeTag } from '../../lib/i18n/core';
@@ -44,8 +46,23 @@ function runtimeLabel(minutes: number | null): string {
  * a fresh instance (empty cache, first season selected) rather than reconciled
  * state from the previous show.
  */
-export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: SeasonSummary[] }) {
+export function SeasonBrowser({
+  tvId,
+  seasons,
+  item,
+}: {
+  tvId: number;
+  seasons: SeasonSummary[];
+  item: MediaItem;
+}) {
   const { t, tn } = useT();
+  const { seenEpisodesOf, toggleEpisode } = useLibrary();
+  const seen = new Set(seenEpisodesOf(item));
+  const seenInSeason = (seasonNumber: number) => {
+    let count = 0;
+    for (const code of seen) if (code.startsWith(`${seasonNumber}:`)) count += 1;
+    return count;
+  };
   const ordered = orderedSeasons(seasons);
   const [selected, setSelected] = useState(ordered[0]?.seasonNumber ?? 0);
   const [detail, setDetail] = useState<SeasonDetail | null>(null);
@@ -100,6 +117,7 @@ export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: Season
       <div className="no-scrollbar mb-4 flex gap-2 overflow-x-auto pb-1" role="tablist">
         {ordered.map((season) => {
           const isActive = season.seasonNumber === selected;
+          const seenCount = seenInSeason(season.seasonNumber);
           return (
             <button
               key={season.seasonNumber}
@@ -113,6 +131,11 @@ export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: Season
               }`}
             >
               {seasonLabel(season, t)}
+              {seenCount > 0 && (
+                <span className={`ml-1.5 text-xs ${isActive ? 'text-ink-950/60' : 'text-white/40'}`}>
+                  {seenCount}/{season.episodeCount}
+                </span>
+              )}
             </button>
           );
         })}
@@ -144,6 +167,8 @@ export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: Season
                 const still = ep.still ? stillImg(ep.still) : null;
                 const air = airDateLabel(ep.airDate);
                 const runtime = runtimeLabel(ep.runtime);
+                const code = formatEpisodeCode(detail.seasonNumber, ep.episodeNumber);
+                const isSeen = seen.has(episodeCode(detail.seasonNumber, ep.episodeNumber));
                 return (
                   <li
                     key={ep.episodeNumber}
@@ -171,17 +196,36 @@ export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: Season
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-2">
                         <h4 className="truncate text-sm font-semibold text-white/90">
-                          <span className="text-white/40">
-                            {formatEpisodeCode(detail.seasonNumber, ep.episodeNumber)}
-                          </span>{' '}
-                          {ep.name}
+                          <span className="text-white/40">{code}</span> {ep.name}
                         </h4>
-                        {ep.rating != null && (
-                          <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-white/70">
-                            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                            {ep.rating.toFixed(1)}
-                          </span>
-                        )}
+                        <span className="flex shrink-0 items-center gap-2">
+                          {ep.rating != null && (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-white/70">
+                              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                              {ep.rating.toFixed(1)}
+                            </span>
+                          )}
+                          {/* Tick an episode off; the show lands in the library
+                              as "watching" the first time. */}
+                          <button
+                            onClick={() =>
+                              toggleEpisode(item, detail.seasonNumber, ep.episodeNumber)
+                            }
+                            aria-pressed={isSeen}
+                            aria-label={
+                              isSeen
+                                ? t('episode.seen', { code })
+                                : t('episode.mark_seen', { code })
+                            }
+                            className={`flex h-7 w-7 items-center justify-center rounded-full transition-all ${
+                              isSeen
+                                ? 'bg-white text-ink-950'
+                                : 'border border-white/15 bg-white/5 text-white/40 hover:border-white/40 hover:text-white'
+                            }`}
+                          >
+                            <Check className="h-4 w-4" />
+                          </button>
+                        </span>
                       </div>
                       <div className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-white/40">
                         {air && <span>{air}</span>}
@@ -201,10 +245,15 @@ export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: Season
         </>
       )}
 
-      {/* Screen-reader friendly episode count for the active season. */}
+      {/* Episode count + watched progress for the active season. */}
       {detail && !loading && !error && detail.episodes.length > 0 && (
         <p className="mt-3 text-xs text-white/55">
           {tn('season.episodes', detail.episodes.length)}
+          {seenInSeason(detail.seasonNumber) > 0 &&
+            ` · ${t('season.progress', {
+              seen: seenInSeason(detail.seasonNumber),
+              total: detail.episodes.length,
+            })}`}
         </p>
       )}
     </div>

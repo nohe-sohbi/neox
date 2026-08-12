@@ -7,6 +7,7 @@
  */
 require('dotenv').config();
 
+const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -17,6 +18,7 @@ const store = require('./store');
 const auth = require('./auth');
 const { sanitizeLibrary, mergeLibraries } = require('./library');
 const { cacheControl, noStore, TTL } = require('./http-cache');
+const { version: API_VERSION } = require('./package.json');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -46,11 +48,37 @@ app.use('/api', (_req, res, next) => {
     next();
 });
 
-// Tiny request logger: quiet but useful in dev.
-app.use((req, _res, next) => {
-    if (process.env.NODE_ENV !== 'production') {
-        console.log(`${req.method} ${req.originalUrl}`);
-    }
+// Correlation id + request log. Every response carries X-Request-Id (a sane
+// inbound one is echoed, anything else replaced) so a bug report can be
+// matched to a server log line. Production emits one JSON line per completed
+// request — the path only, never the query string, which can carry search
+// terms this app deliberately keeps out of its telemetry; health probes are
+// skipped so orchestrator polling doesn't drown the log. Dev keeps a
+// human-readable line, now with status and duration.
+app.use((req, res, next) => {
+    const inbound = req.get('x-request-id');
+    req.id = inbound && /^[\w.-]{1,64}$/.test(inbound) ? inbound : crypto.randomUUID();
+    res.set('X-Request-Id', req.id);
+
+    const started = process.hrtime.bigint();
+    res.on('finish', () => {
+        const ms = Math.round(Number(process.hrtime.bigint() - started) / 1e5) / 10;
+        if (process.env.NODE_ENV === 'production') {
+            if (req.path === '/api/health') return;
+            console.log(
+                JSON.stringify({
+                    t: new Date().toISOString(),
+                    id: req.id,
+                    method: req.method,
+                    path: req.path,
+                    status: res.statusCode,
+                    ms,
+                }),
+            );
+        } else {
+            console.log(`${req.method} ${req.originalUrl} → ${res.statusCode} (${ms} ms)`);
+        }
+    });
     next();
 });
 
@@ -93,6 +121,7 @@ function pageFrom(req) {
 app.get('/api/health', noStore, (_req, res) => {
     res.json({
         status: 'ok',
+        version: API_VERSION,
         tmdb: tmdb.isConfigured() ? 'configured' : 'missing-key',
         cache: tmdb.cacheStats(),
         uptime: Math.round(process.uptime()),
@@ -382,14 +411,16 @@ app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));
 // Centralized error handler. An error that set its own `status` carries a
 // message written for the client; an unexpected exception (plain 500) must
 // not leak internals ("x.trim is not a function") to the outside — the full
-// error, stack included, goes to the server log instead.
+// error, stack included, goes to the server log instead, keyed by the
+// request id that the response also carries.
 // eslint-disable-next-line no-unused-vars
-app.use((err, _req, res, _next) => {
+app.use((err, req, res, _next) => {
     const status = err.status || 500;
-    if (status >= 500) console.error('API error:', err);
+    if (status >= 500) console.error(`API error [${req.id}]:`, err);
     res.status(status).json({
         error: err.status ? err.message || 'Internal server error' : 'Internal server error',
         code: err.code,
+        requestId: req.id,
     });
 });
 

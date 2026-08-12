@@ -3,6 +3,7 @@ import type { HomePayload } from '../lib/types';
 import { Hero } from '../components/home/Hero';
 import { ForYouRow } from '../components/home/ForYouRow';
 import { RecentlyViewedRow } from '../components/home/RecentlyViewedRow';
+import { TrendingRow } from '../components/home/TrendingRow';
 import { MediaRow } from '../components/media/MediaRow';
 import { ErrorState } from '../components/ui/States';
 import { useT } from '../lib/i18n';
@@ -56,6 +57,7 @@ export function HomeView() {
         <div className="container mx-auto space-y-10 px-6 py-10">
           <RecentlyViewedRow />
           <ForYouRow />
+          <TrendingRow />
           {data.rows.map((row) => (
             <MediaRow key={row.id} title={t(`home.row.${row.id}`)} items={row.items} />
           ))}

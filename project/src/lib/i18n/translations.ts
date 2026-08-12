@@ -55,6 +55,9 @@ const fr: Dict = {
 
   // Home
   'home.heading': 'Ton radar cinéma & séries',
+  'home.trending_title': 'Tendances',
+  'trending.day': 'Aujourd’hui',
+  'trending.week': 'Cette semaine',
   'home.row.now_playing': 'À l’affiche en ce moment',
   'home.row.trending_tv': 'Séries qui cartonnent',
   'home.row.popular_movies': 'Les films du moment',
@@ -341,6 +344,9 @@ const en: Dict = {
   'a11y.skip': 'Skip to content',
 
   'home.heading': 'Your movie & TV radar',
+  'home.trending_title': 'Trending',
+  'trending.day': 'Today',
+  'trending.week': 'This week',
   'home.row.now_playing': 'In theaters now',
   'home.row.trending_tv': 'Trending shows',
   'home.row.popular_movies': 'Popular movies',
@@ -612,6 +618,9 @@ const es: Dict = {
   'a11y.skip': 'Saltar al contenido',
 
   'home.heading': 'Tu radar de cine y series',
+  'home.trending_title': 'Tendencias',
+  'trending.day': 'Hoy',
+  'trending.week': 'Esta semana',
   'home.row.now_playing': 'En cartelera ahora',
   'home.row.trending_tv': 'Series en tendencia',
   'home.row.popular_movies': 'Películas populares',
@@ -884,6 +893,9 @@ const de: Dict = {
   'a11y.skip': 'Zum Inhalt springen',
 
   'home.heading': 'Dein Film- & Serienradar',
+  'home.trending_title': 'Im Trend',
+  'trending.day': 'Heute',
+  'trending.week': 'Diese Woche',
   'home.row.now_playing': 'Jetzt im Kino',
   'home.row.trending_tv': 'Angesagte Serien',
   'home.row.popular_movies': 'Beliebte Filme',
@@ -1155,6 +1167,9 @@ const it: Dict = {
   'a11y.skip': 'Vai al contenuto',
 
   'home.heading': 'Il tuo radar per film e serie',
+  'home.trending_title': 'Tendenze',
+  'trending.day': 'Oggi',
+  'trending.week': 'Questa settimana',
   'home.row.now_playing': 'Ora al cinema',
   'home.row.trending_tv': 'Serie del momento',
   'home.row.popular_movies': 'Film popolari',

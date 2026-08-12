@@ -161,6 +161,9 @@ export const api = {
   search: (query: string, page = 1) =>
     request<SearchResults>(withLocale(`/api/search?q=${encodeURIComponent(query)}&page=${page}`)),
 
+  trending: (mediaType: 'all' | MediaType, window: 'day' | 'week' = 'week') =>
+    request<Paginated<MediaItem>>(withLocale(`/api/trending/${mediaType}?window=${window}`)),
+
   genres: (mediaType: MediaType) =>
     request<{ genres: Genre[] }>(withLocale(`/api/genres/${mediaType}`)),
 

@@ -14,7 +14,8 @@ const { TtlLruCache } = require('./cache');
 const { SingleFlight } = require('./single-flight');
 const { CircuitBreaker } = require('./circuit-breaker');
 
-const TMDB_BASE = 'https://api.themoviedb.org/3';
+// Overridable so tests and local mocks can stand in for the real TMDB.
+const TMDB_BASE = process.env.TMDB_BASE_URL || 'https://api.themoviedb.org/3';
 const IMG_BASE = 'https://image.tmdb.org/t/p';
 
 const POSTER_SIZE = 'w500';
@@ -106,6 +107,20 @@ function cacheStats() {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// TMDB's Retry-After is usually a second or two. The wait happens inside the
+// single flight, stalling every coalesced caller with it, so a hostile or
+// buggy header must not be honored as-is: an unclamped `Retry-After: 3600`
+// used to freeze the request (and all its waiters) for an hour.
+const RETRY_AFTER_CAP_MS = 10000;
+
+/** Delay before retrying a 429, in ms: the Retry-After header when sane, else
+ *  the attempt number in seconds — always capped at RETRY_AFTER_CAP_MS. */
+function retryDelayMs(retryAfterHeader, attempt) {
+    const parsed = Number(retryAfterHeader);
+    const seconds = Number.isFinite(parsed) && parsed > 0 ? parsed : attempt;
+    return Math.min(seconds * 1000, RETRY_AFTER_CAP_MS);
+}
+
 /**
  * Low-level TMDB GET with caching + retry.
  * @param {string} path  e.g. "/trending/movie/week"
@@ -125,10 +140,13 @@ async function tmdbGet(path, params = {}) {
         include_adult: 'false',
         ...params,
     });
+    // The cache key deliberately excludes credentials: with the api_key in it,
+    // the secret would be written in clear to the on-disk snapshot, and rotating
+    // the key would needlessly invalidate every cached entry.
+    const cacheKey = `${path}?${query.toString()}`;
     if (API_KEY) query.set('api_key', API_KEY);
 
     const url = `${TMDB_BASE}${path}?${query.toString()}`;
-    const cacheKey = url;
 
     const cached = cache.get(cacheKey);
     if (cached && !cached.stale) return cached.value;
@@ -168,8 +186,7 @@ async function tmdbGet(path, params = {}) {
                     // Record it so a run that 429s on every attempt reports a real
                     // reason instead of "...: undefined".
                     lastError = new Error('TMDB rate limited (HTTP 429)');
-                    const retryAfter = Number(response.headers.get('retry-after')) || attempt;
-                    await sleep(retryAfter * 1000);
+                    await sleep(retryDelayMs(response.headers.get('retry-after'), attempt));
                     continue;
                 }
 
@@ -632,4 +649,5 @@ module.exports = {
     // Exported for unit tests (pure, no network).
     normalizeSeasons,
     normalizeSeason,
+    retryDelayMs,
 };

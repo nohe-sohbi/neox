@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { entryKey, toEntry, toggleEntry, upsertEntry } from './library-utils';
+import { entryKey, matchesQuery, toEntry, toggleEntry, upsertEntry } from './library-utils';
 import type { MediaItem } from './types';
 
 const movie: MediaItem = {
@@ -43,6 +43,24 @@ describe('toggleEntry', () => {
     const added = toggleEntry([], movie);
     expect(added).toHaveLength(1);
     expect(toggleEntry(added, movie)).toHaveLength(0);
+  });
+});
+
+describe('matchesQuery', () => {
+  it('matches everything on an empty or whitespace query', () => {
+    expect(matchesQuery({ title: 'Fight Club' }, '')).toBe(true);
+    expect(matchesQuery({ title: 'Fight Club' }, '   ')).toBe(true);
+  });
+
+  it('is case-insensitive and matches substrings', () => {
+    expect(matchesQuery({ title: 'Fight Club' }, 'fight')).toBe(true);
+    expect(matchesQuery({ title: 'Fight Club' }, 'CLUB')).toBe(true);
+    expect(matchesQuery({ title: 'Fight Club' }, 'monk')).toBe(false);
+  });
+
+  it('ignores accents in both directions', () => {
+    expect(matchesQuery({ title: 'Le Fabuleux Destin d’Amélie Poulain' }, 'amelie')).toBe(true);
+    expect(matchesQuery({ title: 'Leon' }, 'léon')).toBe(true);
   });
 });
 

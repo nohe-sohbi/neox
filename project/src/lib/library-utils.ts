@@ -4,6 +4,16 @@ type ItemRef = Pick<MediaItem, 'id' | 'mediaType'>;
 
 export const entryKey = (item: ItemRef) => `${item.mediaType}:${item.id}`;
 
+// Strip diacritics + lowercase, so "amelie" finds « Amélie ».
+const fold = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+
+/** Accent- and case-insensitive title match for the library search box. */
+export function matchesQuery(entry: Pick<LibraryEntry, 'title'>, query: string): boolean {
+  const q = fold(query.trim());
+  if (!q) return true;
+  return fold(entry.title).includes(q);
+}
+
 /** Creates a fresh library entry from a media item, with optional overrides. */
 export function toEntry(item: MediaItem, patch: Partial<LibraryEntry> = {}): LibraryEntry {
   const now = Date.now();

@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bookmark, Cloud, Download, Loader2, Trash2, Upload } from 'lucide-react';
-import type { LibraryEntry, LibraryStatus, MediaItem } from '../lib/types';
+import { Bookmark, Cloud, Download, Loader2, Search, Trash2, Upload } from 'lucide-react';
+import type { LibraryEntry, LibraryStatus, MediaItem, MediaType } from '../lib/types';
+import { matchesQuery } from '../lib/library-utils';
 import { track } from '../lib/analytics';
 import { useAuth } from '../context/AuthContext';
 import { useLibrary } from '../context/LibraryContext';
@@ -65,6 +66,8 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
   const toast = useToast();
   const { entries, clear, syncing, importEntries } = useLibrary();
   const [filter, setFilter] = useState<Filter>('all');
+  const [kind, setKind] = useState<'all' | MediaType>('all');
+  const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortMode>('added_desc');
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -76,9 +79,18 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
   };
 
   const filtered = sortEntries(
-    entries.filter((e) => filter === 'all' || e.status === filter),
+    entries.filter(
+      (e) =>
+        (filter === 'all' || e.status === filter) &&
+        (kind === 'all' || e.mediaType === kind) &&
+        matchesQuery(e, search),
+    ),
     sort,
   ).map(toMediaItem);
+
+  // Text search or the type filter can empty any status tab; that emptiness is
+  // "no match", not "your watchlist is empty".
+  const narrowed = search.trim() !== '' || kind !== 'all';
 
   const handleExport = () => {
     const blob = new Blob([serializeLibrary(entries)], { type: 'application/json' });
@@ -195,6 +207,42 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
         />
       ) : (
         <>
+          {/* Narrowing tools: title search + movies/shows toggle */}
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t('library.search_placeholder')}
+                className="w-full min-w-56 rounded-full border border-white/15 bg-white/5 py-2 pl-9 pr-4 text-sm text-white placeholder-white/40 outline-none transition-all focus:border-white/40 focus:bg-white/10 focus:ring-2 focus:ring-white/20 sm:w-72"
+              />
+            </div>
+            <div className="flex gap-2">
+              {(
+                [
+                  { id: 'all', key: 'filter.all' },
+                  { id: 'movie', key: 'discover.movies_title' },
+                  { id: 'tv', key: 'discover.tv_title' },
+                ] as { id: 'all' | MediaType; key: string }[]
+              ).map((k) => (
+                <button
+                  key={k.id}
+                  onClick={() => setKind(k.id)}
+                  aria-pressed={kind === k.id}
+                  className={`rounded-full px-3.5 py-1.5 text-sm transition-all ${
+                    kind === k.id
+                      ? 'bg-white/15 text-white'
+                      : 'bg-white/5 text-white/60 hover:text-white'
+                  }`}
+                >
+                  {t(k.key)}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div className="flex gap-2">
               {FILTERS.map((f) => (
@@ -230,10 +278,18 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
           </div>
 
           {filtered.length === 0 ? (
-            <EmptyState
-              title={t(EMPTY_KEYS[filter === 'all' ? 'want' : filter].title)}
-              description={t(EMPTY_KEYS[filter === 'all' ? 'want' : filter].desc)}
-            />
+            narrowed ? (
+              <EmptyState
+                icon={<Search className="h-12 w-12" />}
+                title={t('library.search_none_title')}
+                description={t('library.search_none_desc')}
+              />
+            ) : (
+              <EmptyState
+                title={t(EMPTY_KEYS[filter === 'all' ? 'want' : filter].title)}
+                description={t(EMPTY_KEYS[filter === 'all' ? 'want' : filter].desc)}
+              />
+            )
           ) : (
             <div className="animate-fade-in">
               <MediaGrid items={filtered} />

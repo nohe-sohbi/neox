@@ -17,6 +17,7 @@ export interface DecadeCount {
 export interface LibraryStats {
   total: number;
   want: number;
+  watching: number;
   watched: number;
   movies: number;
   tv: number;
@@ -44,6 +45,7 @@ function decadeOf(year: string): number | null {
 
 export function computeStats(entries: LibraryEntry[]): LibraryStats {
   const total = entries.length;
+  let watching = 0;
   let watched = 0;
   let movies = 0;
   let tv = 0;
@@ -55,6 +57,7 @@ export function computeStats(entries: LibraryEntry[]): LibraryStats {
 
   for (const e of entries) {
     if (e.status === 'watched') watched += 1;
+    else if (e.status === 'watching') watching += 1;
     if (e.mediaType === 'tv') tv += 1;
     else movies += 1;
 
@@ -78,7 +81,8 @@ export function computeStats(entries: LibraryEntry[]): LibraryStats {
 
   return {
     total,
-    want: total - watched,
+    want: total - watched - watching,
+    watching,
     watched,
     movies,
     tv,

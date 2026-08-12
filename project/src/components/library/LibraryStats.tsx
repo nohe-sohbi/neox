@@ -42,13 +42,14 @@ export function LibraryStats({ entries }: { entries: LibraryEntry[] }) {
 
       {open && (
         <div className="animate-fade-in mt-3 space-y-4">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <Tile label={t('stats.total')} value={formatNumber(stats.total)} />
             <Tile
               label={t('stats.watched')}
               value={formatNumber(stats.watched)}
               sub={t('stats.completion', { pct: pct(stats.completionRate) })}
             />
+            <Tile label={t('stats.watching')} value={formatNumber(stats.watching)} />
             <Tile label={t('stats.want')} value={formatNumber(stats.want)} />
             <Tile
               label={t('stats.split')}

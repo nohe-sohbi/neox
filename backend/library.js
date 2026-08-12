@@ -3,7 +3,7 @@
  * The client is untrusted, so every entry is sanitized to a known shape before
  * it ever touches the store.
  */
-const STATUSES = new Set(['want', 'watched']);
+const STATUSES = new Set(['want', 'watching', 'watched']);
 const MEDIA_TYPES = new Set(['movie', 'tv']);
 
 const keyOf = (entry) => `${entry.mediaType}:${entry.id}`;

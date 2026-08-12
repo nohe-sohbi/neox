@@ -101,7 +101,7 @@ export interface Genre {
   name: string;
 }
 
-export type LibraryStatus = 'want' | 'watched';
+export type LibraryStatus = 'want' | 'watching' | 'watched';
 
 export interface LibraryEntry {
   id: number;

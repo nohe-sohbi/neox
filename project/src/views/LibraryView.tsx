@@ -26,8 +26,17 @@ type Filter = 'all' | LibraryStatus;
 const FILTERS: { id: Filter; key: string }[] = [
   { id: 'all', key: 'filter.all' },
   { id: 'want', key: 'filter.want' },
+  { id: 'watching', key: 'filter.watching' },
   { id: 'watched', key: 'filter.watched' },
 ];
+
+// Empty-state copy per status filter (the 'all' case is unreachable here:
+// with zero entries the view renders the global empty state instead).
+const EMPTY_KEYS: Record<LibraryStatus, { title: string; desc: string }> = {
+  want: { title: 'library.want_empty_title', desc: 'library.want_empty_desc' },
+  watching: { title: 'library.watching_empty_title', desc: 'library.watching_empty_desc' },
+  watched: { title: 'library.watched_empty_title', desc: 'library.watched_empty_desc' },
+};
 
 // LibraryEntry carries everything MediaCard needs; pad the rest for the type.
 function toMediaItem(entry: LibraryEntry): MediaItem {
@@ -62,6 +71,7 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
   const counts = {
     all: entries.length,
     want: entries.filter((e) => e.status === 'want').length,
+    watching: entries.filter((e) => e.status === 'watching').length,
     watched: entries.filter((e) => e.status === 'watched').length,
   };
 
@@ -221,16 +231,8 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
 
           {filtered.length === 0 ? (
             <EmptyState
-              title={
-                filter === 'want'
-                  ? t('library.want_empty_title')
-                  : t('library.watched_empty_title')
-              }
-              description={
-                filter === 'want'
-                  ? t('library.want_empty_desc')
-                  : t('library.watched_empty_desc')
-              }
+              title={t(EMPTY_KEYS[filter === 'all' ? 'want' : filter].title)}
+              description={t(EMPTY_KEYS[filter === 'all' ? 'want' : filter].desc)}
             />
           ) : (
             <div className="animate-fade-in">

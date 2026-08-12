@@ -54,6 +54,17 @@ describe('serializeLibrary / parseLibrary', () => {
     expect(entry.personalRating).toBe(10);
   });
 
+  it('preserves the watching status and rejects unknown ones', () => {
+    const parsed = parseLibrary(
+      JSON.stringify([
+        { id: 5, mediaType: 'tv', status: 'watching' },
+        { id: 6, mediaType: 'tv', status: 'paused' },
+      ]),
+    );
+    expect(parsed.find((e) => e.id === 5)?.status).toBe('watching');
+    expect(parsed.find((e) => e.id === 6)?.status).toBe('want');
+  });
+
   it('de-duplicates by media-type + id', () => {
     const json = JSON.stringify([
       { id: 5, mediaType: 'movie', title: 'first' },

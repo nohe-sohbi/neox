@@ -13,7 +13,7 @@ import { entryKey } from './library-utils';
 
 export const EXPORT_VERSION = 1;
 const MAX_ENTRIES = 2000;
-const STATUSES: LibraryStatus[] = ['want', 'watched'];
+const STATUSES: LibraryStatus[] = ['want', 'watching', 'watched'];
 const MEDIA_TYPES: MediaType[] = ['movie', 'tv'];
 
 export interface LibraryBackup {

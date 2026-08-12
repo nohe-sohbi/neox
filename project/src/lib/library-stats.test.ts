@@ -26,6 +26,7 @@ describe('computeStats', () => {
     expect(s).toMatchObject({
       total: 0,
       want: 0,
+      watching: 0,
       watched: 0,
       movies: 0,
       tv: 0,
@@ -42,15 +43,17 @@ describe('computeStats', () => {
     const s = computeStats([
       entry({ status: 'watched', mediaType: 'movie' }),
       entry({ status: 'watched', mediaType: 'tv' }),
+      entry({ status: 'watching', mediaType: 'tv' }),
       entry({ status: 'want', mediaType: 'tv' }),
       entry({ status: 'want', mediaType: 'movie' }),
     ]);
-    expect(s.total).toBe(4);
+    expect(s.total).toBe(5);
     expect(s.watched).toBe(2);
+    expect(s.watching).toBe(1);
     expect(s.want).toBe(2);
     expect(s.movies).toBe(2);
-    expect(s.tv).toBe(2);
-    expect(s.completionRate).toBe(0.5);
+    expect(s.tv).toBe(3);
+    expect(s.completionRate).toBe(0.4);
   });
 
   it('averages personal and TMDB ratings, ignoring missing ones', () => {

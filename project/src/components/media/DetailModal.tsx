@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type CSSProperties } from 'react';
-import { Bookmark, Calendar, Check, Clock, Eye, Film, Play, Star, Trash2, Tv, X } from 'lucide-react';
+import { Bookmark, Calendar, Check, Clock, Eye, Film, Play, PlayCircle, Star, Trash2, Tv, X } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { track } from '../../lib/analytics';
 import { SITE_URL } from '../../lib/seo';
@@ -267,6 +267,16 @@ export function DetailModal() {
                 >
                   <Bookmark className={`h-5 w-5 ${status === 'want' ? 'fill-current' : ''}`} />
                   {t('filter.want')}
+                </button>
+                <button
+                  onClick={() => {
+                    setStatus(details, 'watching');
+                    toast.success(t('toast.marked_watching'));
+                  }}
+                  className={status === 'watching' ? 'btn-primary' : 'btn-ghost'}
+                >
+                  <PlayCircle className="h-5 w-5" />
+                  {t('filter.watching')}
                 </button>
                 <button
                   onClick={() => {

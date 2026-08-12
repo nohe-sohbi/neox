@@ -20,6 +20,16 @@ describe('sanitizeLibrary', () => {
     expect(entry.status).toBe('want');
   });
 
+  it('accepts all three statuses and falls back on an unknown one', () => {
+    const out = sanitizeLibrary([
+      { id: 1, mediaType: 'tv', status: 'want' },
+      { id: 2, mediaType: 'tv', status: 'watching' },
+      { id: 3, mediaType: 'tv', status: 'watched' },
+      { id: 4, mediaType: 'tv', status: 'dropped' },
+    ]);
+    expect(out.map((e) => e.status)).toEqual(['want', 'watching', 'watched', 'want']);
+  });
+
   it('dedupes by media key, last one wins', () => {
     const out = sanitizeLibrary([
       { id: 5, mediaType: 'movie', title: 'A' },

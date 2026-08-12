@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import { Bookmark, Calendar, Check, Clock, Eye, Film, Play, PlayCircle, Share2, Star, Trash2, Tv, X } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api, ApiError, getLocale } from '../../lib/api';
+import { DEFAULT_TTL, queryCache } from '../../lib/query';
 import { track } from '../../lib/analytics';
 import { SITE_URL } from '../../lib/seo';
 import { detailPath, personPath } from '../../lib/routes';
@@ -48,11 +49,22 @@ export function DetailModal() {
   const [error, setError] = useState<string | null>(null);
   const [showTrailer, setShowTrailer] = useState(false);
 
+  // Cached per title + locale: reopening a fiche within the TTL paints
+  // instantly with zero network, instead of refetching on every open.
   const load = useCallback(async (mediaType: MediaType, id: number) => {
+    const locale = getLocale();
+    const key = `details:${mediaType}:${id}:${locale.region}:${locale.language}`;
+    const cached = queryCache.getFresh<MediaDetails>(key, DEFAULT_TTL);
+    if (cached) {
+      setDetails(cached);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      setDetails(await api.details(mediaType, id));
+      setDetails(await queryCache.fetch(key, () => api.details(mediaType, id)));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('common.load_error'));
     } finally {

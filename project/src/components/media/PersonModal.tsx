@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Cake, MapPin, Share2, X } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api, ApiError, getLocale } from '../../lib/api';
+import { DEFAULT_TTL, queryCache } from '../../lib/query';
 import { track } from '../../lib/analytics';
 import { shareUrl } from '../../lib/share';
 import { useToast } from '../../context/ToastContext';
@@ -32,12 +33,23 @@ export function PersonModal() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Cached per person + locale: reopening a profile within the TTL paints
+  // instantly with zero network, same policy as the title fiche.
   const load = useCallback(
     async (id: number) => {
+      const locale = getLocale();
+      const key = `person:${id}:${locale.region}:${locale.language}`;
+      const cached = queryCache.getFresh<Person>(key, DEFAULT_TTL);
+      if (cached) {
+        setPerson(cached);
+        setError(null);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       setError(null);
       try {
-        setPerson(await api.person(id));
+        setPerson(await queryCache.fetch(key, () => api.person(id)));
       } catch (err) {
         setError(err instanceof ApiError ? err.message : t('common.load_error'));
       } finally {

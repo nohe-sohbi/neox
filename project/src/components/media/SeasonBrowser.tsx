@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Star } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api, ApiError, getLocale } from '../../lib/api';
+import { DEFAULT_TTL, queryCache } from '../../lib/query';
 import type { MediaItem, SeasonDetail, SeasonSummary } from '../../lib/types';
 import { formatEpisodeCode, orderedSeasons } from '../../lib/seasons';
 import { episodeCode } from '../../lib/library-utils';
@@ -68,15 +69,19 @@ export function SeasonBrowser({
   const [detail, setDetail] = useState<SeasonDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const cache = useRef<Map<number, SeasonDetail>>(new Map());
   // Monotonic request id so a slow response for a season the user already
   // switched away from is ignored instead of clobbering the current one.
   const reqId = useRef(0);
 
+  // Seasons live in the shared query cache (keyed per show + season + locale)
+  // rather than a per-mount Map, so closing and reopening the fiche keeps
+  // them warm too.
   const load = useCallback(
     async (seasonNumber: number) => {
       const myReq = (reqId.current += 1);
-      const cached = cache.current.get(seasonNumber);
+      const locale = getLocale();
+      const key = `season:${tvId}:${seasonNumber}:${locale.region}:${locale.language}`;
+      const cached = queryCache.getFresh<SeasonDetail>(key, DEFAULT_TTL);
       if (cached) {
         setDetail(cached);
         setError(null);
@@ -87,8 +92,7 @@ export function SeasonBrowser({
       setError(null);
       setDetail(null);
       try {
-        const data = await api.season(tvId, seasonNumber);
-        cache.current.set(seasonNumber, data);
+        const data = await queryCache.fetch(key, () => api.season(tvId, seasonNumber));
         if (myReq === reqId.current) setDetail(data);
       } catch (err) {
         if (myReq === reqId.current) {

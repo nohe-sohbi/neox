@@ -9,6 +9,7 @@ import { AuthModal } from './components/auth/AuthModal';
 import { AccountModal } from './components/auth/AccountModal';
 import { CommandPalette } from './components/command/CommandPalette';
 import { ToastViewport } from './components/ui/ToastViewport';
+import { OfflineBanner } from './components/ui/OfflineBanner';
 import { HomeView } from './views/HomeView';
 import { DiscoverView } from './views/DiscoverView';
 import { SearchView } from './views/SearchView';
@@ -74,6 +75,9 @@ function App() {
 
       {/* Global, accessible action feedback */}
       <ToastViewport />
+
+      {/* Connectivity notice: the PWA keeps serving from cache when offline */}
+      <OfflineBanner />
     </div>
   );
 }

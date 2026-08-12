@@ -52,6 +52,7 @@ const fr: Dict = {
     'Une erreur inattendue est survenue. Recharge la page pour continuer.',
   'error.reload': 'Recharger la page',
   'a11y.skip': 'Aller au contenu',
+  'offline.banner': 'Hors ligne — contenu servi depuis le cache',
 
   // Home
   'home.heading': 'Ton radar cinéma & séries',
@@ -350,6 +351,7 @@ const en: Dict = {
   'error.boundary_desc': 'Something unexpected happened. Reload the page to keep going.',
   'error.reload': 'Reload the page',
   'a11y.skip': 'Skip to content',
+  'offline.banner': 'Offline — showing cached content',
 
   'home.heading': 'Your movie & TV radar',
   'home.trending_title': 'Trending',
@@ -632,6 +634,7 @@ const es: Dict = {
   'error.boundary_desc': 'Ocurrió un error inesperado. Recarga la página para continuar.',
   'error.reload': 'Recargar la página',
   'a11y.skip': 'Saltar al contenido',
+  'offline.banner': 'Sin conexión — mostrando contenido en caché',
 
   'home.heading': 'Tu radar de cine y series',
   'home.trending_title': 'Tendencias',
@@ -915,6 +918,7 @@ const de: Dict = {
     'Ein unerwarteter Fehler ist aufgetreten. Lade die Seite neu, um fortzufahren.',
   'error.reload': 'Seite neu laden',
   'a11y.skip': 'Zum Inhalt springen',
+  'offline.banner': 'Offline — Inhalte aus dem Cache',
 
   'home.heading': 'Dein Film- & Serienradar',
   'home.trending_title': 'Im Trend',
@@ -1197,6 +1201,7 @@ const it: Dict = {
   'error.boundary_desc': 'Si è verificato un errore imprevisto. Ricarica la pagina per continuare.',
   'error.reload': 'Ricarica la pagina',
   'a11y.skip': 'Vai al contenuto',
+  'offline.banner': 'Offline — contenuti dalla cache',
 
   'home.heading': 'Il tuo radar per film e serie',
   'home.trending_title': 'Tendenze',

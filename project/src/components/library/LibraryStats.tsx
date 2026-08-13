@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { BarChart3, ChevronDown } from 'lucide-react';
 import type { LibraryEntry } from '../../lib/types';
-import { computeStats } from '../../lib/library-stats';
+import { computeStats, formatWatchTime } from '../../lib/library-stats';
 import { useT } from '../../lib/i18n';
 
 function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
@@ -19,7 +19,7 @@ function Tile({ label, value, sub }: { label: string; value: string; sub?: strin
  * already store; all the maths live in the pure, tested `computeStats`.
  */
 export function LibraryStats({ entries }: { entries: LibraryEntry[] }) {
-  const { t, formatNumber } = useT();
+  const { t, tn, formatNumber } = useT();
   const [open, setOpen] = useState(false);
   const stats = computeStats(entries);
 
@@ -63,6 +63,23 @@ export function LibraryStats({ entries }: { entries: LibraryEntry[] }) {
                 stats.ratedCount > 0
                   ? t('stats.rated_count', { count: formatNumber(stats.ratedCount) })
                   : undefined
+              }
+            />
+            {/* Hours in front of the screen, counted only over titles whose
+                length the app actually knows (learned when you open a fiche).
+                The subtitle says how many that is, because a number this
+                flattering has to say what it rests on. */}
+            <Tile
+              label={t('stats.watch_time')}
+              value={
+                stats.watchTimeCoverage > 0 ? formatWatchTime(stats.watchTimeMinutes, t) : '—'
+              }
+              sub={
+                stats.watchTimeCoverage > 0
+                  ? tn('stats.watch_time_basis', stats.watchTimeCoverage, {
+                      count: formatNumber(stats.watchTimeCoverage),
+                    })
+                  : t('stats.watch_time_empty')
               }
             />
             {/* Computed since day one, displayed never — until now. The delta

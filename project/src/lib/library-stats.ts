@@ -39,6 +39,16 @@ export interface LibraryStats {
   ratingDistribution: number[];
   /** Decades present in the collection, busiest first. */
   topDecades: DecadeCount[];
+  /**
+   * Minutes spent watching, over the entries whose length the app knows:
+   * a watched film counts its runtime, a show counts one episode length per
+   * ticked episode. Runtimes are captured when a fiche is opened, so this is
+   * a floor, never an inflated guess — `watchTimeCoverage` says how many
+   * entries it rests on.
+   */
+  watchTimeMinutes: number;
+  /** How many entries contributed to `watchTimeMinutes`. */
+  watchTimeCoverage: number;
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -61,6 +71,8 @@ export function computeStats(entries: LibraryEntry[]): LibraryStats {
   const deltas: number[] = [];
   const ratingDistribution = new Array(10).fill(0) as number[];
   const decades = new Map<number, number>();
+  let watchTimeMinutes = 0;
+  let watchTimeCoverage = 0;
 
   for (const e of entries) {
     if (e.status === 'watched') watched += 1;
@@ -76,6 +88,22 @@ export function computeStats(entries: LibraryEntry[]): LibraryStats {
       tmdb.push(e.rating);
       if (typeof e.personalRating === 'number' && e.personalRating >= 1 && e.personalRating <= 10) {
         deltas.push(e.personalRating - e.rating);
+      }
+    }
+
+    // Time actually spent in front of the thing: a film only counts once it
+    // is watched, a show counts the episodes ticked off — a series marked
+    // "watched" with no episode ticked says nothing about how long it ran.
+    if (typeof e.runtime === 'number' && e.runtime > 0) {
+      if (e.mediaType === 'tv') {
+        const episodes = e.seenEpisodes?.length ?? 0;
+        if (episodes > 0) {
+          watchTimeMinutes += episodes * e.runtime;
+          watchTimeCoverage += 1;
+        }
+      } else if (e.status === 'watched') {
+        watchTimeMinutes += e.runtime;
+        watchTimeCoverage += 1;
       }
     }
 
@@ -105,5 +133,17 @@ export function computeStats(entries: LibraryEntry[]): LibraryStats {
     personalVsTmdb: mean(deltas),
     ratingDistribution,
     topDecades,
+    watchTimeMinutes,
+    watchTimeCoverage,
   };
+}
+
+/** Minutes → "12 h 40" / "40 min", for a tile that has one line to say it in. */
+export function formatWatchTime(minutes: number, t: (k: string, v?: Record<string, string | number>) => string): string {
+  const total = Math.max(0, Math.round(minutes));
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h === 0) return t('stats.minutes', { m });
+  if (m === 0) return t('stats.hours', { h });
+  return t('stats.hours_minutes', { h, m });
 }

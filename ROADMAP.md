@@ -5,14 +5,21 @@ mécanisme est dans le README, section « Sous le capot ».
 
 ## Fait
 
-**Produit.** Accueil éditorialisé (hero, rails), recherche instantanée films et séries, Explorer
-avec filtres genre / année / note minimale et scroll infini, fiche détaillée avec bande-annonce,
-casting et disponibilité légale, navigateur saison par saison pour les séries, pages Personnes,
-recommandations « Pour toi », palette `Ctrl K`, rail « Reprends où tu en étais ».
+**Produit.** Accueil éditorialisé (hero avec pause, rails, « Tendances » aujourd'hui / cette
+semaine), recherche instantanée films, séries et personnes avec pagination en scroll, Explorer
+avec filtres genre / année / note minimale portés par l'URL, compteur de résultats, scroll infini
+et « Surprends-moi », fiche détaillée avec bande-annonce, casting, disponibilité légale et bouton
+Partager — rouverte instantanément grâce au cache SWR —, navigateur saison par saison navigable au
+clavier avec épisodes cochables et progression, pages Personnes, recommandations « Pour toi »,
+palette `Ctrl K`, rail « Reprends où tu en étais », langue de l'interface auto-détectée au premier
+lancement, bandeau hors-ligne.
 
-**Bibliothèque.** Statut À voir / Vu, note personnelle 1 à 10, tri, filtres, export et import JSON
-sans compte, panneau de statistiques calculé localement. Comptes optionnels (bcrypt + JWT, store
-JSON) avec fusion localStorage vers compte à la connexion.
+**Bibliothèque.** Statut À voir / En cours / Vu, épisodes vus par série, note personnelle 1 à 10,
+tri, filtres par statut et par type, recherche texte insensible aux accents, export JSON
+réimportable et export CSV sans compte, panneau de statistiques calculé localement (dont la note
+TMDB moyenne et l'écart avec tes notes). Comptes optionnels (bcrypt + JWT, store JSON) avec fusion
+localStorage vers compte à la connexion, changement de mot de passe (qui révoque les jetons émis)
+et suppression de compte.
 
 **Interface.** Aucune couleur d'accent déclarée : la teinte vient de l'affiche du titre affiché,
 extraite dans le navigateur et rendue comme de la lumière. Design system Tailwind sur-mesure en
@@ -38,7 +45,8 @@ build depuis `VITE_SITE_URL`.
 
 **Packaging.** Image frontend multi-stage (`vite build` puis nginx), API proxyfiée en même-origine
 sous `/api`, conteneurs non-root avec `HEALTHCHECK`, `JWT_SECRET` obligatoire en production,
-licence MIT, 170 tests et CI GitHub Actions sur chaque PR.
+licence MIT, 260 tests unitaires et d'intégration, un scénario Playwright de bout en bout (`e2e/`,
+38 vérifications contre un TMDB factice) et CI GitHub Actions sur chaque PR.
 
 ## Reste
 

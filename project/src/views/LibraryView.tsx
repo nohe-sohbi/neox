@@ -1,15 +1,18 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bookmark, Cloud, Download, Loader2, Trash2, Upload } from 'lucide-react';
-import type { LibraryEntry, LibraryStatus, MediaItem } from '../lib/types';
+import { Bookmark, Cloud, Download, FileSpreadsheet, Loader2, Search, Trash2, Upload } from 'lucide-react';
+import type { LibraryEntry, LibraryStatus, MediaItem, MediaType } from '../lib/types';
+import { matchesQuery } from '../lib/library-utils';
 import { track } from '../lib/analytics';
 import { useAuth } from '../context/AuthContext';
 import { useLibrary } from '../context/LibraryContext';
 import {
   SORT_MODES,
   backupFilename,
+  csvFilename,
   parseLibrary,
   serializeLibrary,
+  serializeLibraryCsv,
   sortEntries,
   type SortMode,
 } from '../lib/library-io';
@@ -26,8 +29,17 @@ type Filter = 'all' | LibraryStatus;
 const FILTERS: { id: Filter; key: string }[] = [
   { id: 'all', key: 'filter.all' },
   { id: 'want', key: 'filter.want' },
+  { id: 'watching', key: 'filter.watching' },
   { id: 'watched', key: 'filter.watched' },
 ];
+
+// Empty-state copy per status filter (the 'all' case is unreachable here:
+// with zero entries the view renders the global empty state instead).
+const EMPTY_KEYS: Record<LibraryStatus, { title: string; desc: string }> = {
+  want: { title: 'library.want_empty_title', desc: 'library.want_empty_desc' },
+  watching: { title: 'library.watching_empty_title', desc: 'library.watching_empty_desc' },
+  watched: { title: 'library.watched_empty_title', desc: 'library.watched_empty_desc' },
+};
 
 // LibraryEntry carries everything MediaCard needs; pad the rest for the type.
 function toMediaItem(entry: LibraryEntry): MediaItem {
@@ -56,29 +68,52 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
   const toast = useToast();
   const { entries, clear, syncing, importEntries } = useLibrary();
   const [filter, setFilter] = useState<Filter>('all');
+  const [kind, setKind] = useState<'all' | MediaType>('all');
+  const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortMode>('added_desc');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const counts = {
     all: entries.length,
     want: entries.filter((e) => e.status === 'want').length,
+    watching: entries.filter((e) => e.status === 'watching').length,
     watched: entries.filter((e) => e.status === 'watched').length,
   };
 
   const filtered = sortEntries(
-    entries.filter((e) => filter === 'all' || e.status === filter),
+    entries.filter(
+      (e) =>
+        (filter === 'all' || e.status === filter) &&
+        (kind === 'all' || e.mediaType === kind) &&
+        matchesQuery(e, search),
+    ),
     sort,
   ).map(toMediaItem);
 
-  const handleExport = () => {
-    const blob = new Blob([serializeLibrary(entries)], { type: 'application/json' });
+  // Text search or the type filter can empty any status tab; that emptiness is
+  // "no match", not "your watchlist is empty".
+  const narrowed = search.trim() !== '' || kind !== 'all';
+
+  const download = (content: string, filename: string, type: string) => {
+    const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = backupFilename();
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
-    track('Library Export', { count: entries.length });
+  };
+
+  const handleExport = () => {
+    download(serializeLibrary(entries), backupFilename(), 'application/json');
+    track('Library Export', { count: entries.length, format: 'json' });
+    toast.success(t('toast.exported'));
+  };
+
+  // JSON is the round-trippable backup; CSV is for spreadsheets.
+  const handleExportCsv = () => {
+    download(serializeLibraryCsv(entries), csvFilename(), 'text/csv');
+    track('Library Export', { count: entries.length, format: 'csv' });
     toast.success(t('toast.exported'));
   };
 
@@ -145,6 +180,15 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
           )}
           {entries.length > 0 && (
             <button
+              onClick={handleExportCsv}
+              className="inline-flex items-center gap-2 text-sm text-white/50 transition-colors hover:text-white"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              {t('library.export_csv')}
+            </button>
+          )}
+          {entries.length > 0 && (
+            <button
               onClick={handleClear}
               className="inline-flex items-center gap-2 text-sm text-white/50 transition-colors hover:text-red-400"
             >
@@ -185,6 +229,42 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
         />
       ) : (
         <>
+          {/* Narrowing tools: title search + movies/shows toggle */}
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t('library.search_placeholder')}
+                className="w-full min-w-56 rounded-full border border-white/15 bg-white/5 py-2 pl-9 pr-4 text-sm text-white placeholder-white/40 outline-none transition-all focus:border-white/40 focus:bg-white/10 focus:ring-2 focus:ring-white/20 sm:w-72"
+              />
+            </div>
+            <div className="flex gap-2">
+              {(
+                [
+                  { id: 'all', key: 'filter.all' },
+                  { id: 'movie', key: 'discover.movies_title' },
+                  { id: 'tv', key: 'discover.tv_title' },
+                ] as { id: 'all' | MediaType; key: string }[]
+              ).map((k) => (
+                <button
+                  key={k.id}
+                  onClick={() => setKind(k.id)}
+                  aria-pressed={kind === k.id}
+                  className={`rounded-full px-3.5 py-1.5 text-sm transition-all ${
+                    kind === k.id
+                      ? 'bg-white/15 text-white'
+                      : 'bg-white/5 text-white/60 hover:text-white'
+                  }`}
+                >
+                  {t(k.key)}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div className="flex gap-2">
               {FILTERS.map((f) => (
@@ -220,18 +300,18 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
           </div>
 
           {filtered.length === 0 ? (
-            <EmptyState
-              title={
-                filter === 'want'
-                  ? t('library.want_empty_title')
-                  : t('library.watched_empty_title')
-              }
-              description={
-                filter === 'want'
-                  ? t('library.want_empty_desc')
-                  : t('library.watched_empty_desc')
-              }
-            />
+            narrowed ? (
+              <EmptyState
+                icon={<Search className="h-12 w-12" />}
+                title={t('library.search_none_title')}
+                description={t('library.search_none_desc')}
+              />
+            ) : (
+              <EmptyState
+                title={t(EMPTY_KEYS[filter === 'all' ? 'want' : filter].title)}
+                description={t(EMPTY_KEYS[filter === 'all' ? 'want' : filter].desc)}
+              />
+            )
           ) : (
             <div className="animate-fade-in">
               <MediaGrid items={filtered} />

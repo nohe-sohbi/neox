@@ -17,6 +17,7 @@ export interface DecadeCount {
 export interface LibraryStats {
   total: number;
   want: number;
+  watching: number;
   watched: number;
   movies: number;
   tv: number;
@@ -28,6 +29,12 @@ export interface LibraryStats {
   avgPersonalRating: number | null;
   /** Mean TMDB rating over entries that have one (1 decimal), or null. */
   avgTmdbRating: number | null;
+  /**
+   * Mean of (personal − TMDB) over entries carrying both ratings (1 decimal):
+   * positive means you rate more generously than the crowd. Null when no
+   * entry has both.
+   */
+  personalVsTmdb: number | null;
   /** Counts per personal rating 1..10; index 0 = rating 1, index 9 = rating 10. */
   ratingDistribution: number[];
   /** Decades present in the collection, busiest first. */
@@ -44,17 +51,20 @@ function decadeOf(year: string): number | null {
 
 export function computeStats(entries: LibraryEntry[]): LibraryStats {
   const total = entries.length;
+  let watching = 0;
   let watched = 0;
   let movies = 0;
   let tv = 0;
 
   const personal: number[] = [];
   const tmdb: number[] = [];
+  const deltas: number[] = [];
   const ratingDistribution = new Array(10).fill(0) as number[];
   const decades = new Map<number, number>();
 
   for (const e of entries) {
     if (e.status === 'watched') watched += 1;
+    else if (e.status === 'watching') watching += 1;
     if (e.mediaType === 'tv') tv += 1;
     else movies += 1;
 
@@ -62,7 +72,12 @@ export function computeStats(entries: LibraryEntry[]): LibraryStats {
       personal.push(e.personalRating);
       ratingDistribution[Math.round(e.personalRating) - 1] += 1;
     }
-    if (typeof e.rating === 'number' && e.rating > 0) tmdb.push(e.rating);
+    if (typeof e.rating === 'number' && e.rating > 0) {
+      tmdb.push(e.rating);
+      if (typeof e.personalRating === 'number' && e.personalRating >= 1 && e.personalRating <= 10) {
+        deltas.push(e.personalRating - e.rating);
+      }
+    }
 
     const d = decadeOf(e.year);
     if (d !== null) decades.set(d, (decades.get(d) || 0) + 1);
@@ -78,7 +93,8 @@ export function computeStats(entries: LibraryEntry[]): LibraryStats {
 
   return {
     total,
-    want: total - watched,
+    want: total - watched - watching,
+    watching,
     watched,
     movies,
     tv,
@@ -86,6 +102,7 @@ export function computeStats(entries: LibraryEntry[]): LibraryStats {
     ratedCount: personal.length,
     avgPersonalRating: mean(personal),
     avgTmdbRating: mean(tmdb),
+    personalVsTmdb: mean(deltas),
     ratingDistribution,
     topDecades,
   };

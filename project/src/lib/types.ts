@@ -85,6 +85,18 @@ export interface Paginated<T> {
   results: T[];
 }
 
+/** Compact person as returned inside search results. */
+export interface SearchPerson {
+  id: number;
+  name: string;
+  photo: string | null;
+  knownFor: string;
+}
+
+export interface SearchResults extends Paginated<MediaItem> {
+  people: SearchPerson[];
+}
+
 export interface HomeRow {
   id: string;
   items: MediaItem[];
@@ -101,7 +113,7 @@ export interface Genre {
   name: string;
 }
 
-export type LibraryStatus = 'want' | 'watched';
+export type LibraryStatus = 'want' | 'watching' | 'watched';
 
 export interface LibraryEntry {
   id: number;
@@ -112,6 +124,8 @@ export interface LibraryEntry {
   rating: number | null;
   status: LibraryStatus;
   personalRating: number | null;
+  /** Episodes ticked as watched, as "season:episode" codes. TV only, absent when empty. */
+  seenEpisodes?: string[];
   addedAt: number;
   updatedAt: number;
 }

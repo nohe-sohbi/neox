@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   EXPORT_VERSION,
+  csvFilename,
   mergeEntries,
   parseLibrary,
   serializeLibrary,
+  serializeLibraryCsv,
   sortEntries,
 } from './library-io';
 import type { LibraryEntry } from './types';
@@ -54,6 +56,28 @@ describe('serializeLibrary / parseLibrary', () => {
     expect(entry.personalRating).toBe(10);
   });
 
+  it('round-trips episode progress on shows and drops it on movies', () => {
+    const parsed = parseLibrary(
+      JSON.stringify([
+        { id: 1396, mediaType: 'tv', seenEpisodes: ['1:1', '1:2', 'junk'] },
+        { id: 550, mediaType: 'movie', seenEpisodes: ['1:1'] },
+      ]),
+    );
+    expect(parsed.find((e) => e.id === 1396)?.seenEpisodes).toEqual(['1:1', '1:2']);
+    expect(parsed.find((e) => e.id === 550)?.seenEpisodes).toBeUndefined();
+  });
+
+  it('preserves the watching status and rejects unknown ones', () => {
+    const parsed = parseLibrary(
+      JSON.stringify([
+        { id: 5, mediaType: 'tv', status: 'watching' },
+        { id: 6, mediaType: 'tv', status: 'paused' },
+      ]),
+    );
+    expect(parsed.find((e) => e.id === 5)?.status).toBe('watching');
+    expect(parsed.find((e) => e.id === 6)?.status).toBe('want');
+  });
+
   it('de-duplicates by media-type + id', () => {
     const json = JSON.stringify([
       { id: 5, mediaType: 'movie', title: 'first' },
@@ -66,6 +90,49 @@ describe('serializeLibrary / parseLibrary', () => {
     expect(() => parseLibrary('not json')).toThrowError(/json/i);
     expect(() => parseLibrary('{"foo":1}')).toThrowError();
     expect(() => parseLibrary('[]')).toThrowError(); // no valid entries
+  });
+});
+
+describe('serializeLibraryCsv', () => {
+  it('starts with a BOM and a header row, CRLF-terminated', () => {
+    const csv = serializeLibraryCsv([make({})]);
+    expect(csv.charCodeAt(0)).toBe(0xfeff);
+    expect(csv.slice(1).split('\r\n')[0]).toBe(
+      'title,type,year,status,personal_rating,tmdb_rating,seen_episodes,added_at,updated_at',
+    );
+    expect(csv.endsWith('\r\n')).toBe(true);
+  });
+
+  it('escapes commas and quotes per RFC 4180', () => {
+    const csv = serializeLibraryCsv([make({ title: 'Bonnie "and" Clyde, maybe' })]);
+    expect(csv).toContain('"Bonnie ""and"" Clyde, maybe"');
+  });
+
+  it('renders ratings, episode counts and ISO dates', () => {
+    const csv = serializeLibraryCsv([
+      make({
+        mediaType: 'tv',
+        status: 'watching',
+        personalRating: 8,
+        rating: 7.5,
+        seenEpisodes: ['1:1', '1:2'],
+        addedAt: Date.UTC(2026, 0, 2),
+        updatedAt: Date.UTC(2026, 0, 3),
+      }),
+    ]);
+    const row = csv.trim().split('\r\n')[1];
+    expect(row).toBe(
+      'A,tv,2000,watching,8,7.5,2,2026-01-02T00:00:00.000Z,2026-01-03T00:00:00.000Z',
+    );
+  });
+
+  it('leaves missing ratings empty instead of writing null', () => {
+    const csv = serializeLibraryCsv([make({ personalRating: null, rating: null })]);
+    expect(csv).not.toContain('null');
+  });
+
+  it('suggests a dated .csv filename', () => {
+    expect(csvFilename(new Date(Date.UTC(2026, 7, 12)))).toBe('neox-library-2026-08-12.csv');
   });
 });
 

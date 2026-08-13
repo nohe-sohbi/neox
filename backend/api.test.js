@@ -79,6 +79,84 @@ describe('auth + library sync', () => {
   });
 });
 
+describe('account management', () => {
+  const creds = { email: 'account@example.com', password: 'firstpass1' };
+  let token;
+
+  beforeAll(async () => {
+    const res = await request(app).post('/api/auth/register').send(creds);
+    token = res.body.token;
+  });
+
+  it('refuses a password change with the wrong current password (403, not 401)', async () => {
+    const res = await request(app)
+      .post('/api/auth/change-password')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ currentPassword: 'not-the-one', newPassword: 'secondpass2' });
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('AUTH_INVALID_CREDENTIALS');
+  });
+
+  it('refuses a too-short new password', async () => {
+    const res = await request(app)
+      .post('/api/auth/change-password')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ currentPassword: creds.password, newPassword: 'short' });
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe('AUTH_PASSWORD_TOO_SHORT');
+  });
+
+  it('changes the password, revokes old tokens and issues a fresh one', async () => {
+    const res = await request(app)
+      .post('/api/auth/change-password')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ currentPassword: creds.password, newPassword: 'secondpass2' });
+    expect(res.status).toBe(200);
+    expect(res.body.token).toBeTruthy();
+
+    // The pre-change token must be dead, the fresh one alive.
+    const stale = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
+    expect(stale.status).toBe(401);
+    const fresh = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${res.body.token}`);
+    expect(fresh.status).toBe(200);
+
+    // And logging in works with the new password only.
+    const oldLogin = await request(app).post('/api/auth/login').send(creds);
+    expect(oldLogin.status).toBe(401);
+    const newLogin = await request(app)
+      .post('/api/auth/login')
+      .send({ email: creds.email, password: 'secondpass2' });
+    expect(newLogin.status).toBe(200);
+    token = newLogin.body.token;
+  });
+
+  it('refuses account deletion with the wrong password', async () => {
+    const res = await request(app)
+      .delete('/api/auth/account')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ password: 'not-the-one' });
+    expect(res.status).toBe(403);
+  });
+
+  it('deletes the account and kills its tokens and library', async () => {
+    const res = await request(app)
+      .delete('/api/auth/account')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ password: 'secondpass2' });
+    expect(res.status).toBe(200);
+
+    const me = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
+    expect(me.status).toBe(401);
+
+    const login = await request(app)
+      .post('/api/auth/login')
+      .send({ email: creds.email, password: 'secondpass2' });
+    expect(login.status).toBe(401);
+  });
+});
+
 describe('tv season endpoint', () => {
   it('rejects a non-numeric tv id', async () => {
     const res = await request(app).get('/api/tv/abc/season/1');

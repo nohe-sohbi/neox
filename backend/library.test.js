@@ -20,6 +20,27 @@ describe('sanitizeLibrary', () => {
     expect(entry.status).toBe('want');
   });
 
+  it('keeps valid episode progress on shows, drops it on movies', () => {
+    const out = sanitizeLibrary([
+      { id: 1396, mediaType: 'tv', seenEpisodes: ['1:1', '1:1', '2:8', 'nope', 7] },
+      { id: 550, mediaType: 'movie', seenEpisodes: ['1:1'] },
+      { id: 66732, mediaType: 'tv', seenEpisodes: [] },
+    ]);
+    expect(out.find((e) => e.id === 1396).seenEpisodes).toEqual(['1:1', '2:8']);
+    expect(out.find((e) => e.id === 550).seenEpisodes).toBeUndefined();
+    expect(out.find((e) => e.id === 66732).seenEpisodes).toBeUndefined();
+  });
+
+  it('accepts all three statuses and falls back on an unknown one', () => {
+    const out = sanitizeLibrary([
+      { id: 1, mediaType: 'tv', status: 'want' },
+      { id: 2, mediaType: 'tv', status: 'watching' },
+      { id: 3, mediaType: 'tv', status: 'watched' },
+      { id: 4, mediaType: 'tv', status: 'dropped' },
+    ]);
+    expect(out.map((e) => e.status)).toEqual(['want', 'watching', 'watched', 'want']);
+  });
+
   it('dedupes by media key, last one wins', () => {
     const out = sanitizeLibrary([
       { id: 5, mediaType: 'movie', title: 'A' },

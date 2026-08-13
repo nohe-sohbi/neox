@@ -10,7 +10,14 @@ import {
 } from 'react';
 import { api } from '../lib/api';
 import { track } from '../lib/analytics';
-import { entryKey as keyOf, toggleEntry, upsertEntry } from '../lib/library-utils';
+import {
+  entryKey as keyOf,
+  episodeCode,
+  toEntry,
+  toggleEntry,
+  toggleEpisodeCode,
+  upsertEntry,
+} from '../lib/library-utils';
 import { mergeEntries } from '../lib/library-io';
 import type { LibraryEntry, LibraryStatus, MediaItem } from '../lib/types';
 import { useAuth } from './AuthContext';
@@ -39,6 +46,8 @@ interface LibraryContextValue {
   toggle: (item: MediaItem) => boolean;
   setStatus: (item: MediaItem, status: LibraryStatus) => void;
   setRating: (item: MediaItem, rating: number | null) => void;
+  seenEpisodesOf: (item: ItemRef) => string[];
+  toggleEpisode: (item: MediaItem, seasonNumber: number, episodeNumber: number) => void;
   remove: (item: ItemRef) => void;
   clear: () => void;
   importEntries: (incoming: LibraryEntry[]) => number;
@@ -150,6 +159,39 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     [upsert],
   );
 
+  const seenEpisodesOf = useCallback(
+    (item: ItemRef) => get(item)?.seenEpisodes ?? [],
+    [get],
+  );
+
+  const toggleEpisode = useCallback(
+    (item: MediaItem, seasonNumber: number, episodeNumber: number) => {
+      const code = episodeCode(seasonNumber, episodeNumber);
+      apply((prev) => {
+        const key = keyOf(item);
+        const idx = prev.findIndex((e) => keyOf(e) === key);
+        // Ticking a first episode on an unsaved show adds it as "watching":
+        // that is literally what checking an episode off means.
+        if (idx === -1) {
+          return [toEntry(item, { status: 'watching', seenEpisodes: [code] }), ...prev];
+        }
+        const entry = prev[idx];
+        const seenEpisodes = toggleEpisodeCode(entry.seenEpisodes, code);
+        const next = [...prev];
+        next[idx] = {
+          ...entry,
+          seenEpisodes,
+          // A parked ("want") show whose episodes are being ticked is in
+          // progress; established statuses (watching/watched) are respected.
+          status: entry.status === 'want' && seenEpisodes ? 'watching' : entry.status,
+          updatedAt: Date.now(),
+        };
+        return next;
+      });
+    },
+    [apply],
+  );
+
   const remove = useCallback(
     (item: ItemRef) => apply((prev) => prev.filter((e) => keyOf(e) !== keyOf(item))),
     [apply],
@@ -185,6 +227,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       toggle,
       setStatus,
       setRating,
+      seenEpisodesOf,
+      toggleEpisode,
       remove,
       clear,
       importEntries,
@@ -199,6 +243,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       toggle,
       setStatus,
       setRating,
+      seenEpisodesOf,
+      toggleEpisode,
       remove,
       clear,
       importEntries,

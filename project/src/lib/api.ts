@@ -10,10 +10,12 @@ import type {
   Paginated,
   Person,
   Provider,
+  SearchResults,
   SeasonDetail,
   User,
 } from './types';
 import { createTranslator, langFromLocale } from './i18n/core';
+import { DEFAULT_LOCALE, detectLocale } from './locales';
 
 // `??`, not `||`: an explicitly empty VITE_API_URL means "same origin", the
 // production image serves the API under /api behind the same host, so requests
@@ -23,15 +25,27 @@ const API_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001').replac
 // Catalogue locale (region + language), initialized from storage so the very
 // first request already uses the user's preference.
 const LOCALE_KEY = 'neox.locale.v1';
-const DEFAULT_LOCALE: Locale = { region: 'FR', language: 'fr-FR' };
 
 function readLocale(): Locale {
   try {
     const raw = localStorage.getItem(LOCALE_KEY);
-    return raw ? { ...DEFAULT_LOCALE, ...(JSON.parse(raw) as Partial<Locale>) } : DEFAULT_LOCALE;
+    if (raw) return { ...DEFAULT_LOCALE, ...(JSON.parse(raw) as Partial<Locale>) };
   } catch {
+    // No usable storage (private mode…): don't try to persist a guess either.
     return DEFAULT_LOCALE;
   }
+  // First visit: follow the browser's language instead of imposing French on
+  // everyone. Persisted immediately so the choice stays stable even if the
+  // browser's language list changes later.
+  const detected = detectLocale(
+    typeof navigator !== 'undefined' ? (navigator.languages ?? [navigator.language]) : [],
+  );
+  try {
+    localStorage.setItem(LOCALE_KEY, JSON.stringify(detected));
+  } catch {
+    /* stateless session still gets the right language for now */
+  }
+  return detected;
 }
 
 let locale: Locale = readLocale();
@@ -145,7 +159,10 @@ export const api = {
   home: () => request<HomePayload>(withLocale('/api/home')),
 
   search: (query: string, page = 1) =>
-    request<Paginated<MediaItem>>(withLocale(`/api/search?q=${encodeURIComponent(query)}&page=${page}`)),
+    request<SearchResults>(withLocale(`/api/search?q=${encodeURIComponent(query)}&page=${page}`)),
+
+  trending: (mediaType: 'all' | MediaType, window: 'day' | 'week' = 'week') =>
+    request<Paginated<MediaItem>>(withLocale(`/api/trending/${mediaType}?window=${window}`)),
 
   genres: (mediaType: MediaType) =>
     request<{ genres: Genre[] }>(withLocale(`/api/genres/${mediaType}`)),
@@ -193,6 +210,18 @@ export const api = {
     }),
 
   me: () => request<{ user: User }>('/api/auth/me'),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<AuthResponse>('/api/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+
+  deleteAccount: (password: string) =>
+    request<{ ok: boolean }>('/api/auth/account', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    }),
 
   // ── Library sync ──
   getLibrary: () => request<{ entries: LibraryEntry[] }>('/api/library'),

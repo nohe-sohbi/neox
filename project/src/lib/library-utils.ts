@@ -4,6 +4,48 @@ type ItemRef = Pick<MediaItem, 'id' | 'mediaType'>;
 
 export const entryKey = (item: ItemRef) => `${item.mediaType}:${item.id}`;
 
+/** Stable key for one episode inside `seenEpisodes`, e.g. "2:5" for S2 E5. */
+export const episodeCode = (season: number, episode: number) => `${season}:${episode}`;
+
+const EPISODE_CODE_RE = /^\d{1,4}:\d{1,4}$/;
+const MAX_SEEN_EPISODES = 2000;
+
+/**
+ * Validates a seen-episodes list from untrusted input (imports, sync): only
+ * well-formed codes, deduplicated, bounded. Returns undefined when nothing
+ * survives so empty lists never bloat stored entries.
+ */
+export function sanitizeSeenEpisodes(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const seen = new Set<string>();
+  for (const code of raw) {
+    if (typeof code === 'string' && EPISODE_CODE_RE.test(code)) seen.add(code);
+    if (seen.size >= MAX_SEEN_EPISODES) break;
+  }
+  return seen.size ? [...seen] : undefined;
+}
+
+/** Adds or removes one episode code; returns undefined when the list empties. */
+export function toggleEpisodeCode(
+  list: string[] | undefined,
+  code: string,
+): string[] | undefined {
+  const set = new Set(list ?? []);
+  if (set.has(code)) set.delete(code);
+  else set.add(code);
+  return set.size ? [...set] : undefined;
+}
+
+// Strip diacritics + lowercase, so "amelie" finds « Amélie ».
+const fold = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+
+/** Accent- and case-insensitive title match for the library search box. */
+export function matchesQuery(entry: Pick<LibraryEntry, 'title'>, query: string): boolean {
+  const q = fold(query.trim());
+  if (!q) return true;
+  return fold(entry.title).includes(q);
+}
+
 /** Creates a fresh library entry from a media item, with optional overrides. */
 export function toEntry(item: MediaItem, patch: Partial<LibraryEntry> = {}): LibraryEntry {
   const now = Date.now();

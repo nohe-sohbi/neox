@@ -17,6 +17,8 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -66,9 +68,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    // The server revokes every previously issued token and returns a fresh
+    // one; keep it so this session survives its own password change.
+    const res = await api.changePassword(currentPassword, newPassword);
+    setAuthToken(res.token);
+  }, []);
+
+  const deleteAccount = useCallback(async (password: string) => {
+    await api.deleteAccount(password);
+    // Dropping `user` also lets LibraryContext clear this device's copy.
+    setAuthToken(null);
+    setUser(null);
+  }, []);
+
   const value = useMemo(
-    () => ({ user, ready, login, register, logout }),
-    [user, ready, login, register, logout],
+    () => ({ user, ready, login, register, logout, changePassword, deleteAccount }),
+    [user, ready, login, register, logout, changePassword, deleteAccount],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

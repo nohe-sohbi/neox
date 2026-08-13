@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Cake, MapPin, X } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { Cake, MapPin, Share2, X } from 'lucide-react';
+import { api, ApiError, getLocale } from '../../lib/api';
+import { DEFAULT_TTL, queryCache } from '../../lib/query';
+import { track } from '../../lib/analytics';
+import { shareUrl } from '../../lib/share';
+import { useToast } from '../../context/ToastContext';
 import type { Person } from '../../lib/types';
 import { SITE_URL } from '../../lib/seo';
 import { buildPersonSchema } from '../../lib/structured-data';
@@ -11,7 +15,8 @@ import { DocumentMeta } from '../../hooks/useDocumentMeta';
 import { ErrorState, FullSpinner } from '../ui/States';
 import { MediaGrid } from './MediaGrid';
 import { useT, activeLang } from '../../lib/i18n';
-import { localeTag, type Translator } from '../../lib/i18n/core';
+import { localeTag } from '../../lib/i18n/core';
+import { departmentLabel } from '../../lib/person';
 
 function age(birthday: string | null): number | null {
   if (!birthday) return null;
@@ -20,31 +25,31 @@ function age(birthday: string | null): number | null {
   return years > 0 && years < 130 ? years : null;
 }
 
-/**
- * TMDB's `known_for_department` is always English ("Acting", "Directing"…).
- * Map it to the UI language, falling back to the raw value for any department
- * we don't have a translation for (t() returns the key when it's missing).
- */
-function departmentLabel(t: Translator, dept: string): string {
-  if (!dept) return '';
-  const key = `person.dept.${dept}`;
-  const label = t(key);
-  return label === key ? dept : label;
-}
-
 export function PersonModal() {
   const { t } = useT();
   const { personId, close } = usePersonTarget();
+  const toast = useToast();
   const [person, setPerson] = useState<Person | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Cached per person + locale: reopening a profile within the TTL paints
+  // instantly with zero network, same policy as the title fiche.
   const load = useCallback(
     async (id: number) => {
+      const locale = getLocale();
+      const key = `person:${id}:${locale.region}:${locale.language}`;
+      const cached = queryCache.getFresh<Person>(key, DEFAULT_TTL);
+      if (cached) {
+        setPerson(cached);
+        setError(null);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       setError(null);
       try {
-        setPerson(await api.person(id));
+        setPerson(await queryCache.fetch(key, () => api.person(id)));
       } catch (err) {
         setError(err instanceof ApiError ? err.message : t('common.load_error'));
       } finally {
@@ -66,6 +71,14 @@ export function PersonModal() {
 
   const years = person ? age(person.birthday) : null;
   const knownFor = person ? departmentLabel(t, person.knownFor) : '';
+
+  const handleShare = async () => {
+    if (!person) return;
+    const outcome = await shareUrl(person.name, `${SITE_URL}${personPath(person.id)}`);
+    if (outcome === 'copied') toast.success(t('toast.link_copied'));
+    else if (outcome === 'failed') toast.error(t('toast.link_copy_failed'));
+    if (outcome === 'shared' || outcome === 'copied') track('Share', { mediaType: 'person' });
+  };
 
   return (
     <div
@@ -133,6 +146,13 @@ export function PersonModal() {
                       {person.placeOfBirth}
                     </span>
                   )}
+                  <button
+                    onClick={() => void handleShare()}
+                    className="inline-flex items-center gap-1.5 text-white/60 transition-colors hover:text-white"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    {t('detail.share')}
+                  </button>
                 </div>
                 {person.biography && (
                   <p className="mt-3 line-clamp-5 text-sm leading-relaxed text-white/70">

@@ -6,20 +6,25 @@ mécanisme est dans le README, section « Sous le capot ».
 ## Fait
 
 **Produit.** Accueil éditorialisé (hero avec pause, rails, « Tendances » aujourd'hui / cette
-semaine), recherche instantanée films, séries et personnes avec pagination en scroll, Explorer
-avec filtres genre / année / note minimale portés par l'URL, compteur de résultats, scroll infini
-et « Surprends-moi », fiche détaillée avec bande-annonce, casting, disponibilité légale et bouton
-Partager — rouverte instantanément grâce au cache SWR —, navigateur saison par saison navigable au
-clavier avec épisodes cochables et progression, pages Personnes, recommandations « Pour toi »,
-palette `Ctrl K`, rail « Reprends où tu en étais », langue de l'interface auto-détectée au premier
-lancement, bandeau hors-ligne.
+semaine), recherche instantanée films, séries et personnes avec pagination en scroll et
+restriction par type servie côté API, Explorer avec filtres genre / année / note minimale portés
+par l'URL, récapitulés en pastilles retirables avec « Tout réinitialiser », compteur de résultats,
+scroll infini doublé d'un bouton « Charger plus » annoncé en `aria-live` et « Surprends-moi »,
+fiche détaillée avec bande-annonce, réalisation / scénario / création cliquables, classification
+d'âge régionale, saga du film, casting, disponibilité légale et bouton Partager — rouverte
+instantanément grâce au cache SWR —, navigateur saison par saison navigable au clavier avec
+épisodes cochables un à un ou par saison entière et progression globale de la série, rail
+« Reprendre ma série » donnant le prochain épisode non vu, pages Personnes, recommandations
+« Pour toi », palette `Ctrl K`, rail « Reprends où tu en étais », langue de l'interface
+auto-détectée au premier lancement, bandeau hors-ligne.
 
 **Bibliothèque.** Statut À voir / En cours / Vu, épisodes vus par série, note personnelle 1 à 10,
-tri, filtres par statut et par type, recherche texte insensible aux accents, export JSON
-réimportable et export CSV sans compte, panneau de statistiques calculé localement (dont la note
-TMDB moyenne et l'écart avec tes notes). Comptes optionnels (bcrypt + JWT, store JSON) avec fusion
-localStorage vers compte à la connexion, changement de mot de passe (qui révoque les jetons émis)
-et suppression de compte.
+commentaire libre autosauvegardé par titre, tri, filtres par statut et par type, recherche texte
+insensible aux accents sur les titres et les commentaires, export JSON réimportable et export CSV
+sans compte (commentaire et durée compris), panneau de statistiques calculé localement (dont la
+note TMDB moyenne, l'écart avec tes notes et le temps de visionnage estimé, annoncé avec sa base).
+Comptes optionnels (bcrypt + JWT, store JSON) avec fusion localStorage vers compte à la connexion,
+changement de mot de passe (qui révoque les jetons émis) et suppression de compte.
 
 **Interface.** Aucune couleur d'accent déclarée : la teinte vient de l'affiche du titre affiché,
 extraite dans le navigateur et rendue comme de la lumière. Design system Tailwind sur-mesure en
@@ -45,8 +50,8 @@ build depuis `VITE_SITE_URL`.
 
 **Packaging.** Image frontend multi-stage (`vite build` puis nginx), API proxyfiée en même-origine
 sous `/api`, conteneurs non-root avec `HEALTHCHECK`, `JWT_SECRET` obligatoire en production,
-licence MIT, 260 tests unitaires et d'intégration, un scénario Playwright de bout en bout (`e2e/`,
-38 vérifications contre un TMDB factice) et CI GitHub Actions sur chaque PR.
+licence MIT, 299 tests unitaires et d'intégration, un scénario Playwright de bout en bout (`e2e/`,
+59 vérifications contre un TMDB factice) et CI GitHub Actions sur chaque PR.
 
 ## Reste
 

@@ -39,15 +39,37 @@ export function toggleEpisodeCode(
 // Strip diacritics + lowercase, so "amelie" finds « Amélie ».
 const fold = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 
-/** Accent- and case-insensitive title match for the library search box. */
-export function matchesQuery(entry: Pick<LibraryEntry, 'title'>, query: string): boolean {
+/**
+ * Accent- and case-insensitive match for the library search box, over the
+ * title *and* the note: once you can write "à revoir avec Paul" on a fiche,
+ * that sentence is the thing you'll search for later.
+ */
+export function matchesQuery(
+  entry: Pick<LibraryEntry, 'title'> & Partial<Pick<LibraryEntry, 'note'>>,
+  query: string,
+): boolean {
   const q = fold(query.trim());
   if (!q) return true;
-  return fold(entry.title).includes(q);
+  return fold(entry.title).includes(q) || fold(entry.note ?? '').includes(q);
 }
 
-/** Creates a fresh library entry from a media item, with optional overrides. */
-export function toEntry(item: MediaItem, patch: Partial<LibraryEntry> = {}): LibraryEntry {
+/** Bounds a user-written note the same way the sync endpoint does. */
+export const MAX_NOTE_LENGTH = 1000;
+
+export function normalizeNote(raw: string): string | undefined {
+  const note = raw.slice(0, MAX_NOTE_LENGTH).trim();
+  return note || undefined;
+}
+
+/**
+ * Creates a fresh library entry from a media item, with optional overrides.
+ * A `runtime` on the item (only details payloads carry one) rides along, so a
+ * title saved from its fiche knows its own length without a second lookup.
+ */
+export function toEntry(
+  item: MediaItem & { runtime?: number | null },
+  patch: Partial<LibraryEntry> = {},
+): LibraryEntry {
   const now = Date.now();
   return {
     id: item.id,
@@ -58,6 +80,7 @@ export function toEntry(item: MediaItem, patch: Partial<LibraryEntry> = {}): Lib
     rating: item.rating,
     status: 'want',
     personalRating: null,
+    ...(typeof item.runtime === 'number' && item.runtime > 0 ? { runtime: item.runtime } : {}),
     addedAt: now,
     updatedAt: now,
     ...patch,
@@ -75,7 +98,7 @@ export function toggleEntry(entries: LibraryEntry[], item: MediaItem): LibraryEn
 /** Inserts or patches the matching entry, bumping updatedAt. */
 export function upsertEntry(
   entries: LibraryEntry[],
-  item: MediaItem,
+  item: MediaItem & { runtime?: number | null },
   patch: Partial<LibraryEntry>,
 ): LibraryEntry[] {
   const key = entryKey(item);

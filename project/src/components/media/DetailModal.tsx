@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Bookmark, Calendar, Check, Clock, Eye, Film, Play, PlayCircle, Share2, Star, Trash2, Tv, X } from 'lucide-react';
 import { api, ApiError, getLocale } from '../../lib/api';
 import { DEFAULT_TTL, queryCache } from '../../lib/query';
@@ -7,7 +7,8 @@ import { SITE_URL } from '../../lib/seo';
 import { detailPath, personPath } from '../../lib/routes';
 import { buildMediaSchema } from '../../lib/structured-data';
 import { useFilmColor } from '../../hooks/useFilmColor';
-import type { MediaDetails, MediaType } from '../../lib/types';
+import type { CrewMember, MediaDetails, MediaType } from '../../lib/types';
+import { MAX_NOTE_LENGTH } from '../../lib/library-utils';
 import { useLibrary } from '../../context/LibraryContext';
 import { useToast } from '../../context/ToastContext';
 import {
@@ -27,6 +28,118 @@ import { SeasonBrowser } from './SeasonBrowser';
 import { backdropImg, posterImg } from '../../lib/img';
 import { useT } from '../../lib/i18n';
 
+/**
+ * One crew role and the people credited with it, each a real link to their
+ * profile — same contract as a cast credit: plain click opens the overlay,
+ * anything else follows the canonical URL. Renders nothing when unattributed.
+ */
+function CrewLine({
+  label,
+  people,
+  onOpen,
+}: {
+  label: string;
+  people: CrewMember[];
+  onOpen: (id: number) => void;
+}) {
+  if (people.length === 0) return null;
+  return (
+    <p className="text-sm text-white/60">
+      <span className="font-semibold uppercase tracking-wider text-white/40">{label}</span>{' '}
+      {people.map((person, i) => (
+        <span key={person.id}>
+          {i > 0 && <span className="text-white/30">, </span>}
+          <a
+            href={personPath(person.id)}
+            onClick={(e) => {
+              if (isModifiedClick(e)) return;
+              e.preventDefault();
+              onOpen(person.id);
+            }}
+            className="font-medium text-white/90 underline-offset-2 transition-colors hover:text-[var(--film,theme(colors.white))] hover:underline"
+          >
+            {person.name}
+          </a>
+        </span>
+      ))}
+    </p>
+  );
+}
+
+/**
+ * Free-text note about a title, autosaved.
+ *
+ * No save button: a note you have to remember to commit is a note you lose by
+ * closing the fiche. Typing schedules a write, and the pending draft is
+ * flushed on unmount, so closing the overlay mid-sentence keeps the sentence.
+ */
+const NOTE_SAVE_DELAY_MS = 600;
+
+function NoteEditor({
+  initial,
+  onSave,
+}: {
+  initial: string;
+  onSave: (note: string) => void;
+}) {
+  const { t } = useT();
+  const [value, setValue] = useState(initial);
+  const [saved, setSaved] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const pending = useRef<string | null>(null);
+
+  // The latest saver, without making the flush effect depend on it: the
+  // cleanup must run on unmount only, never on a re-render.
+  const saveRef = useRef(onSave);
+  saveRef.current = onSave;
+
+  useEffect(
+    () => () => {
+      clearTimeout(timer.current);
+      if (pending.current !== null) saveRef.current(pending.current);
+    },
+    [],
+  );
+
+  const onChange = (next: string) => {
+    setValue(next);
+    setSaved(false);
+    pending.current = next;
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      saveRef.current(next);
+      pending.current = null;
+      setSaved(true);
+    }, NOTE_SAVE_DELAY_MS);
+  };
+
+  return (
+    <div>
+      <label
+        htmlFor="neox-note"
+        className="mb-2 block text-sm font-bold uppercase tracking-wider text-white/50"
+      >
+        {t('detail.your_note')}
+      </label>
+      <textarea
+        id="neox-note"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        maxLength={MAX_NOTE_LENGTH}
+        rows={2}
+        placeholder={t('detail.note_placeholder')}
+        className="w-full resize-y rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm leading-relaxed text-white placeholder-white/35 outline-none transition-colors focus:border-white/40 focus:bg-white/[0.07]"
+      />
+      <p className="mt-1 flex items-center justify-between text-[11px] text-white/35">
+        <span aria-live="polite">{saved ? t('detail.note_saved') : ''}</span>
+        <span>
+          {value.length}/{MAX_NOTE_LENGTH}
+        </span>
+      </p>
+    </div>
+  );
+}
+
 function runtimeLabel(minutes: number | null): string | null {
   if (!minutes) return null;
   const h = Math.floor(minutes / 60);
@@ -39,7 +152,17 @@ export function DetailModal() {
   const { target, close } = useDetailTarget();
   const openDetail = useOpenDetail();
   const openPerson = useOpenPerson();
-  const { statusOf, ratingOf, isSaved, setStatus, setRating, remove } = useLibrary();
+  const {
+    statusOf,
+    ratingOf,
+    isSaved,
+    setStatus,
+    setRating,
+    noteOf,
+    setNote,
+    rememberRuntime,
+    remove,
+  } = useLibrary();
   const toast = useToast();
 
   const [details, setDetails] = useState<MediaDetails | null>(null);
@@ -98,6 +221,14 @@ export function DetailModal() {
       track('Share', { mediaType: details.mediaType });
     }
   }, [details, toast, t]);
+
+  // The fiche is the only place a runtime is known, so it is the only place
+  // that can teach the library one. Backfills silently, and only for titles
+  // already saved: opening a fiche is not saving it.
+  useEffect(() => {
+    if (!details?.runtime) return;
+    rememberRuntime(details, details.runtime);
+  }, [details, rememberRuntime]);
 
   // Record successful opens so Home + ⌘K can resurface them.
   useEffect(() => {
@@ -258,6 +389,17 @@ export function DetailModal() {
                         {tn('detail.seasons', details.numberOfSeasons)}
                       </span>
                     ) : null}
+                    {/* The rating issued where the viewer is, or nothing at
+                        all: a US "PG-13" shown to a French viewer would be a
+                        confident answer to a question nobody asked. */}
+                    {details.certification && (
+                      <span
+                        className="rounded border border-white/25 px-1.5 py-0.5 text-xs font-bold text-white/80"
+                        title={t('detail.certification')}
+                      >
+                        {details.certification}
+                      </span>
+                    )}
                   </div>
 
                   {details.genres.length > 0 && (
@@ -336,19 +478,29 @@ export function DetailModal() {
                 )}
               </div>
 
-              {/* Personal rating */}
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="mb-2 text-sm font-bold uppercase tracking-wider text-white/50">
-                  {t('detail.your_rating')}
-                </p>
-                <StarRating
-                  value={personalRating}
-                  onChange={(r) => {
-                    setRating(details, r);
-                    // Rating implies "watched", so give the same feedback the
-                    // other library mutations do instead of a silent status flip.
-                    toast.success(r != null ? t('toast.rated') : t('toast.rating_cleared'));
-                  }}
+              {/* Personal rating + note */}
+              <div className="space-y-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <div>
+                  <p className="mb-2 text-sm font-bold uppercase tracking-wider text-white/50">
+                    {t('detail.your_rating')}
+                  </p>
+                  <StarRating
+                    value={personalRating}
+                    onChange={(r) => {
+                      setRating(details, r);
+                      // Rating implies "watched", so give the same feedback the
+                      // other library mutations do instead of a silent status flip.
+                      toast.success(r != null ? t('toast.rated') : t('toast.rating_cleared'));
+                    }}
+                  />
+                </div>
+                {/* A number says how much you liked it; only a sentence says
+                    why. Remounted per fiche so the draft never leaks from one
+                    title to the next. */}
+                <NoteEditor
+                  key={`note-${details.mediaType}-${details.id}`}
+                  initial={noteOf(details)}
+                  onSave={(note) => setNote(details, note)}
                 />
               </div>
 
@@ -358,6 +510,80 @@ export function DetailModal() {
                     {t('detail.synopsis')}
                   </h3>
                   <p className="leading-relaxed text-white/80">{details.overview}</p>
+                </div>
+              )}
+
+              {/* Who made it. The fiche listed twelve actors and not one
+                  director: the first question anyone asks about a film had no
+                  answer on the page that exists to answer it. */}
+              {(details.crew.directors.length > 0 ||
+                details.crew.creators.length > 0 ||
+                details.crew.writers.length > 0) && (
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-x-10">
+                  <CrewLine
+                    label={t('detail.directed_by')}
+                    people={details.crew.directors}
+                    onOpen={openPerson}
+                  />
+                  <CrewLine
+                    label={t('detail.created_by')}
+                    people={details.crew.creators}
+                    onOpen={openPerson}
+                  />
+                  <CrewLine
+                    label={t('detail.written_by')}
+                    people={details.crew.writers}
+                    onOpen={openPerson}
+                  />
+                </div>
+              )}
+
+              {/* The saga this film belongs to. Chronological, current film
+                  excluded: what you want here is the one you haven't seen. */}
+              {details.collection && details.collection.items.length > 0 && (
+                <div>
+                  <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-white/50">
+                    {t('detail.collection', { name: details.collection.name })}
+                  </h3>
+                  <div className="no-scrollbar flex gap-4 overflow-x-auto pb-2">
+                    {details.collection.items.map((part) => {
+                      const partImg = part.poster ? posterImg(part.poster, '112px') : null;
+                      return (
+                        <a
+                          key={part.id}
+                          href={detailPath(part.mediaType, part.id)}
+                          onClick={(e) => {
+                            if (isModifiedClick(e)) return;
+                            e.preventDefault();
+                            openDetail(part);
+                          }}
+                          className="group w-28 shrink-0 text-left"
+                        >
+                          <div className="flex aspect-[2/3] items-center justify-center overflow-hidden rounded-lg bg-ink-700 text-white/30 ring-1 ring-white/5 transition-transform group-hover:scale-[1.03]">
+                            {partImg ? (
+                              <img
+                                src={partImg.src}
+                                srcSet={partImg.srcSet}
+                                sizes={partImg.sizes}
+                                width={partImg.width}
+                                height={partImg.height}
+                                alt={part.title}
+                                loading="lazy"
+                                decoding="async"
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <Film className="h-8 w-8" />
+                            )}
+                          </div>
+                          <p className="mt-1.5 truncate text-xs font-medium text-white/80">
+                            {part.title}
+                          </p>
+                          <p className="truncate text-[11px] text-white/40">{part.year || '—'}</p>
+                        </a>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 

@@ -1,0 +1,13 @@
+{
+  "name": "neox-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "End-to-end scenario: the built app in a real Chromium, against the real API backed by a local mock TMDB.",
+  "scripts": {
+    "e2e": "bash run.sh"
+  },
+  "dependencies": {
+    "playwright": "^1.56.1"
+  }
+}

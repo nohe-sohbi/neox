@@ -41,9 +41,11 @@ disponibilité légale (JustWatch via TMDB).
 
 ## Ce que ça fait
 
-- **Découvrir** : accueil éditorialisé (hero rotatif, rails « À l'affiche », « Tendances séries »,
-  « Acclamés par la critique »), recherche instantanée sur les films, les séries et les personnes
-  (acteurs, réalisateurs), chargée page après page en scroll infini.
+- **Découvrir** : accueil éditorialisé (hero rotatif avec pause, rails « À l'affiche », « Tendances
+  séries », « Acclamés par la critique », rail « Tendances » basculable aujourd'hui / cette
+  semaine), recherche instantanée sur les films, les séries et les personnes (acteurs,
+  réalisateurs), chargée page après page en scroll infini, et un « Surprends-moi » qui pioche un
+  titre au hasard dans les filtres actifs d'Explorer.
 - **Savoir où regarder** : la section « Où regarder (légalement) » de chaque fiche liste le
   streaming, la location et l'achat pour ta région, avec un filtre « Mes plateformes » qui ne garde
   que tes services.
@@ -52,20 +54,23 @@ disponibilité légale (JustWatch via TMDB).
   l'URL : une vue filtrée se partage, se met en favori et se retrouve au retour.
 - **Naviguer au clavier** : palette `Ctrl K` globale pour chercher un titre, sauter vers une page ou
   reprendre une recherche récente, sans quitter le clavier.
-- **Suivre ses séries** : navigateur par saison dans la fiche, liste des épisodes avec vignette,
-  code `SxEx`, date, durée et note, chargée à la demande.
+- **Suivre ses séries** : navigateur par saison dans la fiche (navigable au clavier), liste des
+  épisodes avec vignette, code `SxEx`, date, durée et note, chargée à la demande — et une case par
+  épisode : la cocher inscrit la série en « En cours » et les onglets affichent la progression
+  (3/8), synchronisée avec le reste de la liste.
 - **Tenir sa liste** : statut À voir / En cours / Vu, note personnelle de 1 à 10, tri, filtres par
   statut et par type, recherche texte insensible aux accents, et un panneau de statistiques calculé
-  localement (progression, répartition films/séries, note moyenne, histogramme des notes, décennies
-  de prédilection).
+  localement (progression, répartition films/séries, note moyenne, note TMDB moyenne et ton écart
+  avec elle, histogramme des notes, décennies de prédilection). Export JSON réimportable, ou CSV
+  pour un tableur.
 - **Partager une fiche** : chaque fiche titre ou personne porte un bouton Partager — feuille de
   partage système quand elle existe, copie du lien canonique sinon.
 - **Retrouver sa liste partout** : compte optionnel (inscription, connexion, changement de mot de
   passe, suppression du compte) qui synchronise la bibliothèque entre appareils. Sans compte, tout
   reste en local, avec export et import JSON.
-- **Installer l'app** : PWA avec shell hors-ligne et images en cache, interface traduite en
-  français, anglais, espagnol, allemand et italien — la langue suit celle du navigateur au premier
-  lancement.
+- **Installer l'app** : PWA avec shell hors-ligne et images en cache — un bandeau annonce quand
+  l'app sert depuis le cache —, interface traduite en français, anglais, espagnol, allemand et
+  italien, la langue suivant celle du navigateur au premier lancement.
 
 ## Sous le capot
 
@@ -100,8 +105,13 @@ Ce qui n'est pas visible à l'écran mais tient l'app debout :
   serait incohérent pour une app qui ne charge même pas de script d'analytics par défaut. Les deux
   sous-ensembles latins sont préchargés depuis le shell : leurs noms étant hashés par le build,
   c'est lui qui pose les balises.
-- **Perf client.** Cache mémoire SWR avec dédup des requêtes en vol, `srcset` dérivé côté client des
-  URLs TMDB, `ErrorBoundary` global au lieu d'un écran blanc.
+- **Perf client.** Cache mémoire SWR avec dédup des requêtes en vol — accueil, fiches, profils et
+  saisons compris : rouvrir une fiche dans la fenêtre de fraîcheur ne refait aucune requête —,
+  `srcset` dérivé côté client des URLs TMDB, `ErrorBoundary` global au lieu d'un écran blanc.
+- **Observabilité.** Chaque réponse porte un `X-Request-Id` (entrant écho s'il est sain, généré
+  sinon), repris dans les corps d'erreur pour corréler un rapport de bug à une ligne de log. En
+  production, une ligne JSON par requête — chemin sans query string, les termes de recherche
+  restant hors télémétrie — et `/api/health` annonce la version.
 - **L'interface n'a pas de couleur d'accent.** Elle emprunte celle du titre affiché : la teinte
   dominante de l'affiche est extraite dans le navigateur, pondérée par la saturation puis rendue
   comme de la lumière, et c'est elle qui colore le hero, la carte survolée et la fiche ouverte. Là où
@@ -212,7 +222,7 @@ même-origine (`/api`), ce que fait l'image Docker.
 
 | Méthode | Route | Description |
 |---|---|---|
-| GET | `/api/health` | État du service, config TMDB, métriques cache et disjoncteur |
+| GET | `/api/health` | État du service, version, config TMDB, métriques cache et disjoncteur |
 | GET | `/api/home` | Payload accueil (hero + rails) |
 | GET | `/api/search?q=&page=` | Recherche multi (films + séries, personnes dans `people`) |
 | GET | `/api/trending/:type?window=week\|day` | Tendances (`all`/`movie`/`tv`) |
@@ -237,14 +247,18 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 
 ## Qualité
 
-- **243 tests** : 95 côté `backend/` (auth, gestion de compte et sync via supertest, garde du
-  secret JWT, révocation de jetons, durcissement des entrées, cache HTTP, cache LRU et
-  snapshot/hydrate, single-flight, params discover, saisons, directives crawler, et le chemin
-  réseau du client TMDB — retry, 429, snapshot sans secret — contre un serveur fixture injecté via
-  `TMDB_BASE_URL`) et 148 côté `project/` (bibliothèque, export/import, recherche de titres,
-  partage, détection de langue, i18n avec test de parité des cinq dictionnaires, manifeste de
-  routes et shells prérendus, SEO, données structurées, extraction de teinte, cache SWR, vu
-  récemment, srcset).
+- **260 tests** : 101 côté `backend/` (auth, gestion de compte et sync via supertest, garde du
+  secret JWT, révocation de jetons, durcissement des entrées, corrélation de requêtes, épisodes
+  vus, cache HTTP, cache LRU et snapshot/hydrate, single-flight, params discover, saisons,
+  directives crawler, et le chemin réseau du client TMDB — retry, 429, snapshot sans secret —
+  contre un serveur fixture injecté via `TMDB_BASE_URL`) et 159 côté `project/` (bibliothèque,
+  export/import JSON et CSV, épisodes vus, recherche de titres, partage, détection de langue, i18n
+  avec test de parité des cinq dictionnaires, manifeste de routes et shells prérendus, SEO,
+  données structurées, extraction de teinte, cache SWR, vu récemment, srcset).
+- **Bout en bout** : `e2e/` pilote l'app buildée dans un vrai Chromium (Playwright) contre l'API
+  réelle branchée sur un TMDB factice local — 38 vérifications couvrant fiches, partage, épisodes,
+  bibliothèque, exports, comptes, filtres, hors-ligne et détection de langue. `npm install` dans
+  `e2e/` puis `bash e2e/run.sh`.
 - **Vérifs** : `npm run lint`, `npm run typecheck`, `npm run build`.
 - **CI** : GitHub Actions lance lint, typecheck, tests et build sur chaque PR
   (`.github/workflows/ci.yml`).

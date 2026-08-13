@@ -142,7 +142,11 @@ app.get(
     cacheControl(TTL.dynamic),
     route(async (req, res) => {
         const q = (req.query.q || '').toString().slice(0, 200);
-        res.json(await tmdb.search(q, pageFrom(req), localeFrom(req)));
+        // Allowlisted like every other user-supplied selector: an unknown type
+        // degrades to the multi search instead of minting a junk upstream path.
+        const rawType = (req.query.type || '').toString();
+        const type = ['movie', 'tv'].includes(rawType) ? rawType : 'all';
+        res.json(await tmdb.search(q, pageFrom(req), { ...localeFrom(req), type }));
     }),
 );
 

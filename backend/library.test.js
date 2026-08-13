@@ -41,6 +41,32 @@ describe('sanitizeLibrary', () => {
     expect(out.map((e) => e.status)).toEqual(['want', 'watching', 'watched', 'want']);
   });
 
+  it('keeps a trimmed note, bounded, and drops an empty or non-string one', () => {
+    const out = sanitizeLibrary([
+      { id: 1, mediaType: 'movie', note: '  Vu au cinéma avec Léa.  ' },
+      { id: 2, mediaType: 'movie', note: '   ' },
+      { id: 3, mediaType: 'movie', note: 42 },
+      { id: 4, mediaType: 'movie', note: 'x'.repeat(5000) },
+    ]);
+    expect(out.find((e) => e.id === 1).note).toBe('Vu au cinéma avec Léa.');
+    expect(out.find((e) => e.id === 2).note).toBeUndefined();
+    expect(out.find((e) => e.id === 3).note).toBeUndefined();
+    expect(out.find((e) => e.id === 4).note).toHaveLength(1000);
+  });
+
+  it('keeps a plausible runtime and drops an implausible one', () => {
+    const out = sanitizeLibrary([
+      { id: 1, mediaType: 'movie', runtime: 139.4 },
+      { id: 2, mediaType: 'movie', runtime: -5 },
+      { id: 3, mediaType: 'movie', runtime: 'long' },
+      { id: 4, mediaType: 'movie', runtime: 99999 },
+    ]);
+    expect(out.find((e) => e.id === 1).runtime).toBe(139);
+    expect(out.find((e) => e.id === 2).runtime).toBeUndefined();
+    expect(out.find((e) => e.id === 3).runtime).toBeUndefined();
+    expect(out.find((e) => e.id === 4).runtime).toBe(2000);
+  });
+
   it('dedupes by media key, last one wins', () => {
     const out = sanitizeLibrary([
       { id: 5, mediaType: 'movie', title: 'A' },

@@ -23,6 +23,25 @@ function sanitizeSeenEpisodes(raw) {
     return seen.size ? [...seen] : undefined;
 }
 
+// A free-text note the user wrote about a title. Bounded so a synced library
+// stays a library and not a blog, and dropped when empty so an entry that
+// never got a note doesn't carry an empty string forever.
+const MAX_NOTE_LENGTH = 1000;
+
+function sanitizeNote(raw) {
+    if (typeof raw !== 'string') return undefined;
+    const note = raw.slice(0, MAX_NOTE_LENGTH).trim();
+    return note || undefined;
+}
+
+// Minutes. Captured from the fiche (a film's runtime, a show's episode
+// length) to power the watch-time estimate; anything absurd is not a runtime.
+function sanitizeRuntime(raw) {
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return undefined;
+    return Math.min(2000, Math.round(n));
+}
+
 function sanitizeEntry(raw) {
     if (!raw || typeof raw !== 'object') return null;
     const id = Number(raw.id);
@@ -37,6 +56,8 @@ function sanitizeEntry(raw) {
 
     // Episode progress only makes sense on shows.
     const seenEpisodes = raw.mediaType === 'tv' ? sanitizeSeenEpisodes(raw.seenEpisodes) : undefined;
+    const note = sanitizeNote(raw.note);
+    const runtime = sanitizeRuntime(raw.runtime);
 
     const now = Date.now();
     return {
@@ -49,6 +70,8 @@ function sanitizeEntry(raw) {
         status: STATUSES.has(raw.status) ? raw.status : 'want',
         personalRating,
         ...(seenEpisodes ? { seenEpisodes } : {}),
+        ...(note ? { note } : {}),
+        ...(runtime ? { runtime } : {}),
         addedAt: Number.isFinite(Number(raw.addedAt)) ? Number(raw.addedAt) : now,
         updatedAt: Number.isFinite(Number(raw.updatedAt)) ? Number(raw.updatedAt) : now,
     };

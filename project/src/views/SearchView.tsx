@@ -1,23 +1,50 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Sparkles } from 'lucide-react';
-import { api, ApiError } from '../lib/api';
+import { api, ApiError, type SearchType } from '../lib/api';
 import type { MediaItem, SearchPerson } from '../lib/types';
 import { useDebounce } from '../hooks/useDebounce';
 import { isModifiedClick, useOpenPerson } from '../hooks/useDetailRoute';
 import { MediaGrid } from '../components/media/MediaGrid';
-import { EmptyState, ErrorState, Spinner } from '../components/ui/States';
+import { EmptyState, ErrorState } from '../components/ui/States';
+import { LoadMore } from '../components/ui/LoadMore';
 import { useT } from '../lib/i18n';
 import { departmentLabel } from '../lib/person';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { personPath, routeMeta } from '../lib/routes';
 import { rememberSearch } from '../lib/recent-searches';
 
+const SEARCH_TABS: { id: SearchType; key: string }[] = [
+  { id: 'all', key: 'filter.all' },
+  { id: 'movie', key: 'discover.movies_title' },
+  { id: 'tv', key: 'discover.tv_title' },
+];
+
 export function SearchView() {
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const query = params.get('q') ?? '';
   const debounced = useDebounce(query.trim(), 350);
   const { t, tn, formatNumber, lang } = useT();
+
+  // The scope lives in the URL next to the query, so a filtered search is as
+  // shareable and as back-navigable as the query itself. An unknown value
+  // degrades to "everything" rather than erroring.
+  const rawType = params.get('type') ?? '';
+  const type: SearchType = SEARCH_TABS.some((tab) => tab.id === rawType)
+    ? (rawType as SearchType)
+    : 'all';
+
+  const setType = (next: SearchType) => {
+    setParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        if (next === 'all') p.delete('type');
+        else p.set('type', next);
+        return p;
+      },
+      { replace: true },
+    );
+  };
 
   // The manifest carries the route's baseline (description, and the
   // `noindex, follow` the build already prerendered); the query only refines
@@ -45,14 +72,14 @@ export function SearchView() {
   const requestRef = useRef(0);
 
   const fetchPage = useCallback(
-    (query: string, targetPage: number) => {
+    (query: string, targetPage: number, scope: SearchType) => {
       const id = ++requestRef.current;
       if (targetPage === 1) setLoading(true);
       else setLoadingMore(true);
       setError(null);
 
       api
-        .search(query, targetPage)
+        .search(query, targetPage, scope)
         .then((res) => {
           if (requestRef.current !== id) return;
           setResults((prev) => (targetPage === 1 ? res.results : [...prev, ...res.results]));
@@ -88,27 +115,31 @@ export function SearchView() {
       setTotalPages(1);
       return;
     }
-    fetchPage(debounced, 1);
-  }, [debounced, fetchPage]);
+    fetchPage(debounced, 1, type);
+  }, [debounced, type, fetchPage]);
 
   // The count used to promise "1 234 results" while only ever showing the
   // first 20; the sentinel pulls the next pages in as you scroll, like the
   // Discover view does.
+  const hasMore = page < totalPages;
+  const loadMore = useCallback(() => {
+    if (!debounced || loading || loadingMore || !hasMore) return;
+    fetchPage(debounced, page + 1, type);
+  }, [fetchPage, debounced, loading, loadingMore, hasMore, page, type]);
+
   const sentinelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const node = sentinelRef.current;
     if (!node) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && debounced && !loading && !loadingMore && page < totalPages) {
-          fetchPage(debounced, page + 1);
-        }
+        if (entries[0].isIntersecting) loadMore();
       },
       { rootMargin: '600px' },
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [fetchPage, debounced, loading, loadingMore, page, totalPages]);
+  }, [loadMore]);
 
   return (
     <div className="container mx-auto px-6 pb-16 pt-28">
@@ -123,9 +154,31 @@ export function SearchView() {
         )}
       </h1>
       {debounced && !loading && !error && results.length > 0 && (
-        <p className="mb-6 text-sm text-white/50">
+        <p className="mb-4 text-sm text-white/50">
           {tn('search.count', total, { count: formatNumber(total) })}
         </p>
+      )}
+
+      {/* Scope. Narrowing is a server-side switch to /search/movie or
+          /search/tv, not a filter over a mixed page: the count and the
+          pagination then describe the same set the grid shows. */}
+      {debounced && (
+        <div className="mb-6 flex flex-wrap gap-2">
+          {SEARCH_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setType(tab.id)}
+              aria-pressed={type === tab.id}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
+                type === tab.id
+                  ? 'bg-white text-ink-950'
+                  : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
+              }`}
+            >
+              {t(tab.key)}
+            </button>
+          ))}
+        </div>
       )}
 
       {error ? (
@@ -193,9 +246,14 @@ export function SearchView() {
             </section>
           )}
           <MediaGrid items={results} />
-          <div ref={sentinelRef} className="flex justify-center py-10">
-            {loadingMore && <Spinner className="h-6 w-6 text-white/70" />}
-          </div>
+          <LoadMore
+            sentinelRef={sentinelRef}
+            hasMore={hasMore}
+            loading={loadingMore}
+            loaded={results.length}
+            total={total}
+            onLoadMore={loadMore}
+          />
         </div>
       )}
     </div>

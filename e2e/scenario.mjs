@@ -104,6 +104,53 @@ await check('le bouton Partager copie le lien canonique + toast', async () => {
   assert(copied.endsWith('/?watch=movie-550'), `clipboard = ${copied}`);
 });
 
+await check('la fiche nomme la réalisation et le scénario, sans doublon', async () => {
+  const dialog = page.locator('[role="dialog"]');
+  await dialog.locator('text=Réalisation').waitFor({ timeout: 5000 });
+  await dialog.locator('a:text-is("David Fincher")').waitFor({ timeout: 5000 });
+  const uhls = await dialog.locator('a:text-is("Jim Uhls")').count();
+  assert(uhls === 1, `Jim Uhls crédité ${uhls} fois (scénario + histoire = une seule entrée)`);
+  const noise = await dialog.locator('text=Perchman').count();
+  assert(noise === 0, 'un poste hors réalisation/scénario ne doit pas apparaître');
+});
+
+await check('cliquer le réalisateur ouvre son profil', async () => {
+  await page.click('[role="dialog"] a:text-is("David Fincher")');
+  await page.waitForSelector('[role="dialog"] >> text=Brad Pitt', { timeout: 10000 });
+  await page.keyboard.press('Escape');
+});
+
+await check('la fiche affiche la classification de la région (FR)', async () => {
+  await page.goto(`${BASE}/?watch=movie-550`, { waitUntil: 'networkidle' });
+  await page.waitForSelector('[role="dialog"] >> text=Fight Club', { timeout: 15000 });
+  // "12" en FR, alors que le fixture sert "R" pour les US : la région gagne.
+  await page.waitForSelector('[role="dialog"] [title="Classification"]', { timeout: 5000 });
+  const label = await page.locator('[role="dialog"] [title="Classification"]').textContent();
+  assert(label.trim() === '12', `classification affichée : ${label}`);
+});
+
+await check('un film de saga liste les autres volets, lui-même exclu', async () => {
+  await page.goto(`${BASE}/?watch=movie-603`, { waitUntil: 'networkidle' });
+  const dialog = page.locator('[role="dialog"]');
+  await dialog.locator('h2:has-text("Matrix")').waitFor({ timeout: 15000 });
+  const saga = dialog.locator('div:has(> h3:has-text("Saga Matrix"))').last();
+  await saga.waitFor({ timeout: 5000 });
+  await saga.locator('text=Matrix Reloaded').waitFor({ timeout: 5000 });
+  const self = await saga.locator('a[href*="watch=movie-603"]').count();
+  assert(self === 0, 'le film ouvert ne doit pas figurer dans sa propre saga');
+});
+
+await check('une série crédite ses créateurs et sa classification', async () => {
+  await page.goto(`${BASE}/?watch=tv-1396`, { waitUntil: 'networkidle' });
+  const dialog = page.locator('[role="dialog"]');
+  await dialog.locator('text=Breaking Bad').first().waitFor({ timeout: 15000 });
+  await dialog.locator('text=Création').waitFor({ timeout: 5000 });
+  await dialog.locator('a:text-is("Vince Gilligan")').waitFor({ timeout: 5000 });
+  const label = await dialog.locator('[title="Classification"]').textContent();
+  assert(label.trim() === '16', `classification série : ${label}`);
+  await page.keyboard.press('Escape');
+});
+
 await check('rouvrir une fiche ne refait aucune requête', async () => {
   await page.goto(BASE, { waitUntil: 'networkidle' });
   let calls = 0;
@@ -157,11 +204,80 @@ await check('la progression des épisodes survit à un rechargement', async () =
   await page.waitForSelector('[aria-label="S1 E1 vu — cliquer pour retirer"]', { timeout: 5000 });
 });
 
+await check('une saison entière se marque puis se démarque d’un bouton', async () => {
+  await page.goto(`${BASE}/?watch=tv-1396`, { waitUntil: 'networkidle' });
+  await page.waitForSelector('[role="dialog"] >> text=Breaking Bad', { timeout: 15000 });
+  await page.click('button:has-text("Marquer la saison")');
+  await page.waitForSelector('[role="tab"]:has-text("8/8")', { timeout: 5000 });
+  // La progression globale compte les deux saisons du fixture (8 + 8).
+  await page.waitForSelector('text=8/16 épisodes vus', { timeout: 5000 });
+  await page.click('button:has-text("Démarquer la saison")');
+  await page.waitForSelector('[role="tab"]:has-text("8/8")', {
+    state: 'detached',
+    timeout: 5000,
+  });
+});
+
+await check('la progression revient à deux épisodes cochés', async () => {
+  await page.click('[aria-label="Marquer S1 E1 comme vu"]');
+  await page.click('[aria-label="Marquer S1 E2 comme vu"]');
+  await page.waitForSelector('[role="tab"]:has-text("2/8")', { timeout: 5000 });
+});
+
 await check('les onglets de saisons répondent aux flèches du clavier', async () => {
   await page.focus('[role="tab"]:has-text("Saison 1")');
   await page.keyboard.press('ArrowRight');
   const selected = await page.locator('[role="tab"][aria-selected="true"]').textContent();
   assert(selected && selected.includes('Saison 2'), `onglet sélectionné: ${selected}`);
+  await page.keyboard.press('Escape');
+});
+
+/* ─── Note personnelle ─── */
+console.log('— Note personnelle —');
+await check('une note écrite sur la fiche s’enregistre toute seule', async () => {
+  await page.goto(`${BASE}/?watch=movie-550`, { waitUntil: 'networkidle' });
+  await page.waitForSelector('[role="dialog"] >> text=Fight Club', { timeout: 15000 });
+  await page.fill('#neox-note', 'À revoir avec Léa, deuxième moitié');
+  await page.waitForSelector('text=Enregistré', { timeout: 5000 });
+});
+
+await check('la note est là à la réouverture de la fiche', async () => {
+  await page.goto(`${BASE}/?watch=movie-550`, { waitUntil: 'networkidle' });
+  await page.waitForSelector('[role="dialog"] >> text=Fight Club', { timeout: 15000 });
+  const value = await page.inputValue('#neox-note');
+  assert(value === 'À revoir avec Léa, deuxième moitié', `note relue : « ${value} »`);
+  await page.keyboard.press('Escape');
+});
+
+await check('Ma liste retrouve un titre par le contenu de sa note', async () => {
+  await page.goto(`${BASE}/library`, { waitUntil: 'networkidle' });
+  await page.fill('input[placeholder^="Rechercher un titre ou une note"]', 'deuxieme moitie');
+  await page.waitForSelector('text=Fight Club', { timeout: 5000 });
+  assert(!(await page.isVisible('text=Pulp Fiction')), 'seul le titre annoté doit rester');
+});
+
+/* ─── Reprendre ma série ─── */
+console.log('— Reprendre ma série —');
+await check('l’accueil propose le prochain épisode non vu', async () => {
+  await page.goto(BASE, { waitUntil: 'networkidle' });
+  const rail = page.locator('section:has(h2:text-is("Reprendre ma série"))');
+  await rail.waitFor({ timeout: 15000 });
+  await rail.locator('text=Prochain épisode : S1 E3').waitFor({ timeout: 10000 });
+  await rail.locator('text=2/16 épisodes vus').waitFor({ timeout: 5000 });
+});
+
+await check('cocher depuis le rail avance à l’épisode suivant', async () => {
+  const rail = page.locator('section:has(h2:text-is("Reprendre ma série"))');
+  await rail.locator('button:has-text("Marquer S1 E3 comme vu")').click();
+  await page.waitForSelector('text=S1 E3 marqué comme vu', { timeout: 5000 });
+  await rail.locator('text=Prochain épisode : S1 E4').waitFor({ timeout: 10000 });
+});
+
+await check('un film marqué vu depuis sa fiche alimente le temps de visionnage', async () => {
+  await page.goto(`${BASE}/?watch=movie-680`, { waitUntil: 'networkidle' });
+  await page.waitForSelector('[role="dialog"] >> text=Pulp Fiction', { timeout: 15000 });
+  await page.click('[role="dialog"] button:has-text("Marquer comme vu")');
+  await page.waitForSelector('text=Marqué comme vu', { timeout: 5000 });
   await page.keyboard.press('Escape');
 });
 
@@ -175,7 +291,7 @@ await check('Ma liste filtre par statut « En cours »', async () => {
 
 /* ─── Ma liste : recherche, filtres, stats, exports ─── */
 console.log('— Ma liste : recherche, filtres, stats, exports —');
-const libSearch = 'input[placeholder^="Rechercher dans ma liste"]';
+const libSearch = 'input[placeholder^="Rechercher un titre ou une note"]';
 
 await check('la recherche texte filtre la liste (insensible aux accents)', async () => {
   await page.goto(`${BASE}/library`, { waitUntil: 'networkidle' });
@@ -203,6 +319,25 @@ await check('les statistiques montrent la note TMDB moyenne', async () => {
   await page.goto(`${BASE}/library`, { waitUntil: 'networkidle' });
   await page.click('button:has-text("Voir mes statistiques")');
   await page.waitForSelector('text=Note TMDB moyenne', { timeout: 5000 });
+});
+
+await check('les statistiques annoncent un temps de visionnage et sa base', async () => {
+  const tile = page.locator('div:has(> span:text-is("Temps de visionnage"))').first();
+  await tile.waitFor({ timeout: 5000 });
+  const value = await tile.locator('span').first().textContent();
+  // Pulp Fiction vu (139 min) + 3 épisodes de Breaking Bad (47 min) = 4 h 40.
+  assert(/\d+\s*h/.test(value), `valeur affichée : ${value}`);
+  await page.waitForSelector('text=/estimé sur \\d+ titres?/', { timeout: 5000 });
+});
+
+await check('l’export CSV porte la note et la durée', async () => {
+  const [download] = await Promise.all([
+    page.waitForEvent('download', { timeout: 10000 }),
+    page.click('button:has-text("Export CSV")'),
+  ]);
+  const content = fs.readFileSync(await download.path(), 'utf8');
+  assert(content.includes('note,runtime_minutes'), 'colonnes note/durée manquantes');
+  assert(content.includes('À revoir avec Léa'), 'la note n’est pas exportée');
 });
 
 await check('l’export CSV télécharge un fichier lisible par un tableur', async () => {
@@ -244,6 +379,45 @@ await check('la recherche pagine en scroll (33 résultats « galaxie »)', async
   );
 });
 
+await check('le bouton « Charger plus » charge la page suivante au clavier', async () => {
+  await page.goto(`${BASE}/search?q=galaxie`, { waitUntil: 'networkidle' });
+  await page.waitForSelector('text=33 résultats', { timeout: 10000 });
+  // L'annonce vocale dit ce que la grille montre, avant et après.
+  const live = page.locator('[role="status"]');
+  await page.waitForFunction(
+    () => document.querySelector('[role="status"]')?.textContent?.includes('20 titres'),
+    { timeout: 10000 },
+  );
+  await page.locator('button:has-text("Charger plus")').click();
+  await page.waitForFunction(
+    () => document.querySelectorAll('a[href*="watch=movie-9"]').length >= 33,
+    { timeout: 10000 },
+  );
+  const announced = await live.textContent();
+  assert(announced.includes('33 titres'), `annonce après chargement : ${announced}`);
+  await page.waitForSelector('text=Tu as tout vu.', { timeout: 5000 });
+});
+
+await check('la recherche se restreint aux séries, compteur compris', async () => {
+  await page.goto(`${BASE}/search?q=a`, { waitUntil: 'networkidle' });
+  await page.waitForSelector('a[href*="watch="]', { timeout: 10000 });
+  await page.click('button[aria-pressed]:has-text("Séries")');
+  await page.waitForFunction(() => location.search.includes('type=tv'), { timeout: 5000 });
+  await page.waitForSelector('text=4 résultats', { timeout: 10000 });
+  await page.waitForSelector('text=Breaking Bad', { timeout: 5000 });
+  assert(!(await page.isVisible('text=Interstellar')), 'un film ne doit pas survivre au filtre');
+  // La section Personnes n'a pas de sens dans une recherche « séries ».
+  assert(!(await page.isVisible('h2:text-is("Personnes")')), 'section Personnes hors sujet');
+});
+
+await check('le filtre de type survit à un rechargement et se relâche', async () => {
+  await page.reload({ waitUntil: 'networkidle' });
+  const pressed = await page.locator('button[aria-pressed="true"]:has-text("Séries")').count();
+  assert(pressed === 1, 'le filtre Séries doit rester actif après reload');
+  await page.click('button[aria-pressed]:has-text("Tout")');
+  await page.waitForFunction(() => !location.search.includes('type='), { timeout: 5000 });
+});
+
 /* ─── Explorer : filtres URL, compteur, surprise ─── */
 console.log('— Explorer —');
 await check('les filtres écrivent l’URL', async () => {
@@ -262,6 +436,32 @@ await check('un rechargement restaure les filtres et montre le compteur', async 
   const pressed = await page.locator('button[aria-pressed="true"]:has-text("8+")').count();
   assert(pressed === 1, 'le filtre 8+ doit rester actif après reload');
   await page.waitForSelector('text=/titres? trouvés?/', { timeout: 10000 });
+});
+
+await check('les filtres actifs s’affichent en pastilles et se retirent', async () => {
+  await page.goto(`${BASE}/movies?genre=28&rating=8`, { waitUntil: 'networkidle' });
+  const bar = page.locator('div:has(> span:text-is("Filtres actifs :"))').first();
+  await bar.waitFor({ timeout: 10000 });
+  await bar.locator('button:has-text("Action")').waitFor({ timeout: 5000 });
+  await bar.locator('button:has-text("8+")').waitFor({ timeout: 5000 });
+  // Retirer une pastille ne touche qu'à son filtre.
+  await bar.locator('[aria-label="Retirer le filtre 8+"]').click();
+  await page.waitForFunction(
+    () => !location.search.includes('rating=') && location.search.includes('genre=28'),
+    { timeout: 5000 },
+  );
+});
+
+await check('« Tout réinitialiser » vide l’URL de ses filtres', async () => {
+  await page.click('button:has-text("Tout réinitialiser")');
+  await page.waitForFunction(
+    () => !location.search.includes('genre=') && !location.search.includes('rating='),
+    { timeout: 5000 },
+  );
+  assert(
+    !(await page.isVisible('text=Filtres actifs :')),
+    'la barre de filtres doit disparaître une fois vide',
+  );
 });
 
 await check('« Surprends-moi » ouvre un titre au hasard', async () => {
@@ -332,6 +532,28 @@ await check("l'inscription crée un compte et connecte", async () => {
   await fillStable('input[type="password"]', pass1);
   await page.click('button:has-text("Créer mon compte")');
   await page.waitForSelector(`[aria-label="Mon compte"]`, { timeout: 10000 });
+});
+
+await check('la note et la durée montent bien dans le compte synchronisé', async () => {
+  const token = await page.evaluate(() => localStorage.getItem('neox.token'));
+  assert(token, 'aucun jeton en stockage après inscription');
+  // La fusion locale → compte est différée : on laisse le PUT partir.
+  let entries = [];
+  for (let i = 0; i < 20; i++) {
+    const res = await fetch(`${API}/api/library`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    entries = (await res.json()).entries || [];
+    if (entries.some((e) => e.note)) break;
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  const fightClub = entries.find((e) => e.id === 550);
+  assert(fightClub, `Fight Club absent du compte (${entries.length} entrées)`);
+  assert(
+    fightClub.note === 'À revoir avec Léa, deuxième moitié',
+    `note synchronisée : ${JSON.stringify(fightClub.note)}`,
+  );
+  assert(fightClub.runtime === 139, `durée synchronisée : ${fightClub.runtime}`);
 });
 
 await check('le changement de mot de passe fonctionne', async () => {

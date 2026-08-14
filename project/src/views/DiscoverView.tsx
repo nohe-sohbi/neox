@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Shuffle, SlidersHorizontal, Star } from 'lucide-react';
+import { Shuffle, SlidersHorizontal, Star, X } from 'lucide-react';
 import { api, ApiError, getLocale } from '../lib/api';
 import { STATIC_TTL, queryCache } from '../lib/query';
 import type { Genre, MediaItem, MediaType, Provider } from '../lib/types';
 import { useMyPlatforms } from '../hooks/useMyPlatforms';
 import { useOpenDetail } from '../hooks/useDetailRoute';
 import { MediaGrid } from '../components/media/MediaGrid';
-import { EmptyState, ErrorState, Spinner } from '../components/ui/States';
+import { EmptyState, ErrorState } from '../components/ui/States';
+import { LoadMore } from '../components/ui/LoadMore';
 import { useT } from '../lib/i18n';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { routeMeta } from '../lib/routes';
@@ -194,23 +195,78 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [fetchPage]);
 
+  const hasMore = page < totalPages;
+  const loadMore = useCallback(() => {
+    if (loading || loadingMore || !hasMore) return;
+    void fetchPage(page + 1, false);
+  }, [fetchPage, loading, loadingMore, hasMore, page]);
+
   const sentinelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const node = sentinelRef.current;
     if (!node) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !loading && !loadingMore && page < totalPages) {
-          void fetchPage(page + 1, false);
-        }
+        if (entries[0].isIntersecting) loadMore();
       },
       { rootMargin: '600px' },
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [fetchPage, loading, loadingMore, page, totalPages]);
+  }, [loadMore]);
 
   const platformsActive = platforms.ids.length > 0;
+
+  // What is actually narrowing the results, as removable chips. Four controls
+  // live in three different places on this page (sort row, genre rail, year
+  // select, rating buttons, platform sheet): with a genre scrolled out of
+  // view and a rating set two rows down, an empty grid reads as "nothing
+  // exists" rather than "you asked for a very specific thing".
+  const activeFilters: { id: string; label: string; clear: () => void }[] = [];
+  if (activeGenre !== undefined) {
+    const genre = genres.find((g) => g.id === activeGenre);
+    activeFilters.push({
+      id: 'genre',
+      label: genre ? genre.name : t('discover.genre_filter'),
+      clear: () => setFilters({ genre: undefined }),
+    });
+  }
+  if (year !== undefined) {
+    activeFilters.push({
+      id: 'year',
+      label: String(year),
+      clear: () => setFilters({ year: undefined }),
+    });
+  }
+  if (minRating > 0) {
+    activeFilters.push({
+      id: 'rating',
+      label: `${minRating}+`,
+      clear: () => setFilters({ rating: undefined }),
+    });
+  }
+  if (sort !== 'popularity.desc') {
+    const active = sorts.find((s) => s.id === sort);
+    if (active) {
+      activeFilters.push({
+        id: 'sort',
+        label: t(active.key),
+        clear: () => setFilters({ sort: undefined }),
+      });
+    }
+  }
+  if (platformsActive) {
+    activeFilters.push({
+      id: 'platforms',
+      label: tn('discover.platforms_count', platforms.ids.length),
+      clear: platforms.clear,
+    });
+  }
+
+  const resetAll = () => {
+    setFilters({ genre: undefined, year: undefined, rating: undefined, sort: undefined });
+    platforms.clear();
+  };
 
   return (
     <div className="container mx-auto px-6 pb-16 pt-28">
@@ -379,6 +435,30 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
         </div>
       </div>
 
+      {/* Active filters, each removable, plus one control that clears the lot. */}
+      {activeFilters.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-white/50">{t('discover.active_filters')}</span>
+          {activeFilters.map((filter) => (
+            <button
+              key={filter.id}
+              onClick={filter.clear}
+              aria-label={t('discover.remove_filter', { filter: filter.label })}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-sm text-white/90 transition-colors hover:bg-white/20"
+            >
+              {filter.label}
+              <X className="h-3.5 w-3.5 text-white/60" />
+            </button>
+          ))}
+          <button
+            onClick={resetAll}
+            className="text-sm text-white/50 underline-offset-2 transition-colors hover:text-white hover:underline"
+          >
+            {t('discover.reset_all')}
+          </button>
+        </div>
+      )}
+
       <div className="mt-8">
         {error ? (
           <ErrorState message={error} onRetry={() => fetchPage(1, true)} />
@@ -388,13 +468,25 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
             description={
               platformsActive ? t('discover.empty_platforms') : t('discover.empty_default')
             }
+            action={
+              activeFilters.length > 0 ? (
+                <button onClick={resetAll} className="btn-ghost">
+                  {t('discover.reset_all')}
+                </button>
+              ) : undefined
+            }
           />
         ) : (
           <>
             <MediaGrid items={items} loading={loading} />
-            <div ref={sentinelRef} className="flex justify-center py-10">
-              {loadingMore && <Spinner className="h-6 w-6 text-white/70" />}
-            </div>
+            <LoadMore
+              sentinelRef={sentinelRef}
+              hasMore={hasMore}
+              loading={loadingMore}
+              loaded={items.length}
+              total={totalResults}
+              onLoadMore={loadMore}
+            />
           </>
         )}
       </div>

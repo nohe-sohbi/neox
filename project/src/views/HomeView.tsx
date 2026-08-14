@@ -3,6 +3,7 @@ import type { HomePayload } from '../lib/types';
 import { Hero } from '../components/home/Hero';
 import { ForYouRow } from '../components/home/ForYouRow';
 import { RecentlyViewedRow } from '../components/home/RecentlyViewedRow';
+import { ContinueWatchingRow } from '../components/home/ContinueWatchingRow';
 import { TrendingRow } from '../components/home/TrendingRow';
 import { MediaRow } from '../components/media/MediaRow';
 import { ErrorState } from '../components/ui/States';
@@ -55,6 +56,8 @@ export function HomeView() {
       <div className="animate-fade-in">
         <Hero items={data.hero} />
         <div className="container mx-auto space-y-10 px-6 py-10">
+          {/* Before "what's new" comes "what you already started". */}
+          <ContinueWatchingRow />
           <RecentlyViewedRow />
           <ForYouRow />
           <TrendingRow />

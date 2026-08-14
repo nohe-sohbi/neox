@@ -145,6 +145,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return body as T;
 }
 
+/** Search scope: everything (titles + people), films only, or shows only. */
+export type SearchType = 'all' | MediaType;
+
 export interface DiscoverOpts {
   genre?: number;
   sort?: string;
@@ -158,8 +161,16 @@ export interface DiscoverOpts {
 export const api = {
   home: () => request<HomePayload>(withLocale('/api/home')),
 
-  search: (query: string, page = 1) =>
-    request<SearchResults>(withLocale(`/api/search?q=${encodeURIComponent(query)}&page=${page}`)),
+  // `type` narrows the search to films or shows only; the server then talks to
+  // the matching TMDB endpoint, so the result count describes the filter.
+  search: (query: string, page = 1, type: SearchType = 'all') =>
+    request<SearchResults>(
+      withLocale(
+        `/api/search?q=${encodeURIComponent(query)}&page=${page}${
+          type === 'all' ? '' : `&type=${type}`
+        }`,
+      ),
+    ),
 
   trending: (mediaType: 'all' | MediaType, window: 'day' | 'week' = 'week') =>
     request<Paginated<MediaItem>>(withLocale(`/api/trending/${mediaType}?window=${window}`)),

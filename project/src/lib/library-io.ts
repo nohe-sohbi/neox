@@ -9,7 +9,7 @@
  * the backend's `sanitizeLibrary`.
  */
 import type { LibraryEntry, LibraryStatus, MediaType } from './types';
-import { entryKey, sanitizeSeenEpisodes } from './library-utils';
+import { entryKey, normalizeNote, sanitizeSeenEpisodes } from './library-utils';
 
 export const EXPORT_VERSION = 1;
 const MAX_ENTRIES = 2000;
@@ -53,6 +53,8 @@ const CSV_HEADER = [
   'personal_rating',
   'tmdb_rating',
   'seen_episodes',
+  'note',
+  'runtime_minutes',
   'added_at',
   'updated_at',
 ];
@@ -80,6 +82,10 @@ export function serializeLibraryCsv(entries: LibraryEntry[]): string {
       e.personalRating ?? '',
       e.rating ?? '',
       e.seenEpisodes?.length ?? '',
+      // Newlines inside a note are legal CSV as long as the field is quoted,
+      // which `csvField` does; flattening them would lose the user's writing.
+      e.note ?? '',
+      e.runtime ?? '',
       new Date(e.addedAt).toISOString(),
       new Date(e.updatedAt).toISOString(),
     ]
@@ -111,6 +117,12 @@ function sanitizeEntry(raw: unknown): LibraryEntry | null {
   // Episode progress only makes sense on shows; a movie entry carrying one is
   // malformed input and the field is dropped.
   const seenEpisodes = r.mediaType === 'tv' ? sanitizeSeenEpisodes(r.seenEpisodes) : undefined;
+  const note = typeof r.note === 'string' ? normalizeNote(r.note) : undefined;
+  const rawRuntime = Number(r.runtime);
+  const runtime =
+    Number.isFinite(rawRuntime) && rawRuntime > 0
+      ? Math.min(2000, Math.round(rawRuntime))
+      : undefined;
 
   const now = Date.now();
   return {
@@ -123,6 +135,8 @@ function sanitizeEntry(raw: unknown): LibraryEntry | null {
     status: STATUSES.includes(r.status as LibraryStatus) ? (r.status as LibraryStatus) : 'want',
     personalRating,
     ...(seenEpisodes ? { seenEpisodes } : {}),
+    ...(note ? { note } : {}),
+    ...(runtime ? { runtime } : {}),
     addedAt: Number.isFinite(Number(r.addedAt)) ? Number(r.addedAt) : now,
     updatedAt: Number.isFinite(Number(r.updatedAt)) ? Number(r.updatedAt) : now,
   };

@@ -103,6 +103,21 @@ const CAST = [
   { id: 819, name: 'Edward Norton', character: 'Le narrateur', profile_path: '/ed.jpg' },
 ];
 
+// Crew: a director, a writer credited twice (dedup), and a job nobody asks about.
+const CREW = [
+  { id: 7467, name: 'David Fincher', job: 'Director', profile_path: '/fincher.jpg' },
+  { id: 7468, name: 'Jim Uhls', job: 'Screenplay', profile_path: '/uhls.jpg' },
+  { id: 7468, name: 'Jim Uhls', job: 'Story', profile_path: '/uhls.jpg' },
+  { id: 9999, name: 'Perchman', job: 'Sound', profile_path: null },
+];
+
+// Only Matrix belongs to a saga, so the fiche can be tested both ways.
+const COLLECTION_ID = 2344;
+const COLLECTION_MOVIES = [
+  movie(604, 'Matrix Reloaded', { date: '2003-05-15', rating: 7.0 }),
+  movie(605, 'Matrix Revolutions', { date: '2003-11-05', rating: 6.7 }),
+];
+
 function movieDetails(id) {
   const base = MOVIES.find((m) => m.id === id) || movie(id, `Film ${id}`);
   return {
@@ -111,8 +126,16 @@ function movieDetails(id) {
     runtime: 139,
     status: 'Released',
     genres: GENRES_MOVIE.filter((g) => (base.genre_ids || []).includes(g.id)),
+    belongs_to_collection:
+      id === 603 ? { id: COLLECTION_ID, name: 'Matrix', poster_path: '/saga.jpg' } : null,
+    release_dates: {
+      results: [
+        { iso_3166_1: 'US', release_dates: [{ certification: 'R' }] },
+        { iso_3166_1: 'FR', release_dates: [{ certification: '' }, { certification: '12' }] },
+      ],
+    },
     videos: { results: [{ site: 'YouTube', type: 'Trailer', official: true, key: 'dQw4w9WgXcQ' }] },
-    credits: { cast: CAST },
+    credits: { cast: CAST, crew: CREW },
     recommendations: paged(MOVIES.filter((m) => m.id !== id).slice(0, 6)),
     'watch/providers': {
       results: {
@@ -141,8 +164,15 @@ function tvDetails(id) {
       { season_number: 1, name: 'Saison 1', overview: '', poster_path: '/s1.jpg', episode_count: 8, air_date: '2023-09-01' },
       { season_number: 2, name: 'Saison 2', overview: '', poster_path: '/s2.jpg', episode_count: 8, air_date: '2024-09-01' },
     ],
+    created_by: [{ id: 66633, name: 'Vince Gilligan', profile_path: '/vg.jpg' }],
+    content_ratings: {
+      results: [
+        { iso_3166_1: 'US', rating: 'TV-MA' },
+        { iso_3166_1: 'FR', rating: '16' },
+      ],
+    },
     videos: { results: [{ site: 'YouTube', type: 'Trailer', official: true, key: 'abc123def45' }] },
-    credits: { cast: CAST },
+    credits: { cast: CAST, crew: [] },
     recommendations: paged(SHOWS.filter((s) => s.id !== id).slice(0, 6)),
     'watch/providers': {
       results: {
@@ -230,6 +260,25 @@ const server = http.createServer((req, res) => {
     const genre = url.searchParams.get('with_genres');
     if (genre) items = items.filter((i) => (i.genre_ids || []).includes(Number(genre)));
     return send(paged(items));
+  }
+  if ((m = p.match(/^\/3\/collection\/(\d+)$/))) {
+    return send({
+      id: Number(m[1]),
+      name: 'Saga Matrix',
+      poster_path: '/saga.jpg',
+      // Includes the film itself: the backend is the one that removes it.
+      parts: [...COLLECTION_MOVIES, MOVIES.find((x) => x.id === 603)],
+    });
+  }
+  // Typed search: the narrowed modes hit one endpoint per media type.
+  if ((m = p.match(/^\/3\/search\/(movie|tv)$/))) {
+    const q = (url.searchParams.get('query') || '').toLowerCase();
+    const page = Number(url.searchParams.get('page')) || 1;
+    const all =
+      m[1] === 'movie'
+        ? [...MOVIES, ...GALAXIE].filter((x) => x.title.toLowerCase().includes(q))
+        : SHOWS.filter((x) => x.name.toLowerCase().includes(q));
+    return send(pagedAt(all, page));
   }
   if (p === '/3/search/multi') {
     const q = (url.searchParams.get('query') || '').toLowerCase();

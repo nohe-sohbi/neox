@@ -44,25 +44,39 @@ disponibilité légale (JustWatch via TMDB).
 - **Découvrir** : accueil éditorialisé (hero rotatif avec pause, rails « À l'affiche », « Tendances
   séries », « Acclamés par la critique », rail « Tendances » basculable aujourd'hui / cette
   semaine), recherche instantanée sur les films, les séries et les personnes (acteurs,
-  réalisateurs), chargée page après page en scroll infini, et un « Surprends-moi » qui pioche un
-  titre au hasard dans les filtres actifs d'Explorer.
+  réalisateurs), restreignable aux films ou aux séries — le compteur et la pagination décrivent
+  alors le même ensemble, parce que la restriction est servie par l'endpoint TMDB correspondant et
+  non filtrée après coup —, chargée page après page en scroll infini ou d'un bouton « Charger
+  plus », et un « Surprends-moi » qui pioche un titre au hasard dans les filtres actifs d'Explorer.
+- **Savoir qui a fait quoi** : chaque fiche crédite sa réalisation, son scénario (sa création pour
+  une série) en liens vers les profils, affiche la classification d'âge de ta région — celle de ton
+  pays ou rien, jamais celle d'un autre —, et rattache un film à sa saga en listant les autres
+  volets dans l'ordre chronologique.
 - **Savoir où regarder** : la section « Où regarder (légalement) » de chaque fiche liste le
   streaming, la location et l'achat pour ta région, avec un filtre « Mes plateformes » qui ne garde
   que tes services.
 - **Explorer finement** : genre, année de sortie, note minimale (6+/7+/8+/9+), tri par popularité,
   note, date ou box-office, en scroll infini avec compteur de résultats. Les filtres vivent dans
-  l'URL : une vue filtrée se partage, se met en favori et se retrouve au retour.
+  l'URL : une vue filtrée se partage, se met en favori et se retrouve au retour. Ceux qui sont
+  actifs sont récapitulés en pastilles retirables une à une, avec un « Tout réinitialiser » — les
+  contrôles sont éparpillés sur trois rangées, et une grille vide doit se lire « tu as demandé
+  quelque chose de très précis », pas « ça n'existe pas ».
 - **Naviguer au clavier** : palette `Ctrl K` globale pour chercher un titre, sauter vers une page ou
   reprendre une recherche récente, sans quitter le clavier.
 - **Suivre ses séries** : navigateur par saison dans la fiche (navigable au clavier), liste des
   épisodes avec vignette, code `SxEx`, date, durée et note, chargée à la demande — et une case par
   épisode : la cocher inscrit la série en « En cours » et les onglets affichent la progression
-  (3/8), synchronisée avec le reste de la liste.
-- **Tenir sa liste** : statut À voir / En cours / Vu, note personnelle de 1 à 10, tri, filtres par
-  statut et par type, recherche texte insensible aux accents, et un panneau de statistiques calculé
-  localement (progression, répartition films/séries, note moyenne, note TMDB moyenne et ton écart
-  avec elle, histogramme des notes, décennies de prédilection). Export JSON réimportable, ou CSV
-  pour un tableur.
+  (3/8), synchronisée avec le reste de la liste. Un bouton coche (ou décoche) la saison entière,
+  la progression globale de la série est affichée, et l'accueil ouvre un rail « Reprendre ma
+  série » qui donne, pour chaque série en cours, le prochain épisode non vu — le premier trou dans
+  l'ordre de diffusion, pas celui qui suit le dernier coché — avec de quoi le cocher sur place.
+- **Tenir sa liste** : statut À voir / En cours / Vu, note personnelle de 1 à 10, commentaire libre
+  écrit sur la fiche et enregistré tout seul, tri, filtres par statut et par type, recherche texte
+  insensible aux accents portant sur les titres *et* les commentaires, et un panneau de
+  statistiques calculé localement (progression, répartition films/séries, note moyenne, note TMDB
+  moyenne et ton écart avec elle, temps de visionnage estimé — annoncé avec le nombre de titres
+  sur lequel il repose —, histogramme des notes, décennies de prédilection). Export JSON
+  réimportable, ou CSV pour un tableur.
 - **Partager une fiche** : chaque fiche titre ou personne porte un bouton Partager — feuille de
   partage système quand elle existe, copie du lien canonique sinon.
 - **Retrouver sa liste partout** : compte optionnel (inscription, connexion, changement de mot de
@@ -95,6 +109,10 @@ Ce qui n'est pas visible à l'écran mais tient l'app debout :
   région ou langue malformée est ignorée : aucune chaîne arbitraire ne mine de clé de cache ni
   n'atteint l'amont. Une exception inattendue répond un message générique, le détail restant dans
   le log serveur.
+- **Le scroll infini ne suffit pas.** Il n'y a rien à activer au clavier et rien qui annonce que
+  vingt titres viennent d'apparaître. Explorer et Recherche gardent la sentinelle, mais lui
+  adjoignent un vrai bouton « Charger plus » et une région `aria-live` qui énonce le compte après
+  chaque page (« 33 titres affichés sur 33 »), puis la fin de liste.
 - **Accessibilité.** Les quatre overlays partagent un hook `useModal` (piège de focus, restauration,
   `Escape`, verrou de scroll, `role="dialog"`), les actions passent par une région `aria-live`, il y
   a un skip-link. Contrastes mesurés, pas estimés : tout le texte passe le 4.5:1 de WCAG AA sur le
@@ -224,7 +242,7 @@ même-origine (`/api`), ce que fait l'image Docker.
 |---|---|---|
 | GET | `/api/health` | État du service, version, config TMDB, métriques cache et disjoncteur |
 | GET | `/api/home` | Payload accueil (hero + rails) |
-| GET | `/api/search?q=&page=` | Recherche multi (films + séries, personnes dans `people`) |
+| GET | `/api/search?q=&page=&type=` | Recherche multi (films + séries, personnes dans `people`) ; `type=movie\|tv` restreint via `/search/movie` ou `/search/tv` |
 | GET | `/api/trending/:type?window=week\|day` | Tendances (`all`/`movie`/`tv`) |
 | GET | `/api/discover/:type?genre=&sort=&year=&minRating=&providers=&page=` | Exploration filtrée |
 | GET | `/api/genres/:type` | Genres (`movie`/`tv`) |
@@ -247,18 +265,22 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 
 ## Qualité
 
-- **260 tests** : 101 côté `backend/` (auth, gestion de compte et sync via supertest, garde du
+- **299 tests** : 116 côté `backend/` (auth, gestion de compte et sync via supertest, garde du
   secret JWT, révocation de jetons, durcissement des entrées, corrélation de requêtes, épisodes
-  vus, cache HTTP, cache LRU et snapshot/hydrate, single-flight, params discover, saisons,
-  directives crawler, et le chemin réseau du client TMDB — retry, 429, snapshot sans secret —
-  contre un serveur fixture injecté via `TMDB_BASE_URL`) et 159 côté `project/` (bibliothèque,
-  export/import JSON et CSV, épisodes vus, recherche de titres, partage, détection de langue, i18n
-  avec test de parité des cinq dictionnaires, manifeste de routes et shells prérendus, SEO,
+  vus, notes et durées de la bibliothèque, crew, classification régionale et saga d'une fiche,
+  recherche typée, cache HTTP, cache LRU et snapshot/hydrate, single-flight, params discover,
+  saisons, directives crawler, et le chemin réseau du client TMDB — retry, 429, snapshot sans
+  secret — contre un serveur fixture injecté via `TMDB_BASE_URL`) et 183 côté `project/`
+  (bibliothèque, export/import JSON et CSV, épisodes vus, prochain épisode non vu et progression
+  de série, temps de visionnage, recherche de titres et de notes, partage, détection de langue,
+  i18n avec test de parité des cinq dictionnaires, manifeste de routes et shells prérendus, SEO,
   données structurées, extraction de teinte, cache SWR, vu récemment, srcset).
 - **Bout en bout** : `e2e/` pilote l'app buildée dans un vrai Chromium (Playwright) contre l'API
-  réelle branchée sur un TMDB factice local — 38 vérifications couvrant fiches, partage, épisodes,
-  bibliothèque, exports, comptes, filtres, hors-ligne et détection de langue. `npm install` dans
-  `e2e/` puis `bash e2e/run.sh`.
+  réelle branchée sur un TMDB factice local — 59 vérifications couvrant fiches (crew, saga,
+  classification), partage, épisodes et saisons entières, reprise de série, notes personnelles
+  jusqu'à leur synchronisation dans le compte, bibliothèque, exports, comptes, filtres d'Explorer,
+  recherche typée et paginée, hors-ligne et détection de langue. `npm install` dans `e2e/` puis
+  `bash e2e/run.sh`.
 - **Vérifs** : `npm run lint`, `npm run typecheck`, `npm run build`.
 - **CI** : GitHub Actions lance lint, typecheck, tests et build sur chaque PR
   (`.github/workflows/ci.yml`).

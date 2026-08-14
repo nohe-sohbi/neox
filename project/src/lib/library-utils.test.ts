@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  MAX_NOTE_LENGTH,
   entryKey,
   episodeCode,
   matchesQuery,
+  normalizeNote,
   sanitizeSeenEpisodes,
   toEntry,
   toggleEntry,
@@ -111,5 +113,40 @@ describe('upsertEntry', () => {
     const next = upsertEntry(seeded, movie, { personalRating: 7 });
     expect(next).toHaveLength(1);
     expect(next[0].personalRating).toBe(7);
+  });
+});
+
+describe('matchesQuery over notes', () => {
+  it('matches a note as well as a title', () => {
+    const entry = { title: 'Fight Club', note: 'Vu au cinéma avec Léa' };
+    expect(matchesQuery(entry, 'léa')).toBe(true);
+    expect(matchesQuery(entry, 'lea')).toBe(true); // accent-insensitive both ways
+    expect(matchesQuery(entry, 'cinema')).toBe(true);
+    expect(matchesQuery(entry, 'introuvable')).toBe(false);
+  });
+
+  it('still works on an entry that carries no note', () => {
+    expect(matchesQuery({ title: 'Fight Club' }, 'fight')).toBe(true);
+    expect(matchesQuery({ title: 'Fight Club' }, 'note')).toBe(false);
+  });
+});
+
+describe('normalizeNote', () => {
+  it('trims, bounds, and treats blank as no note at all', () => {
+    expect(normalizeNote('  à revoir  ')).toBe('à revoir');
+    expect(normalizeNote('   ')).toBeUndefined();
+    expect(normalizeNote('')).toBeUndefined();
+    expect(normalizeNote('x'.repeat(2000))).toHaveLength(MAX_NOTE_LENGTH);
+  });
+});
+
+describe('toEntry runtime capture', () => {
+  it('records a runtime when the source carries one (a fiche does)', () => {
+    expect(toEntry({ ...movie, runtime: 139 }).runtime).toBe(139);
+  });
+
+  it('leaves it absent for a card, which has no runtime to give', () => {
+    expect(toEntry(movie).runtime).toBeUndefined();
+    expect(toEntry({ ...movie, runtime: null }).runtime).toBeUndefined();
   });
 });

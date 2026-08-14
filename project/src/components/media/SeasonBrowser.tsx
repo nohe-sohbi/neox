@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Check, Star } from 'lucide-react';
+import { Check, CheckCheck, Star, Undo2 } from 'lucide-react';
 import { api, ApiError, getLocale } from '../../lib/api';
 import { DEFAULT_TTL, queryCache } from '../../lib/query';
 import type { MediaItem, SeasonDetail, SeasonSummary } from '../../lib/types';
-import { formatEpisodeCode, orderedSeasons } from '../../lib/seasons';
+import { formatEpisodeCode, orderedSeasons, seriesProgress } from '../../lib/seasons';
 import { episodeCode } from '../../lib/library-utils';
 import { useLibrary } from '../../context/LibraryContext';
 import { stillImg } from '../../lib/img';
@@ -57,8 +57,12 @@ export function SeasonBrowser({
   item: MediaItem;
 }) {
   const { t, tn } = useT();
-  const { seenEpisodesOf, toggleEpisode } = useLibrary();
-  const seen = new Set(seenEpisodesOf(item));
+  const { seenEpisodesOf, toggleEpisode, setSeasonSeen } = useLibrary();
+  const seenCodes = seenEpisodesOf(item);
+  const seen = new Set(seenCodes);
+  // Progress across the whole show, not just the season on screen: "12/62"
+  // is the number someone tracking a series actually wants.
+  const overall = seriesProgress(seasons, seenCodes);
   const seenInSeason = (seasonNumber: number) => {
     let count = 0;
     for (const code of seen) if (code.startsWith(`${seasonNumber}:`)) count += 1;
@@ -137,11 +141,22 @@ export function SeasonBrowser({
 
   if (ordered.length === 0) return null;
 
+  const shownEpisodes = detail?.episodes.map((ep) => ep.episodeNumber) ?? [];
+  const seenHere = detail ? seenInSeason(detail.seasonNumber) : 0;
+  const wholeSeasonSeen = shownEpisodes.length > 0 && seenHere >= shownEpisodes.length;
+
   return (
     <div>
-      <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-white/50">
-        {t('detail.episodes')}
-      </h3>
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h3 className="text-sm font-bold uppercase tracking-wider text-white/50">
+          {t('detail.episodes')}
+        </h3>
+        {overall.seen > 0 && (
+          <p className="text-xs text-white/55">
+            {t('season.series_progress', { seen: overall.seen, total: overall.total })}
+          </p>
+        )}
+      </div>
 
       {/* Season selector */}
       <div
@@ -199,6 +214,32 @@ export function SeasonBrowser({
 
       {detail && !loading && !error && (
         <>
+          {/* Ticking eight boxes to say "I watched season 1" is eight clicks
+              for one fact. The same button unticks, because a mis-click on it
+              costs exactly as much as the clicks it saved. */}
+          {detail.episodes.length > 0 && (
+            <div className="mb-3 flex justify-end">
+              <button
+                onClick={() =>
+                  setSeasonSeen(item, detail.seasonNumber, shownEpisodes, !wholeSeasonSeen)
+                }
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                {wholeSeasonSeen ? (
+                  <>
+                    <Undo2 className="h-3.5 w-3.5" />
+                    {t('season.unmark_all')}
+                  </>
+                ) : (
+                  <>
+                    <CheckCheck className="h-3.5 w-3.5" />
+                    {t('season.mark_all')}
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
           {detail.episodes.length === 0 ? (
             <p className="py-6 text-sm text-white/50">{t('season.empty')}</p>
           ) : (

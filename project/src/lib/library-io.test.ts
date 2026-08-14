@@ -86,6 +86,26 @@ describe('serializeLibrary / parseLibrary', () => {
     expect(parseLibrary(json)).toHaveLength(1);
   });
 
+  it('round-trips a note and a runtime, and rejects unusable ones', () => {
+    const restored = parseLibrary(
+      serializeLibrary([
+        make({ id: 1, note: '  À revoir en VO  ', runtime: 139 }),
+        make({ id: 2, note: '   ', runtime: -3 }),
+      ]),
+    );
+    const first = restored.find((e) => e.id === 1);
+    const second = restored.find((e) => e.id === 2);
+    expect(first?.note).toBe('À revoir en VO');
+    expect(first?.runtime).toBe(139);
+    expect(second?.note).toBeUndefined();
+    expect(second?.runtime).toBeUndefined();
+  });
+
+  it('bounds an oversized note from an untrusted backup', () => {
+    const [entry] = parseLibrary(JSON.stringify([{ id: 5, mediaType: 'movie', note: 'x'.repeat(9000) }]));
+    expect(entry.note).toHaveLength(1000);
+  });
+
   it('throws typed errors for unusable input', () => {
     expect(() => parseLibrary('not json')).toThrowError(/json/i);
     expect(() => parseLibrary('{"foo":1}')).toThrowError();
@@ -98,7 +118,7 @@ describe('serializeLibraryCsv', () => {
     const csv = serializeLibraryCsv([make({})]);
     expect(csv.charCodeAt(0)).toBe(0xfeff);
     expect(csv.slice(1).split('\r\n')[0]).toBe(
-      'title,type,year,status,personal_rating,tmdb_rating,seen_episodes,added_at,updated_at',
+      'title,type,year,status,personal_rating,tmdb_rating,seen_episodes,note,runtime_minutes,added_at,updated_at',
     );
     expect(csv.endsWith('\r\n')).toBe(true);
   });
@@ -108,7 +128,7 @@ describe('serializeLibraryCsv', () => {
     expect(csv).toContain('"Bonnie ""and"" Clyde, maybe"');
   });
 
-  it('renders ratings, episode counts and ISO dates', () => {
+  it('renders ratings, episode counts, note, runtime and ISO dates', () => {
     const csv = serializeLibraryCsv([
       make({
         mediaType: 'tv',
@@ -116,14 +136,21 @@ describe('serializeLibraryCsv', () => {
         personalRating: 8,
         rating: 7.5,
         seenEpisodes: ['1:1', '1:2'],
+        note: 'À revoir',
+        runtime: 47,
         addedAt: Date.UTC(2026, 0, 2),
         updatedAt: Date.UTC(2026, 0, 3),
       }),
     ]);
     const row = csv.trim().split('\r\n')[1];
     expect(row).toBe(
-      'A,tv,2000,watching,8,7.5,2,2026-01-02T00:00:00.000Z,2026-01-03T00:00:00.000Z',
+      'A,tv,2000,watching,8,7.5,2,À revoir,47,2026-01-02T00:00:00.000Z,2026-01-03T00:00:00.000Z',
     );
+  });
+
+  it('quotes a note that carries commas or newlines instead of losing it', () => {
+    const csv = serializeLibraryCsv([make({ note: 'Vu au ciné, deux fois\nà revoir' })]);
+    expect(csv).toContain('"Vu au ciné, deux fois\nà revoir"');
   });
 
   it('leaves missing ratings empty instead of writing null', () => {

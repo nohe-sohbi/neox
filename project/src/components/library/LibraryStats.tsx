@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { BarChart3, ChevronDown } from 'lucide-react';
 import type { LibraryEntry } from '../../lib/types';
-import { computeStats } from '../../lib/library-stats';
+import { computeStats, formatWatchTime } from '../../lib/library-stats';
 import { useT } from '../../lib/i18n';
 
 function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
@@ -19,7 +19,7 @@ function Tile({ label, value, sub }: { label: string; value: string; sub?: strin
  * already store; all the maths live in the pure, tested `computeStats`.
  */
 export function LibraryStats({ entries }: { entries: LibraryEntry[] }) {
-  const { t, formatNumber } = useT();
+  const { t, tn, formatNumber } = useT();
   const [open, setOpen] = useState(false);
   const stats = computeStats(entries);
 
@@ -42,13 +42,14 @@ export function LibraryStats({ entries }: { entries: LibraryEntry[] }) {
 
       {open && (
         <div className="animate-fade-in mt-3 space-y-4">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             <Tile label={t('stats.total')} value={formatNumber(stats.total)} />
             <Tile
               label={t('stats.watched')}
               value={formatNumber(stats.watched)}
               sub={t('stats.completion', { pct: pct(stats.completionRate) })}
             />
+            <Tile label={t('stats.watching')} value={formatNumber(stats.watching)} />
             <Tile label={t('stats.want')} value={formatNumber(stats.want)} />
             <Tile
               label={t('stats.split')}
@@ -61,6 +62,36 @@ export function LibraryStats({ entries }: { entries: LibraryEntry[] }) {
               sub={
                 stats.ratedCount > 0
                   ? t('stats.rated_count', { count: formatNumber(stats.ratedCount) })
+                  : undefined
+              }
+            />
+            {/* Hours in front of the screen, counted only over titles whose
+                length the app actually knows (learned when you open a fiche).
+                The subtitle says how many that is, because a number this
+                flattering has to say what it rests on. */}
+            <Tile
+              label={t('stats.watch_time')}
+              value={
+                stats.watchTimeCoverage > 0 ? formatWatchTime(stats.watchTimeMinutes, t) : '—'
+              }
+              sub={
+                stats.watchTimeCoverage > 0
+                  ? tn('stats.watch_time_basis', stats.watchTimeCoverage, {
+                      count: formatNumber(stats.watchTimeCoverage),
+                    })
+                  : t('stats.watch_time_empty')
+              }
+            />
+            {/* Computed since day one, displayed never — until now. The delta
+                says whether you rate above or below the TMDB crowd. */}
+            <Tile
+              label={t('stats.avg_tmdb')}
+              value={stats.avgTmdbRating != null ? stats.avgTmdbRating.toFixed(1) : '—'}
+              sub={
+                stats.personalVsTmdb != null
+                  ? t('stats.vs_tmdb', {
+                      delta: `${stats.personalVsTmdb > 0 ? '+' : ''}${stats.personalVsTmdb.toFixed(1)}`,
+                    })
                   : undefined
               }
             />

@@ -62,3 +62,15 @@ describe('buildMeta', () => {
     expect(buildMeta({ image: null }).image).toContain(SITE_URL);
   });
 });
+
+describe('buildMeta canonical', () => {
+  it('resolves a path against the site origin', () => {
+    expect(buildMeta({ path: '/movies' }).url).toBe(`${SITE_URL}/movies`);
+  });
+
+  // The 404 shell answers for every unknown URL. Falling back to the origin
+  // would have each of them declare itself a duplicate of the home page.
+  it('claims no URL at all when canonical is refused', () => {
+    expect(buildMeta({ canonical: false, path: '/404' }).url).toBeNull();
+  });
+});

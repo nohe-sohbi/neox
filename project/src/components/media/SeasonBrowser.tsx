@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Star } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
-import type { SeasonDetail, SeasonSummary } from '../../lib/types';
-import { formatEpisodeCode, orderedSeasons } from '../../lib/seasons';
+import { Check, CheckCheck, Star, Undo2 } from 'lucide-react';
+import { api, ApiError, getLocale } from '../../lib/api';
+import { DEFAULT_TTL, queryCache } from '../../lib/query';
+import type { MediaItem, SeasonDetail, SeasonSummary } from '../../lib/types';
+import { formatEpisodeCode, orderedSeasons, seriesProgress } from '../../lib/seasons';
+import { episodeCode } from '../../lib/library-utils';
+import { useLibrary } from '../../context/LibraryContext';
 import { stillImg } from '../../lib/img';
 import { useT, activeLang } from '../../lib/i18n';
 import { localeTag } from '../../lib/i18n/core';
@@ -44,22 +47,71 @@ function runtimeLabel(minutes: number | null): string {
  * a fresh instance (empty cache, first season selected) rather than reconciled
  * state from the previous show.
  */
-export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: SeasonSummary[] }) {
+export function SeasonBrowser({
+  tvId,
+  seasons,
+  item,
+}: {
+  tvId: number;
+  seasons: SeasonSummary[];
+  item: MediaItem;
+}) {
   const { t, tn } = useT();
+  const { seenEpisodesOf, toggleEpisode, setSeasonSeen } = useLibrary();
+  const seenCodes = seenEpisodesOf(item);
+  const seen = new Set(seenCodes);
+  // Progress across the whole show, not just the season on screen: "12/62"
+  // is the number someone tracking a series actually wants.
+  const overall = seriesProgress(seasons, seenCodes);
+  const seenInSeason = (seasonNumber: number) => {
+    let count = 0;
+    for (const code of seen) if (code.startsWith(`${seasonNumber}:`)) count += 1;
+    return count;
+  };
   const ordered = orderedSeasons(seasons);
   const [selected, setSelected] = useState(ordered[0]?.seasonNumber ?? 0);
   const [detail, setDetail] = useState<SeasonDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const cache = useRef<Map<number, SeasonDetail>>(new Map());
   // Monotonic request id so a slow response for a season the user already
   // switched away from is ignored instead of clobbering the current one.
   const reqId = useRef(0);
 
+  // Roving tabindex: one tab stop for the whole tablist, arrows move between
+  // seasons (wrapping), Home/End jump to the edges — the keyboard contract
+  // role="tablist" promises.
+  const tabRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
+  const moveTo = (seasonNumber: number) => {
+    setSelected(seasonNumber);
+    tabRefs.current.get(seasonNumber)?.focus();
+  };
+  const onTabKeyDown = (e: React.KeyboardEvent) => {
+    const idx = ordered.findIndex((s) => s.seasonNumber === selected);
+    if (idx === -1) return;
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      moveTo(ordered[(idx + 1) % ordered.length].seasonNumber);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      moveTo(ordered[(idx - 1 + ordered.length) % ordered.length].seasonNumber);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      moveTo(ordered[0].seasonNumber);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      moveTo(ordered[ordered.length - 1].seasonNumber);
+    }
+  };
+
+  // Seasons live in the shared query cache (keyed per show + season + locale)
+  // rather than a per-mount Map, so closing and reopening the fiche keeps
+  // them warm too.
   const load = useCallback(
     async (seasonNumber: number) => {
       const myReq = (reqId.current += 1);
-      const cached = cache.current.get(seasonNumber);
+      const locale = getLocale();
+      const key = `season:${tvId}:${seasonNumber}:${locale.region}:${locale.language}`;
+      const cached = queryCache.getFresh<SeasonDetail>(key, DEFAULT_TTL);
       if (cached) {
         setDetail(cached);
         setError(null);
@@ -70,8 +122,7 @@ export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: Season
       setError(null);
       setDetail(null);
       try {
-        const data = await api.season(tvId, seasonNumber);
-        cache.current.set(seasonNumber, data);
+        const data = await queryCache.fetch(key, () => api.season(tvId, seasonNumber));
         if (myReq === reqId.current) setDetail(data);
       } catch (err) {
         if (myReq === reqId.current) {
@@ -90,21 +141,43 @@ export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: Season
 
   if (ordered.length === 0) return null;
 
+  const shownEpisodes = detail?.episodes.map((ep) => ep.episodeNumber) ?? [];
+  const seenHere = detail ? seenInSeason(detail.seasonNumber) : 0;
+  const wholeSeasonSeen = shownEpisodes.length > 0 && seenHere >= shownEpisodes.length;
+
   return (
     <div>
-      <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-white/50">
-        {t('detail.episodes')}
-      </h3>
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h3 className="text-sm font-bold uppercase tracking-wider text-white/50">
+          {t('detail.episodes')}
+        </h3>
+        {overall.seen > 0 && (
+          <p className="text-xs text-white/55">
+            {t('season.series_progress', { seen: overall.seen, total: overall.total })}
+          </p>
+        )}
+      </div>
 
       {/* Season selector */}
-      <div className="no-scrollbar mb-4 flex gap-2 overflow-x-auto pb-1" role="tablist">
+      <div
+        className="no-scrollbar mb-4 flex gap-2 overflow-x-auto pb-1"
+        role="tablist"
+        aria-label={t('detail.episodes')}
+        onKeyDown={onTabKeyDown}
+      >
         {ordered.map((season) => {
           const isActive = season.seasonNumber === selected;
+          const seenCount = seenInSeason(season.seasonNumber);
           return (
             <button
               key={season.seasonNumber}
+              ref={(el) => {
+                if (el) tabRefs.current.set(season.seasonNumber, el);
+                else tabRefs.current.delete(season.seasonNumber);
+              }}
               role="tab"
               aria-selected={isActive}
+              tabIndex={isActive ? 0 : -1}
               onClick={() => setSelected(season.seasonNumber)}
               className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
                 isActive
@@ -113,6 +186,11 @@ export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: Season
               }`}
             >
               {seasonLabel(season, t)}
+              {seenCount > 0 && (
+                <span className={`ml-1.5 text-xs ${isActive ? 'text-ink-950/60' : 'text-white/40'}`}>
+                  {seenCount}/{season.episodeCount}
+                </span>
+              )}
             </button>
           );
         })}
@@ -136,6 +214,32 @@ export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: Season
 
       {detail && !loading && !error && (
         <>
+          {/* Ticking eight boxes to say "I watched season 1" is eight clicks
+              for one fact. The same button unticks, because a mis-click on it
+              costs exactly as much as the clicks it saved. */}
+          {detail.episodes.length > 0 && (
+            <div className="mb-3 flex justify-end">
+              <button
+                onClick={() =>
+                  setSeasonSeen(item, detail.seasonNumber, shownEpisodes, !wholeSeasonSeen)
+                }
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                {wholeSeasonSeen ? (
+                  <>
+                    <Undo2 className="h-3.5 w-3.5" />
+                    {t('season.unmark_all')}
+                  </>
+                ) : (
+                  <>
+                    <CheckCheck className="h-3.5 w-3.5" />
+                    {t('season.mark_all')}
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
           {detail.episodes.length === 0 ? (
             <p className="py-6 text-sm text-white/50">{t('season.empty')}</p>
           ) : (
@@ -144,6 +248,8 @@ export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: Season
                 const still = ep.still ? stillImg(ep.still) : null;
                 const air = airDateLabel(ep.airDate);
                 const runtime = runtimeLabel(ep.runtime);
+                const code = formatEpisodeCode(detail.seasonNumber, ep.episodeNumber);
+                const isSeen = seen.has(episodeCode(detail.seasonNumber, ep.episodeNumber));
                 return (
                   <li
                     key={ep.episodeNumber}
@@ -155,6 +261,8 @@ export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: Season
                           src={still.src}
                           srcSet={still.srcSet}
                           sizes={still.sizes}
+                          width={still.width}
+                          height={still.height}
                           alt=""
                           loading="lazy"
                           decoding="async"
@@ -169,17 +277,36 @@ export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: Season
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-2">
                         <h4 className="truncate text-sm font-semibold text-white/90">
-                          <span className="text-white/40">
-                            {formatEpisodeCode(detail.seasonNumber, ep.episodeNumber)}
-                          </span>{' '}
-                          {ep.name}
+                          <span className="text-white/40">{code}</span> {ep.name}
                         </h4>
-                        {ep.rating != null && (
-                          <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-white/70">
-                            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                            {ep.rating.toFixed(1)}
-                          </span>
-                        )}
+                        <span className="flex shrink-0 items-center gap-2">
+                          {ep.rating != null && (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-white/70">
+                              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                              {ep.rating.toFixed(1)}
+                            </span>
+                          )}
+                          {/* Tick an episode off; the show lands in the library
+                              as "watching" the first time. */}
+                          <button
+                            onClick={() =>
+                              toggleEpisode(item, detail.seasonNumber, ep.episodeNumber)
+                            }
+                            aria-pressed={isSeen}
+                            aria-label={
+                              isSeen
+                                ? t('episode.seen', { code })
+                                : t('episode.mark_seen', { code })
+                            }
+                            className={`flex h-7 w-7 items-center justify-center rounded-full transition-all ${
+                              isSeen
+                                ? 'bg-white text-ink-950'
+                                : 'border border-white/15 bg-white/5 text-white/40 hover:border-white/40 hover:text-white'
+                            }`}
+                          >
+                            <Check className="h-4 w-4" />
+                          </button>
+                        </span>
                       </div>
                       <div className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-white/40">
                         {air && <span>{air}</span>}
@@ -199,10 +326,15 @@ export function SeasonBrowser({ tvId, seasons }: { tvId: number; seasons: Season
         </>
       )}
 
-      {/* Screen-reader friendly episode count for the active season. */}
+      {/* Episode count + watched progress for the active season. */}
       {detail && !loading && !error && detail.episodes.length > 0 && (
         <p className="mt-3 text-xs text-white/55">
           {tn('season.episodes', detail.episodes.length)}
+          {seenInSeason(detail.seasonNumber) > 0 &&
+            ` · ${t('season.progress', {
+              seen: seenInSeason(detail.seasonNumber),
+              total: detail.episodes.length,
+            })}`}
         </p>
       )}
     </div>

@@ -12,7 +12,8 @@
  * client that only knows about three fields can PUT three fields without wiping
  * the ones a newer version of the app added.
  */
-const LIBRARY_FILTERS = new Set(['all', 'want', 'watched']);
+// Mirrors the library's own statuses, plus the "no filter" pseudo-value.
+const LIBRARY_FILTERS = new Set(['all', 'want', 'watching', 'watched']);
 const LIBRARY_SORTS = new Set([
     'added_desc',
     'added_asc',

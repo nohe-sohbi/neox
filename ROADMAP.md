@@ -5,22 +5,33 @@ mécanisme est dans le README, section « Sous le capot ».
 
 ## Fait
 
-**Produit.** Accueil éditorialisé (hero, rails), recherche instantanée films et séries, Explorer
-avec filtres genre / année / note minimale et scroll infini, fiche détaillée avec bande-annonce,
-casting et disponibilité légale, navigateur saison par saison pour les séries, pages Personnes,
-recommandations « Pour toi », palette `Ctrl K`, rail « Reprends où tu en étais ».
+**Produit.** Accueil éditorialisé (hero avec pause, rails, « Tendances » aujourd'hui / cette
+semaine), recherche instantanée films, séries et personnes avec pagination en scroll et
+restriction par type servie côté API, Explorer avec filtres genre / année / note minimale portés
+par l'URL, récapitulés en pastilles retirables avec « Tout réinitialiser », compteur de résultats,
+scroll infini doublé d'un bouton « Charger plus » annoncé en `aria-live` et « Surprends-moi »,
+fiche détaillée avec bande-annonce, réalisation / scénario / création cliquables, classification
+d'âge régionale, saga du film, casting, disponibilité légale et bouton Partager — rouverte
+instantanément grâce au cache SWR —, navigateur saison par saison navigable au clavier avec
+épisodes cochables un à un ou par saison entière et progression globale de la série, rail
+« Reprendre ma série » donnant le prochain épisode non vu, pages Personnes, recommandations
+« Pour toi », palette `Ctrl K`, rail « Reprends où tu en étais », langue de l'interface
+auto-détectée au premier lancement, bandeau hors-ligne.
 
-**Bibliothèque.** Statut À voir / Vu, note personnelle 1 à 10, tri, filtres, export et import JSON
-sans compte, panneau de statistiques calculé localement. Comptes optionnels (bcrypt + JWT, store
-JSON) avec fusion localStorage vers compte à la connexion, et sync par révision : un `PUT` contre
-une révision périmée est refusé plutôt que d'écraser ce qu'un autre appareil vient d'enregistrer.
+**Bibliothèque.** Statut À voir / En cours / Vu, épisodes vus par série, note personnelle 1 à 10,
+commentaire libre autosauvegardé par titre, tri, filtres par statut et par type, recherche texte
+insensible aux accents sur les titres et les commentaires, export JSON réimportable et export CSV
+sans compte (commentaire et durée compris), panneau de statistiques calculé localement (dont la
+note TMDB moyenne, l'écart avec tes notes et le temps de visionnage estimé, annoncé avec sa base).
+Comptes optionnels (bcrypt + JWT, store JSON) avec fusion localStorage vers compte à la connexion,
+et sync par révision : un `PUT` contre une révision périmée est refusé plutôt que d'écraser ce
+qu'un autre appareil vient d'enregistrer.
 
 **Compte.** Les préférences suivent le compte, pas l'appareil : plateformes de streaming, région et
 langue du catalogue, tri et filtre par défaut de la liste, réconciliés à la connexion en gardant le
-côté modifié le plus récemment. Panneau « Mon compte » : changement de mot de passe, déconnexion de
-tous les autres appareils, export intégral des données en un fichier réimportable, suppression
-définitive du compte. Les jetons portent une génération, ce qui les rend révocables sans table de
-sessions.
+côté modifié le plus récemment. Panneau « Mon compte » : changement de mot de passe (qui révoque
+les jetons émis), déconnexion de tous les autres appareils, export intégral des données en un
+fichier réimportable, suppression définitive du compte et de tout ce qui y est rattaché.
 
 **Interface.** Aucune couleur d'accent déclarée : la teinte vient de l'affiche du titre affiché,
 extraite dans le navigateur et rendue comme de la lumière. Design system Tailwind sur-mesure en
@@ -46,7 +57,8 @@ build depuis `VITE_SITE_URL`.
 
 **Packaging.** Image frontend multi-stage (`vite build` puis nginx), API proxyfiée en même-origine
 sous `/api`, conteneurs non-root avec `HEALTHCHECK`, `JWT_SECRET` obligatoire en production,
-licence MIT, 210 tests et CI GitHub Actions sur chaque PR.
+licence MIT, 337 tests unitaires et d'intégration, un scénario Playwright de bout en bout (`e2e/`,
+59 vérifications contre un TMDB factice) et CI GitHub Actions sur chaque PR.
 
 ## Reste
 
@@ -65,15 +77,13 @@ licence MIT, 210 tests et CI GitHub Actions sur chaque PR.
 
 ### Produit, pour aller plus loin sur la partie connectée
 
-- [ ] **Suivi des épisodes.** Le navigateur de saisons affiche déjà les épisodes, mais une entrée de
-      bibliothèque ne connaît que « À voir » / « Vu ». Marquer épisode par épisode débloque la
-      progression sur la carte, un rail « Prochain épisode » et des statistiques en heures. Point
-      d'attention : le store réécrit tout son fichier à chaque mutation, il faudra grouper les
-      écritures avant d'ouvrir la vanne.
 - [ ] **Listes personnalisées**, privées d'abord, puis partageables en lecture seule — la première
       surface de NEOX qui mérite d'être indexée, là où `/library` est en `noindex` par nature.
 - [ ] **Journal de visionnage** (`watchedAt` par entrée) et rétrospective annuelle dérivée des
       statistiques déjà calculées.
+- [ ] **Suppressions qui se propagent.** La fusion de bibliothèques est une union sans pierres
+      tombales : un titre retiré sur un appareil revient s'il est encore présent sur un autre. Le
+      jour où ça gêne, il faudra garder une trace des entrées supprimées, avec sa propre purge.
 
 ### Nécessite une infra externe, volontairement non codé en dur
 

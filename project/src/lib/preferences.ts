@@ -36,7 +36,7 @@ const LEGACY_PLATFORMS_KEY = 'neox.platforms.v1';
 const LEGACY_LOCALE_KEY = 'neox.locale.v1';
 
 const MAX_PLATFORMS = 40;
-const LIBRARY_FILTERS: LibraryFilter[] = ['all', 'want', 'watched'];
+const LIBRARY_FILTERS: LibraryFilter[] = ['all', 'want', 'watching', 'watched'];
 const LIBRARY_SORTS: SortMode[] = [
   'added_desc',
   'added_asc',

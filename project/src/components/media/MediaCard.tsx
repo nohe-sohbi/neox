@@ -1,15 +1,21 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, MouseEvent } from 'react';
 import { Bookmark, Check, Film, Tv } from 'lucide-react';
 import type { MediaItem } from '../../lib/types';
 import { useLibrary } from '../../context/LibraryContext';
 import { useToast } from '../../context/ToastContext';
-import { useOpenDetail } from '../../hooks/useDetailRoute';
+import { isModifiedClick, useOpenDetail } from '../../hooks/useDetailRoute';
 import { posterImg } from '../../lib/img';
+import { detailPath } from '../../lib/routes';
 import { useFilmColor } from '../../hooks/useFilmColor';
 import { RatingBadge } from '../ui/RatingBadge';
 import { useT } from '../../lib/i18n';
 
-export function MediaCard({ item }: { item: MediaItem }) {
+/**
+ * `priority` marks a card the viewport shows immediately. Every poster used to
+ * be `loading="lazy"`, including the first row: on /movies and /tv that row
+ * holds the LCP element, and deferring it is exactly the wrong trade.
+ */
+export function MediaCard({ item, priority = false }: { item: MediaItem; priority?: boolean }) {
   const { t } = useT();
   const openDetail = useOpenDetail();
   const { isSaved, statusOf, toggle } = useLibrary();
@@ -21,37 +27,39 @@ export function MediaCard({ item }: { item: MediaItem }) {
   // forever for a title with no poster: the neutral card is the default.
   const film = useFilmColor(item.poster);
 
+  // A plain left click opens the overlay in place, so closing it returns you to
+  // the grid you were browsing. Anything else — middle click, ctrl/cmd, a
+  // crawler following the href — gets the canonical URL of the title.
+  const open = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (isModifiedClick(e)) return;
+    e.preventDefault();
+    openDetail(item);
+  };
+
   return (
     <article
-      className="group relative w-full cursor-pointer"
+      className="group relative w-full"
       style={film ? ({ '--film': film.light } as CSSProperties) : undefined}
-      onClick={() => openDetail(item)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          openDetail(item);
-        }
-      }}
     >
       {/* The light the poster casts behind itself, like a backlit frame in a
           foyer. It sits under the artwork and only appears on hover or focus. */}
       {film && (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-[8%] top-[10%] bottom-[18%] rounded-2xl bg-[var(--film)] opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-50 group-focus-visible:opacity-50"
+          className="pointer-events-none absolute inset-x-[8%] top-[10%] bottom-[18%] rounded-2xl bg-[var(--film)] opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-50 group-focus-within:opacity-50"
         />
       )}
 
-      <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-ink-800 shadow-card ring-1 ring-white/5 transition-all duration-300 group-hover:ring-[color-mix(in_srgb,var(--film,#ffffff)_55%,transparent)] group-focus-visible:ring-[color-mix(in_srgb,var(--film,#ffffff)_55%,transparent)]">
+      <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-ink-800 shadow-card ring-1 ring-white/5 transition-all duration-300 group-hover:ring-[color-mix(in_srgb,var(--film,#ffffff)_55%,transparent)] group-focus-within:ring-[color-mix(in_srgb,var(--film,#ffffff)_55%,transparent)]">
         {poster ? (
           <img
             src={poster.src}
             srcSet={poster.srcSet}
             sizes={poster.sizes}
+            width={poster.width}
+            height={poster.height}
             alt={item.title}
-            loading="lazy"
+            loading={priority ? 'eager' : 'lazy'}
             decoding="async"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
@@ -78,13 +86,12 @@ export function MediaCard({ item }: { item: MediaItem }) {
         )}
 
         <button
-          onClick={(e) => {
-            e.stopPropagation();
+          onClick={() => {
             const added = toggle(item);
             toast.success(added ? t('toast.added') : t('toast.removed'));
           }}
           aria-label={saved ? t('card.remove') : t('card.add')}
-          className={`absolute bottom-2 right-2 flex h-9 w-9 translate-y-2 items-center justify-center rounded-full backdrop-blur-md transition-all duration-300 group-hover:translate-y-0 ${
+          className={`absolute bottom-2 right-2 z-20 flex h-9 w-9 translate-y-2 items-center justify-center rounded-full backdrop-blur-md transition-all duration-300 group-hover:translate-y-0 ${
             saved
               ? 'bg-[var(--film,theme(colors.white))] text-ink-950'
               : 'bg-black/60 text-white/80 hover:bg-black/80'
@@ -95,8 +102,19 @@ export function MediaCard({ item }: { item: MediaItem }) {
       </div>
 
       <div className="mt-2.5 px-0.5">
+        {/* A real anchor, not a div with role="button". The overlay is the only
+            place a title exists, so without an href no crawler could ever reach
+            one — every film and series on the site was an orphan. The ::after
+            stretches it over the whole card, which keeps the card clickable
+            while leaving exactly one link, and one label, in the a11y tree. */}
         <h3 className="truncate text-sm font-semibold text-white/90 transition-colors group-hover:text-white">
-          {item.title}
+          <a
+            href={detailPath(item.mediaType, item.id)}
+            onClick={open}
+            className="outline-none after:absolute after:inset-0 after:z-10 after:content-['']"
+          >
+            {item.title}
+          </a>
         </h3>
         <p className="text-xs text-white/55 transition-colors duration-300 group-hover:text-[var(--film,theme(colors.white))]">
           {item.year || '—'}

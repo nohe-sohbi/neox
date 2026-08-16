@@ -2,11 +2,15 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { seoPrerender } from './scripts/seo-prerender';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
+    // One prerendered shell per route, so the head a crawler reads is the head
+    // that route actually wants. See scripts/seo-prerender.ts.
+    seoPrerender(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'pwa-icon.svg'],

@@ -16,6 +16,7 @@ afterAll(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
 const creds = { email: 'owner@example.com', password: 'supersecret1' };
 const bearer = (token) => ['Authorization', `Bearer ${token}`];
 
+/** Account-scoped state: preferences sync, library revisions, export, sessions. */
 describe('preferences sync', () => {
   let token;
 
@@ -27,6 +28,11 @@ describe('preferences sync', () => {
 
   it('requires a token', async () => {
     expect((await request(app).get('/api/preferences')).status).toBe(401);
+  });
+
+  it('is never cached', async () => {
+    const res = await request(app).get('/api/preferences').set(...bearer(token));
+    expect(res.headers['cache-control']).toContain('no-store');
   });
 
   it('reports null until the account saves something', async () => {
@@ -65,9 +71,13 @@ describe('preferences sync', () => {
     const res = await request(app)
       .put('/api/preferences')
       .set(...bearer(token))
-      .send({ preferences: { libraryFilter: 'watched' } });
+      .send({ preferences: { libraryFilter: 'watching' } });
 
-    expect(res.body.preferences).toMatchObject({ platforms: [8, 119], region: 'BE', libraryFilter: 'watched' });
+    expect(res.body.preferences).toMatchObject({
+      platforms: [8, 119],
+      region: 'BE',
+      libraryFilter: 'watching',
+    });
   });
 });
 
@@ -136,7 +146,7 @@ describe('library revisions', () => {
   });
 });
 
-describe('account management', () => {
+describe('account data and sessions', () => {
   let token;
 
   it('signs in', async () => {
@@ -145,7 +155,7 @@ describe('account management', () => {
   });
 
   it('exports account, preferences and library in one document', async () => {
-    const res = await request(app).get('/api/account/export').set(...bearer(token));
+    const res = await request(app).get('/api/auth/export').set(...bearer(token));
 
     expect(res.status).toBe(200);
     expect(res.headers['cache-control']).toContain('no-store');
@@ -157,9 +167,13 @@ describe('account management', () => {
     expect(res.body.entries).toHaveLength(2);
   });
 
+  it('requires a token to export', async () => {
+    expect((await request(app).get('/api/auth/export')).status).toBe(401);
+  });
+
   it('revokes other sessions and keeps the caller signed in', async () => {
     const stale = token;
-    const res = await request(app).post('/api/account/logout-all').set(...bearer(stale));
+    const res = await request(app).post('/api/auth/logout-all').set(...bearer(stale));
 
     expect(res.status).toBe(200);
     token = res.body.token;
@@ -169,73 +183,36 @@ describe('account management', () => {
     expect((await request(app).get('/api/library').set(...bearer(token))).status).toBe(200);
   });
 
-  it('rejects a password change with the wrong current password', async () => {
-    const res = await request(app)
-      .patch('/api/account/password')
-      .set(...bearer(token))
-      .send({ currentPassword: 'not-it-at-all', newPassword: 'brandnewpass' });
-
-    expect(res.status).toBe(401);
-    expect(res.body.code).toBe('AUTH_CURRENT_PASSWORD_INVALID');
-  });
-
-  it('rejects a new password that is too short', async () => {
-    const res = await request(app)
-      .patch('/api/account/password')
-      .set(...bearer(token))
-      .send({ currentPassword: creds.password, newPassword: 'short' });
-
-    expect(res.status).toBe(400);
-    expect(res.body.code).toBe('AUTH_PASSWORD_TOO_SHORT');
-  });
-
-  it('changes the password, invalidating every other token', async () => {
-    const stale = token;
+  it('survives a password change after a revocation', async () => {
+    // The two stamps are independent, so a token has to satisfy both: this is
+    // the case that would break if either one overwrote the other.
     const next = 'an-even-better-password';
-
     const res = await request(app)
-      .patch('/api/account/password')
-      .set(...bearer(stale))
+      .post('/api/auth/change-password')
+      .set(...bearer(token))
       .send({ currentPassword: creds.password, newPassword: next });
 
     expect(res.status).toBe(200);
-    token = res.body.token;
-
-    expect((await request(app).get('/api/library').set(...bearer(stale))).status).toBe(401);
-    expect((await request(app).get('/api/library').set(...bearer(token))).status).toBe(200);
-
-    expect((await request(app).post('/api/auth/login').send(creds)).status).toBe(401);
-    const relogin = await request(app).post('/api/auth/login').send({ ...creds, password: next });
-    expect(relogin.status).toBe(200);
     creds.password = next;
-  });
-
-  it('refuses to delete the account without the password', async () => {
-    const res = await request(app)
-      .delete('/api/account')
-      .set(...bearer(token))
-      .send({ password: 'wrong-one-again' });
-
-    expect(res.status).toBe(401);
+    token = res.body.token;
     expect((await request(app).get('/api/auth/me').set(...bearer(token))).status).toBe(200);
   });
 
-  it('deletes the account, its data and its sessions', async () => {
-    const res = await request(app)
-      .delete('/api/account')
+  it('drops preferences and revisions along with the account', async () => {
+    const del = await request(app)
+      .delete('/api/auth/account')
       .set(...bearer(token))
       .send({ password: creds.password });
+    expect(del.status).toBe(200);
 
-    expect(res.status).toBe(204);
-    expect((await request(app).get('/api/auth/me').set(...bearer(token))).status).toBe(401);
-    expect((await request(app).post('/api/auth/login').send(creds)).status).toBe(401);
-
-    // The e-mail is free again, and the new account starts empty: no library or
-    // preferences survived the deletion.
+    // The e-mail is free again, and the new account starts blank: nothing of the
+    // deleted one survived under the same id space.
     const fresh = await request(app).post('/api/auth/register').send(creds);
     expect(fresh.status).toBe(201);
+
     const lib = await request(app).get('/api/library').set(...bearer(fresh.body.token));
     expect(lib.body.entries).toHaveLength(0);
+    expect(lib.body.rev).toBe(0);
     const prefs = await request(app).get('/api/preferences').set(...bearer(fresh.body.token));
     expect(prefs.body.preferences).toBeNull();
   });

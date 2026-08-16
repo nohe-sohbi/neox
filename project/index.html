@@ -5,33 +5,86 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#06060B" />
-    <title>NEOX · Ton radar cinéma & séries</title>
+
+    <!-- Every poster, backdrop and provider logo comes from this host, and the
+         first backdrop is the LCP element. Without this, DNS + TLS only start
+         once the bundle has parsed and the API has answered. -->
+    <link rel="preconnect" href="https://image.tmdb.org" />
+    <link rel="dns-prefetch" href="https://image.tmdb.org" />
+
+    <!--build:preload-->
+    <!-- The build fills this in with the two latin woff2 subsets the first
+         screen is written in. Their filenames are content-hashed, so they can
+         only be named once the bundle exists; `vite dev` serves the fonts
+         unhashed and needs no hint. -->
+    <!--/build:preload-->
+
+    <!--seo:head-->
+    <!-- ──────────────────────────────────────────────────────────────
+         The build replaces everything between the seo:head markers, once
+         per route, from the manifest in src/lib/routes.ts (see
+         scripts/seo-prerender.ts). What follows is the home page's head:
+         what `vite dev` serves, and the template the shells start from.
+         Edit the manifest, not the tags below.
+         ────────────────────────────────────────────────────────────── -->
+    <title>NEOX · Ton radar cinéma &amp; séries</title>
     <meta
       name="description"
       content="Découvre les films et séries du moment, regarde les bandes-annonces et trouve instantanément où les voir en streaming légal. Crée ta watchlist en un clic."
     />
+    <link rel="canonical" href="https://neox.app/" />
     <meta property="og:site_name" content="NEOX" />
-    <meta property="og:title" content="NEOX · Ton radar cinéma & séries" />
+    <meta property="og:title" content="NEOX · Ton radar cinéma &amp; séries" />
     <meta
       property="og:description"
-      content="Tendances, bandes-annonces et disponibilité streaming légale. Ta prochaine séance commence ici."
+      content="Découvre les films et séries du moment, regarde les bandes-annonces et trouve instantanément où les voir en streaming légal. Crée ta watchlist en un clic."
     />
     <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:url" content="https://neox.app/" />
     <meta property="og:image" content="https://neox.app/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:url" content="https://neox.app/" />
-    <link rel="canonical" href="https://neox.app/" />
+    <meta
+      property="og:image:alt"
+      content="Le logo NEOX et sa signature : ton radar cinéma &amp; séries."
+    />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="NEOX · Ton radar cinéma & séries" />
+    <meta name="twitter:title" content="NEOX · Ton radar cinéma &amp; séries" />
     <meta
       name="twitter:description"
-      content="Tendances, bandes-annonces et disponibilité streaming légale. Ta prochaine séance commence ici."
+      content="Découvre les films et séries du moment, regarde les bandes-annonces et trouve instantanément où les voir en streaming légal. Crée ta watchlist en un clic."
     />
     <meta name="twitter:image" content="https://neox.app/og-image.png" />
+    <meta
+      name="twitter:image:alt"
+      content="Le logo NEOX et sa signature : ton radar cinéma &amp; séries."
+    />
+    <!--/seo:head-->
   </head>
   <body>
     <div id="root"></div>
+
+    <!--seo:noscript-->
+    <!-- Replaced per route by the build: the heading, description and section
+         links a visitor without JavaScript gets — which is also everything a
+         crawler that does not render JS will ever read on this URL. -->
+    <noscript>
+      <h1>Ton radar cinéma &amp; séries</h1>
+      <p>
+        Découvre les films et séries du moment, regarde les bandes-annonces et trouve
+        instantanément où les voir en streaming légal. Crée ta watchlist en un clic.
+      </p>
+      <p>
+        NEOX a besoin de JavaScript pour afficher le catalogue. Active-le pour explorer les films,
+        les séries et leur disponibilité en streaming légal.
+      </p>
+      <nav aria-label="Navigation principale">
+        <a href="/movies">Films</a> · <a href="/tv">Séries</a>
+      </nav>
+    </noscript>
+    <!--/seo:noscript-->
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

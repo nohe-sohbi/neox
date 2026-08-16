@@ -9,9 +9,11 @@ interface MediaRowProps {
   items: MediaItem[];
   loading?: boolean;
   icon?: ReactNode;
+  /** Extra controls rendered next to the title (e.g. a time-window toggle). */
+  actions?: ReactNode;
 }
 
-export function MediaRow({ title, items, loading, icon }: MediaRowProps) {
+export function MediaRow({ title, items, loading, icon, actions }: MediaRowProps) {
   const { t } = useT();
   const railRef = useRef<HTMLDivElement>(null);
 
@@ -26,10 +28,13 @@ export function MediaRow({ title, items, loading, icon }: MediaRowProps) {
   return (
     <section className="group/row relative">
       <div className="mb-3 flex items-end justify-between px-1">
-        <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight text-white sm:text-xl">
-          {icon}
-          {title}
-        </h2>
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight text-white sm:text-xl">
+            {icon}
+            {title}
+          </h2>
+          {actions}
+        </div>
         <div className="hidden gap-2 sm:flex">
           <button
             onClick={() => scrollBy(-1)}

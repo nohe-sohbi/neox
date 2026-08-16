@@ -14,7 +14,8 @@ const { TtlLruCache } = require('./cache');
 const { SingleFlight } = require('./single-flight');
 const { CircuitBreaker } = require('./circuit-breaker');
 
-const TMDB_BASE = 'https://api.themoviedb.org/3';
+// Overridable so tests and local mocks can stand in for the real TMDB.
+const TMDB_BASE = process.env.TMDB_BASE_URL || 'https://api.themoviedb.org/3';
 const IMG_BASE = 'https://image.tmdb.org/t/p';
 
 const POSTER_SIZE = 'w500';
@@ -106,6 +107,20 @@ function cacheStats() {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// TMDB's Retry-After is usually a second or two. The wait happens inside the
+// single flight, stalling every coalesced caller with it, so a hostile or
+// buggy header must not be honored as-is: an unclamped `Retry-After: 3600`
+// used to freeze the request (and all its waiters) for an hour.
+const RETRY_AFTER_CAP_MS = 10000;
+
+/** Delay before retrying a 429, in ms: the Retry-After header when sane, else
+ *  the attempt number in seconds — always capped at RETRY_AFTER_CAP_MS. */
+function retryDelayMs(retryAfterHeader, attempt) {
+    const parsed = Number(retryAfterHeader);
+    const seconds = Number.isFinite(parsed) && parsed > 0 ? parsed : attempt;
+    return Math.min(seconds * 1000, RETRY_AFTER_CAP_MS);
+}
+
 /**
  * Low-level TMDB GET with caching + retry.
  * @param {string} path  e.g. "/trending/movie/week"
@@ -125,10 +140,13 @@ async function tmdbGet(path, params = {}) {
         include_adult: 'false',
         ...params,
     });
+    // The cache key deliberately excludes credentials: with the api_key in it,
+    // the secret would be written in clear to the on-disk snapshot, and rotating
+    // the key would needlessly invalidate every cached entry.
+    const cacheKey = `${path}?${query.toString()}`;
     if (API_KEY) query.set('api_key', API_KEY);
 
     const url = `${TMDB_BASE}${path}?${query.toString()}`;
-    const cacheKey = url;
 
     const cached = cache.get(cacheKey);
     if (cached && !cached.stale) return cached.value;
@@ -168,8 +186,7 @@ async function tmdbGet(path, params = {}) {
                     // Record it so a run that 429s on every attempt reports a real
                     // reason instead of "...: undefined".
                     lastError = new Error('TMDB rate limited (HTTP 429)');
-                    const retryAfter = Number(response.headers.get('retry-after')) || attempt;
-                    await sleep(retryAfter * 1000);
+                    await sleep(retryDelayMs(response.headers.get('retry-after'), attempt));
                     continue;
                 }
 
@@ -317,6 +334,91 @@ function normalizeEpisode(ep) {
     };
 }
 
+/**
+ * The people a viewer actually asks about — "who directed this?", "who wrote
+ * it?", "whose show is this?" — pulled out of the credits blob TMDB already
+ * ships with the details payload. Kept to a handful per role: a film with
+ * nine credited writers is a list, not an answer, and the profile page is one
+ * click away for the full crew.
+ */
+const DIRECTOR_JOBS = new Set(['Director']);
+const WRITER_JOBS = new Set(['Screenplay', 'Writer', 'Story', 'Author', 'Teleplay']);
+const MAX_PER_ROLE = 3;
+
+function normalizeCrew(data) {
+    const crew = Array.isArray(data.credits?.crew) ? data.credits.crew : [];
+
+    // Same person credited twice (co-writer *and* story) must appear once.
+    const pick = (jobs) => {
+        const byId = new Map();
+        for (const member of crew) {
+            if (!member || !jobs.has(member.job) || !member.id) continue;
+            if (!byId.has(member.id)) {
+                byId.set(member.id, {
+                    id: member.id,
+                    name: member.name || '',
+                    photo: img(member.profile_path, PROFILE_SIZE),
+                });
+            }
+            if (byId.size >= MAX_PER_ROLE) break;
+        }
+        return [...byId.values()];
+    };
+
+    // A series has no single director, but it does have showrunners, and TMDB
+    // puts them in `created_by` rather than the crew list.
+    const creators = (data.created_by || [])
+        .filter((c) => c && c.id)
+        .slice(0, MAX_PER_ROLE)
+        .map((c) => ({ id: c.id, name: c.name || '', photo: img(c.profile_path, PROFILE_SIZE) }));
+
+    return { directors: pick(DIRECTOR_JOBS), writers: pick(WRITER_JOBS), creators };
+}
+
+/**
+ * Age rating for the viewer's own region, because a certification is only
+ * meaningful where it was issued: "PG-13" says nothing to a French viewer and
+ * "12" says nothing to an American one. Movies carry it in `release_dates`,
+ * shows in `content_ratings`. No US fallback: a wrong-country rating read as
+ * a local one is worse than no rating at all.
+ */
+function certificationFor(data, region) {
+    const target = (region || DEFAULT_REGION).toUpperCase();
+
+    const movieBlock = (data.release_dates?.results || []).find(
+        (r) => r.iso_3166_1 === target,
+    );
+    if (movieBlock) {
+        const found = (movieBlock.release_dates || []).find(
+            (r) => typeof r.certification === 'string' && r.certification.trim(),
+        );
+        if (found) return found.certification.trim();
+    }
+
+    const tvBlock = (data.content_ratings?.results || []).find((r) => r.iso_3166_1 === target);
+    if (tvBlock && typeof tvBlock.rating === 'string' && tvBlock.rating.trim()) {
+        return tvBlock.rating.trim();
+    }
+
+    return '';
+}
+
+/** A movie collection (`/collection/{id}`) → saga name + its other instalments. */
+function normalizeCollection(data, excludeId) {
+    const parts = (data.parts || [])
+        .filter((p) => p && p.id !== excludeId && (p.poster_path || p.backdrop_path))
+        .map((p) => normalizeItem(p, 'movie'))
+        // Chronological: a saga is a reading order, not a popularity chart.
+        .sort((a, b) => (a.year || '9999').localeCompare(b.year || '9999'))
+        .slice(0, 12);
+    return {
+        id: data.id,
+        name: data.name || '',
+        poster: img(data.poster_path, POSTER_SIZE),
+        items: parts,
+    };
+}
+
 /** A full season payload (`/tv/{id}/season/{n}`) → compact episode list. */
 function normalizeSeason(data, seasonNumber) {
     return {
@@ -351,6 +453,21 @@ async function trending(mediaType, window = 'week', opts = {}) {
     );
 }
 
+// Every sort order the product exposes. An arbitrary string here would leak
+// verbatim into the upstream URL and mint a junk cache key per variant.
+const DISCOVER_SORTS = new Set([
+    'popularity.desc',
+    'popularity.asc',
+    'vote_average.desc',
+    'vote_average.asc',
+    'primary_release_date.desc',
+    'primary_release_date.asc',
+    'first_air_date.desc',
+    'first_air_date.asc',
+    'revenue.desc',
+    'revenue.asc',
+]);
+
 /**
  * Pure builder for TMDB /discover query params. Kept separate from the network
  * call so the filter logic (genre, sort, year, rating, providers) is trivially
@@ -361,7 +478,7 @@ function buildDiscoverParams(
     { genre, sort = 'popularity.desc', page = 1, providers, region, language, year, minRating } = {},
 ) {
     const params = {
-        sort_by: sort,
+        sort_by: DISCOVER_SORTS.has(sort) ? sort : 'popularity.desc',
         page: String(page),
         // A floor of 50 votes keeps obscure entries out, but a user asking for
         // a minimum rating wants a stricter signal, so raise the floor then.
@@ -427,16 +544,59 @@ async function list(mediaType, kind, page = 1, opts = {}) {
     );
 }
 
+/** Compact person shape for search results (full profiles come from getPerson). */
+function normalizeSearchPerson(item) {
+    return {
+        id: item.id,
+        name: item.name || '',
+        photo: img(item.profile_path, PROFILE_SIZE),
+        knownFor: item.known_for_department || '',
+    };
+}
+
+/**
+ * Multi search by default; `type` narrows it to films or shows only.
+ *
+ * The narrowed modes hit `/search/movie` and `/search/tv` rather than
+ * filtering `/search/multi` client-side: a mixed page of 20 that happens to
+ * hold 3 shows would otherwise render as "3 results" out of a total counting
+ * films too, and page 2 would keep the lie going. One endpoint per mode keeps
+ * the count, the pagination and the results describing the same set.
+ */
+const SEARCH_TYPES = new Set(['all', 'movie', 'tv']);
+
 async function search(query, page = 1, opts = {}) {
-    if (!query || !query.trim()) return { page: 1, totalPages: 1, totalResults: 0, results: [] };
-    return normalizeList(
-        await tmdbGet('/search/multi', { query: query.trim(), page: String(page), ...locale(opts) }),
-    );
+    if (!query || !query.trim()) {
+        return { page: 1, totalPages: 1, totalResults: 0, results: [], people: [] };
+    }
+    const type = SEARCH_TYPES.has(opts.type) ? opts.type : 'all';
+    const params = { query: query.trim(), page: String(page), ...locale(opts) };
+
+    if (type !== 'all') {
+        const data = await tmdbGet(`/search/${type}`, params);
+        // People are a multi-search affordance; a "films only" search saying
+        // "here are some actors" would contradict the filter the user set.
+        return { ...normalizeList(data, type), people: [] };
+    }
+
+    const data = await tmdbGet('/search/multi', params);
+    // `/search/multi` interleaves people with titles; normalizeList drops them
+    // from `results`, so surface them separately instead of losing them —
+    // actors and directors are searched by name too.
+    const people = (data.results || [])
+        .filter((item) => item.media_type === 'person')
+        .map(normalizeSearchPerson)
+        .slice(0, 8);
+    return { ...normalizeList(data), people };
 }
 
 async function details(mediaType, id, region = DEFAULT_REGION, opts = {}) {
     const data = await tmdbGet(`/${mediaType}/${id}`, {
-        append_to_response: 'videos,credits,recommendations,watch/providers',
+        // `release_dates` (movies) and `content_ratings` (shows) ride along on
+        // the same request: TMDB ignores an append it doesn't know, so one
+        // parameter list serves both types without a second round trip.
+        append_to_response:
+            'videos,credits,recommendations,watch/providers,release_dates,content_ratings',
         ...locale(opts),
     });
 
@@ -448,6 +608,18 @@ async function details(mediaType, id, region = DEFAULT_REGION, opts = {}) {
         photo: img(c.profile_path, PROFILE_SIZE),
     }));
 
+    // A saga is a second round trip (the details payload only names the
+    // collection, it doesn't list its films), so it degrades to null rather
+    // than failing the fiche it decorates.
+    let collection = null;
+    const collectionId = data.belongs_to_collection?.id;
+    if (mediaType === 'movie' && collectionId) {
+        collection = await tmdbGet(`/collection/${collectionId}`, locale(opts))
+            .then((payload) => normalizeCollection(payload, id))
+            .catch(() => null);
+        if (collection && collection.items.length === 0) collection = null;
+    }
+
     return {
         ...base,
         tagline: data.tagline || '',
@@ -455,6 +627,7 @@ async function details(mediaType, id, region = DEFAULT_REGION, opts = {}) {
         status: data.status || '',
         genres: (data.genres || []).map((g) => g.name),
         releaseDate: data.release_date || data.first_air_date || '',
+        certification: certificationFor(data, region),
         numberOfSeasons: data.number_of_seasons || null,
         numberOfEpisodes: data.number_of_episodes || null,
         // Season index for TV (empty for movies) so the client can offer a
@@ -462,8 +635,10 @@ async function details(mediaType, id, region = DEFAULT_REGION, opts = {}) {
         seasons: mediaType === 'tv' ? normalizeSeasons(data.seasons) : [],
         trailerKey: pickTrailer(data.videos),
         cast,
+        crew: normalizeCrew(data),
         providers: normalizeProviders(data['watch/providers'], region),
         recommendations: normalizeList(data.recommendations || {}, mediaType).results.slice(0, 12),
+        collection,
     };
 }
 
@@ -632,4 +807,8 @@ module.exports = {
     // Exported for unit tests (pure, no network).
     normalizeSeasons,
     normalizeSeason,
+    normalizeCrew,
+    normalizeCollection,
+    certificationFor,
+    retryDelayMs,
 };

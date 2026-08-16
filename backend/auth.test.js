@@ -1,18 +1,20 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-// `requireAuth` checks the account behind the token, so the store must be
-// isolated before it (and therefore auth) is loaded.
-const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'neox-auth-test-'));
-process.env.DATA_DIR = tmpDir;
+// Isolated store: requireAuth now checks tokens against live accounts, so the
+// data dir must be set before ./auth pulls in ./store.
+const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'neox-auth-test-'));
+process.env.DATA_DIR = dataDir;
 
 const jwt = require('jsonwebtoken');
-const store = require('./store');
 const auth = require('./auth');
+const store = require('./store');
 
-afterAll(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
+afterAll(() => {
+    fs.rmSync(dataDir, { recursive: true, force: true });
+});
 
 /** Drives `requireAuth` with a stub req/res and reports what happened. */
 function callRequireAuth(token) {
@@ -57,20 +59,72 @@ describe('JWT secret configuration', () => {
 });
 
 describe('requireAuth', () => {
-  let user;
-
-  beforeAll(async () => {
-    user = await store.createUser({ email: 'demo@neox.test', passwordHash: 'x' });
-  });
-
-  it('accepts a token the module signed itself', () => {
+  it('accepts a token for a live account', async () => {
+    const user = await store.createUser({ email: 'demo@neox.test', passwordHash: 'x' });
     const token = auth.signToken(user);
 
     expect(callRequireAuth(token)).toMatchObject({ passed: true, userId: user.id });
   });
 
+  it('rejects a valid token whose account no longer exists', () => {
+    const token = auth.signToken({ id: 'ghost', email: 'ghost@neox.test' });
+
+    expect(callRequireAuth(token)).toMatchObject({
+      passed: false,
+      status: 401,
+      body: { code: 'AUTH_SESSION_INVALID' },
+    });
+  });
+
+  it('rejects a token issued before the last password change', async () => {
+    const user = await store.createUser({ email: 'rotate@neox.test', passwordHash: 'x' });
+    const old = auth.signToken(user); // no `pwc` claim yet
+    await store.updateUser(user.id, { passwordChangedAt: Date.now() });
+
+    expect(callRequireAuth(old)).toMatchObject({
+      passed: false,
+      status: 401,
+      body: { code: 'AUTH_SESSION_INVALID' },
+    });
+  });
+
+  it('accepts the fresh token issued right after a password change', async () => {
+    const user = await store.createUser({ email: 'fresh@neox.test', passwordHash: 'x' });
+    await store.updateUser(user.id, { passwordChangedAt: Date.now() });
+    const fresh = auth.signToken(user); // carries the matching `pwc` claim
+
+    expect(callRequireAuth(fresh)).toMatchObject({ passed: true, userId: user.id });
+  });
+
+  it('rejects a token issued before the sessions were revoked', async () => {
+    const user = await store.createUser({ email: 'revoke@neox.test', passwordHash: 'x' });
+    const old = auth.signToken(user); // no `srv` claim yet
+    const updated = await store.updateUser(user.id, { sessionsRevokedAt: Date.now() });
+
+    expect(callRequireAuth(old)).toMatchObject({
+      passed: false,
+      status: 401,
+      body: { code: 'AUTH_SESSION_INVALID' },
+    });
+    // The token minted right after carries the matching stamp and survives, so
+    // "sign my other devices out" doesn't sign this one out too.
+    expect(callRequireAuth(auth.signToken(updated))).toMatchObject({ passed: true, userId: user.id });
+  });
+
+  it('keeps the two revocation stamps independent', async () => {
+    const user = await store.createUser({ email: 'both@neox.test', passwordHash: 'x' });
+    await store.updateUser(user.id, { sessionsRevokedAt: Date.now() });
+    const afterRevoke = auth.signToken(store.getUserById(user.id));
+    const updated = await store.updateUser(user.id, { passwordChangedAt: Date.now() });
+
+    // A password change invalidates a token that already matched the revocation
+    // stamp: matching one is not enough, a token has to match both.
+    expect(callRequireAuth(afterRevoke)).toMatchObject({ passed: false, status: 401 });
+    expect(callRequireAuth(auth.signToken(updated))).toMatchObject({ passed: true, userId: user.id });
+  });
+
   it('rejects a token signed with a different secret', () => {
-    const forged = jwt.sign({ sub: user.id, email: user.email }, 'not-the-server-secret');
+    const forged = jwt.sign({ sub: 'u1', email: 'demo@neox.test' }, 'not-the-server-secret');
 
     expect(callRequireAuth(forged)).toMatchObject({
       passed: false,
@@ -80,7 +134,7 @@ describe('requireAuth', () => {
   });
 
   it('rejects an expired token', () => {
-    const expired = jwt.sign({ sub: user.id }, 'neox-dev-secret-change-me', { expiresIn: '-1s' });
+    const expired = jwt.sign({ sub: 'u1' }, 'neox-dev-secret-change-me', { expiresIn: '-1s' });
 
     expect(callRequireAuth(expired)).toMatchObject({
       passed: false,
@@ -95,37 +149,5 @@ describe('requireAuth', () => {
       status: 401,
       body: { code: 'AUTH_REQUIRED' },
     });
-  });
-
-  it('rejects a well-signed token for an account that no longer exists', () => {
-    const orphan = auth.signToken({ id: 'deleted-user', email: 'gone@neox.test' });
-
-    expect(callRequireAuth(orphan)).toMatchObject({
-      passed: false,
-      status: 401,
-      body: { code: 'AUTH_SESSION_INVALID' },
-    });
-  });
-
-  it('accepts a token issued before the tokenVersion claim existed', () => {
-    // Legacy token: signed by an older build, so no `tv`. It must keep working
-    // against an account still on generation 0, otherwise deploying this change
-    // would log everyone out.
-    const legacy = jwt.sign({ sub: user.id, email: user.email }, 'neox-dev-secret-change-me');
-
-    expect(callRequireAuth(legacy)).toMatchObject({ passed: true, userId: user.id });
-  });
-
-  it('rejects tokens minted before the sessions were revoked', async () => {
-    const before = auth.signToken(store.getUserById(user.id));
-    const revoked = await store.revokeSessions(user.id);
-    const after = auth.signToken(revoked);
-
-    expect(callRequireAuth(before)).toMatchObject({
-      passed: false,
-      status: 401,
-      body: { code: 'AUTH_SESSION_INVALID' },
-    });
-    expect(callRequireAuth(after)).toMatchObject({ passed: true, userId: user.id });
   });
 });

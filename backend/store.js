@@ -71,6 +71,9 @@ load();
 /* ------------------------------- users -------------------------------- */
 
 function findUserByEmail(email) {
+    // A non-string can only come from an unvalidated request body; answering
+    // "no such user" beats crashing the route with a 500.
+    if (typeof email !== 'string') return null;
     const normalized = email.trim().toLowerCase();
     return Object.values(state.users).find((u) => u.email === normalized) || null;
 }
@@ -96,11 +99,6 @@ async function createUser({ email, passwordHash }) {
         id,
         email: normalizedEmail,
         passwordHash,
-        // Stamped into every token this account signs. Bumping it invalidates
-        // all tokens already out there, which is how "log out everywhere" and
-        // "changing the password kicks out the thief" work without a session
-        // table: the check is one integer comparison, still stateless per token.
-        tokenVersion: 0,
         createdAt: Date.now(),
     };
     state.users[id] = user;
@@ -109,32 +107,26 @@ async function createUser({ email, passwordHash }) {
     return user;
 }
 
-/** Replaces the password hash and revokes every token signed before now. */
-async function setPassword(userId, passwordHash) {
-    const user = state.users[userId];
+/** Merges a patch into an existing user (e.g. a new password hash). */
+async function updateUser(id, patch) {
+    const user = state.users[id];
     if (!user) return null;
-    user.passwordHash = passwordHash;
-    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    Object.assign(user, patch);
     await persist();
     return user;
 }
 
-/** Invalidates every token currently in circulation for this account. */
-async function revokeSessions(userId) {
-    const user = state.users[userId];
-    if (!user) return null;
-    user.tokenVersion = (user.tokenVersion || 0) + 1;
-    await persist();
-    return user;
-}
-
-/** Erases the account and everything attached to it. No tombstone, no orphans. */
-async function deleteUser(userId) {
-    if (!state.users[userId]) return false;
-    delete state.users[userId];
-    delete state.libraries[userId];
-    delete state.libraryRevs[userId];
-    delete state.preferences[userId];
+/**
+ * Removes the account and everything attached to it: library, its revision
+ * counter and preferences. No tombstone, no orphans. Returns whether anything
+ * was deleted.
+ */
+async function deleteUser(id) {
+    if (!state.users[id]) return false;
+    delete state.users[id];
+    delete state.libraries[id];
+    delete state.libraryRevs[id];
+    delete state.preferences[id];
     await persist();
     return true;
 }
@@ -182,8 +174,7 @@ module.exports = {
     findUserByEmail,
     getUserById,
     createUser,
-    setPassword,
-    revokeSessions,
+    updateUser,
     deleteUser,
     publicUser,
     getLibrary,

@@ -10,10 +10,12 @@ import type {
   Paginated,
   Person,
   Provider,
+  SearchResults,
   SeasonDetail,
   User,
 } from './types';
 import { createTranslator, langFromLocale } from './i18n/core';
+import { DEFAULT_LOCALE, detectLocale } from './locales';
 import type { Preferences } from './preferences';
 
 // `??`, not `||`: an explicitly empty VITE_API_URL means "same origin", the
@@ -24,15 +26,27 @@ const API_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001').replac
 // Catalogue locale (region + language), initialized from storage so the very
 // first request already uses the user's preference.
 const LOCALE_KEY = 'neox.locale.v1';
-const DEFAULT_LOCALE: Locale = { region: 'FR', language: 'fr-FR' };
 
 function readLocale(): Locale {
   try {
     const raw = localStorage.getItem(LOCALE_KEY);
-    return raw ? { ...DEFAULT_LOCALE, ...(JSON.parse(raw) as Partial<Locale>) } : DEFAULT_LOCALE;
+    if (raw) return { ...DEFAULT_LOCALE, ...(JSON.parse(raw) as Partial<Locale>) };
   } catch {
+    // No usable storage (private mode…): don't try to persist a guess either.
     return DEFAULT_LOCALE;
   }
+  // First visit: follow the browser's language instead of imposing French on
+  // everyone. Persisted immediately so the choice stays stable even if the
+  // browser's language list changes later.
+  const detected = detectLocale(
+    typeof navigator !== 'undefined' ? (navigator.languages ?? [navigator.language]) : [],
+  );
+  try {
+    localStorage.setItem(LOCALE_KEY, JSON.stringify(detected));
+  } catch {
+    /* stateless session still gets the right language for now */
+  }
+  return detected;
 }
 
 let locale: Locale = readLocale();
@@ -140,6 +154,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return body as T;
 }
 
+/** Search scope: everything (titles + people), films only, or shows only. */
+export type SearchType = 'all' | MediaType;
+
 /** A library payload and the revision it was read at. */
 export interface LibrarySync {
   entries: LibraryEntry[];
@@ -170,8 +187,19 @@ export interface DiscoverOpts {
 export const api = {
   home: () => request<HomePayload>(withLocale('/api/home')),
 
-  search: (query: string, page = 1) =>
-    request<Paginated<MediaItem>>(withLocale(`/api/search?q=${encodeURIComponent(query)}&page=${page}`)),
+  // `type` narrows the search to films or shows only; the server then talks to
+  // the matching TMDB endpoint, so the result count describes the filter.
+  search: (query: string, page = 1, type: SearchType = 'all') =>
+    request<SearchResults>(
+      withLocale(
+        `/api/search?q=${encodeURIComponent(query)}&page=${page}${
+          type === 'all' ? '' : `&type=${type}`
+        }`,
+      ),
+    ),
+
+  trending: (mediaType: 'all' | MediaType, window: 'day' | 'week' = 'week') =>
+    request<Paginated<MediaItem>>(withLocale(`/api/trending/${mediaType}?window=${window}`)),
 
   genres: (mediaType: MediaType) =>
     request<{ genres: Genre[] }>(withLocale(`/api/genres/${mediaType}`)),
@@ -220,21 +248,23 @@ export const api = {
 
   me: () => request<{ user: User }>('/api/auth/me'),
 
-  // ── Account ──
-  // Both destructive operations return a fresh token: they revoke every token
-  // in circulation, and the device that asked shouldn't be collateral damage.
   changePassword: (currentPassword: string, newPassword: string) =>
-    request<{ token: string }>('/api/account/password', {
-      method: 'PATCH',
+    request<AuthResponse>('/api/auth/change-password', {
+      method: 'POST',
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
 
-  logoutEverywhere: () => request<{ token: string }>('/api/account/logout-all', { method: 'POST' }),
-
-  exportAccount: () => request<AccountExport>('/api/account/export'),
-
   deleteAccount: (password: string) =>
-    request<null>('/api/account', { method: 'DELETE', body: JSON.stringify({ password }) }),
+    request<{ ok: boolean }>('/api/auth/account', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    }),
+
+  // Cuts every other session loose. Returns a fresh token, since the call also
+  // invalidates the one that made it.
+  logoutEverywhere: () => request<AuthResponse>('/api/auth/logout-all', { method: 'POST' }),
+
+  exportAccount: () => request<AccountExport>('/api/auth/export'),
 
   // ── Preferences sync ──
   getPreferences: () => request<{ preferences: Preferences | null }>('/api/preferences'),

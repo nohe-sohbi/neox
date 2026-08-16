@@ -7,6 +7,7 @@
  */
 require('dotenv').config();
 
+const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -18,6 +19,7 @@ const auth = require('./auth');
 const { sanitizeLibrary, mergeLibraries } = require('./library');
 const { sanitizePreferences } = require('./preferences');
 const { cacheControl, noStore, TTL } = require('./http-cache');
+const { version: API_VERSION } = require('./package.json');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -32,19 +34,52 @@ app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
 // Generous global limiter + a strict one for auth to blunt brute force.
-// `/api/account` is behind the strict one too: changing a password and deleting
-// an account both re-check the current password, so they are guessable surfaces
-// exactly like /api/auth/login.
 const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 600, standardHeaders: true, legacyHeaders: false });
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
 app.use('/api', apiLimiter);
-app.use(['/api/auth', '/api/account'], authLimiter);
+app.use('/api/auth', authLimiter);
 
-// Tiny request logger: quiet but useful in dev.
-app.use((req, _res, next) => {
-    if (process.env.NODE_ENV !== 'production') {
-        console.log(`${req.method} ${req.originalUrl}`);
-    }
+// API responses are data, not pages. They must stay crawlable — Googlebot
+// fetches them while rendering the SPA, and a `Disallow: /api/` in robots.txt
+// would leave it rendering an empty app — but a JSON payload has no business
+// turning up as a search result. This header says exactly that, and unlike
+// robots.txt it is read *after* the fetch, so nothing is blocked.
+app.use('/api', (_req, res, next) => {
+    res.set('X-Robots-Tag', 'noindex');
+    next();
+});
+
+// Correlation id + request log. Every response carries X-Request-Id (a sane
+// inbound one is echoed, anything else replaced) so a bug report can be
+// matched to a server log line. Production emits one JSON line per completed
+// request — the path only, never the query string, which can carry search
+// terms this app deliberately keeps out of its telemetry; health probes are
+// skipped so orchestrator polling doesn't drown the log. Dev keeps a
+// human-readable line, now with status and duration.
+app.use((req, res, next) => {
+    const inbound = req.get('x-request-id');
+    req.id = inbound && /^[\w.-]{1,64}$/.test(inbound) ? inbound : crypto.randomUUID();
+    res.set('X-Request-Id', req.id);
+
+    const started = process.hrtime.bigint();
+    res.on('finish', () => {
+        const ms = Math.round(Number(process.hrtime.bigint() - started) / 1e5) / 10;
+        if (process.env.NODE_ENV === 'production') {
+            if (req.path === '/api/health') return;
+            console.log(
+                JSON.stringify({
+                    t: new Date().toISOString(),
+                    id: req.id,
+                    method: req.method,
+                    path: req.path,
+                    status: res.statusCode,
+                    ms,
+                }),
+            );
+        } else {
+            console.log(`${req.method} ${req.originalUrl} → ${res.statusCode} (${ms} ms)`);
+        }
+    });
     next();
 });
 
@@ -62,17 +97,32 @@ function assertMediaType(value) {
     return value;
 }
 
-// Pulls region + language overrides off any request.
+// Pulls region + language overrides off any request. Malformed values are
+// dropped (the server defaults apply) rather than 400ed: they would otherwise
+// reach TMDB verbatim and mint a distinct junk cache key per variant.
+const REGION_RE = /^[A-Za-z]{2}$/;
+const LANG_RE = /^[a-z]{2,3}(-[A-Za-z]{2})?$/i;
+
 function localeFrom(req) {
+    const region = req.query.region ? req.query.region.toString() : '';
+    const language = req.query.lang ? req.query.lang.toString() : '';
     return {
-        region: req.query.region ? req.query.region.toString().toUpperCase() : undefined,
-        language: req.query.lang ? req.query.lang.toString() : undefined,
+        region: REGION_RE.test(region) ? region.toUpperCase() : undefined,
+        language: LANG_RE.test(language) ? language : undefined,
     };
+}
+
+// TMDB rejects pages beyond 500; clamping (instead of erroring) lets a
+// deep-scrolling client degrade gracefully.
+function pageFrom(req) {
+    const page = Math.trunc(Number(req.query.page) || 1);
+    return Math.min(500, Math.max(1, page));
 }
 
 app.get('/api/health', noStore, (_req, res) => {
     res.json({
         status: 'ok',
+        version: API_VERSION,
         tmdb: tmdb.isConfigured() ? 'configured' : 'missing-key',
         cache: tmdb.cacheStats(),
         uptime: Math.round(process.uptime()),
@@ -92,9 +142,12 @@ app.get(
     '/api/search',
     cacheControl(TTL.dynamic),
     route(async (req, res) => {
-        const q = (req.query.q || '').toString();
-        const page = Math.max(1, Number(req.query.page) || 1);
-        res.json(await tmdb.search(q, page, localeFrom(req)));
+        const q = (req.query.q || '').toString().slice(0, 200);
+        // Allowlisted like every other user-supplied selector: an unknown type
+        // degrades to the multi search instead of minting a junk upstream path.
+        const rawType = (req.query.type || '').toString();
+        const type = ['movie', 'tv'].includes(rawType) ? rawType : 'all';
+        res.json(await tmdb.search(q, pageFrom(req), { ...localeFrom(req), type }));
     }),
 );
 
@@ -112,7 +165,7 @@ app.get(
     cacheControl(TTL.static),
     route(async (req, res) => {
         const mediaType = assertMediaType(req.params.mediaType);
-        const region = (req.query.region || tmdb.DEFAULT_REGION).toString().toUpperCase();
+        const region = localeFrom(req).region || tmdb.DEFAULT_REGION;
         res.json({ providers: await tmdb.getProviders(mediaType, region) });
     }),
 );
@@ -122,25 +175,28 @@ app.get(
     cacheControl(TTL.dynamic),
     route(async (req, res) => {
         const mediaType = assertMediaType(req.params.mediaType);
-        const { genre, sort, providers, region, year, minRating } = req.query;
-        const page = Math.max(1, Number(req.query.page) || 1);
+        const { genre, sort, providers, year, minRating } = req.query;
+        const { region, language } = localeFrom(req);
+        // Provider ids are TMDB integers: anything else is noise, and a bound
+        // keeps a hostile query from fanning out into an absurd upstream URL.
         const providerIds = providers
             ? providers
                   .toString()
                   .split(',')
                   .map((id) => id.trim())
-                  .filter(Boolean)
+                  .filter((id) => /^\d+$/.test(id))
+                  .slice(0, 50)
             : undefined;
         res.json(
             await tmdb.discover(mediaType, {
                 genre: genre ? Number(genre) : undefined,
                 sort: sort ? sort.toString() : undefined,
                 providers: providerIds,
-                region: region ? region.toString() : undefined,
-                language: req.query.lang ? req.query.lang.toString() : undefined,
+                region,
+                language,
                 year: year ? Number(year) : undefined,
                 minRating: minRating ? Number(minRating) : undefined,
-                page,
+                page: pageFrom(req),
             }),
         );
     }),
@@ -182,9 +238,9 @@ app.post(
 
 /* ------------------------------- auth --------------------------------- */
 
-// Auth, account, library and preference responses are per-user and must never
-// be cached by anyone.
-app.use(['/api/auth', '/api/account', '/api/library', '/api/preferences'], noStore);
+// Auth, library and preference responses are per-user and must never be cached
+// by anyone.
+app.use(['/api/auth', '/api/library', '/api/preferences'], noStore);
 
 app.post(
     '/api/auth/register',
@@ -207,7 +263,9 @@ app.post(
     '/api/auth/login',
     route(async (req, res) => {
         const { email, password } = req.body || {};
-        if (!email || !password) {
+        // Type-checked, not just truthy: a number or array here used to reach
+        // the store and crash the route with a 500.
+        if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
             return res.status(400).json({ error: 'E-mail et mot de passe requis.', code: 'AUTH_CREDENTIALS_REQUIRED' });
         }
         const user = store.findUserByEmail(email);
@@ -225,53 +283,71 @@ app.get('/api/auth/me', auth.requireAuth, (req, res) => {
     res.json({ user: store.publicUser(user) });
 });
 
-/* ------------------------------ account ------------------------------- */
-
-const ACCOUNT_NOT_FOUND = { error: 'Compte introuvable.', code: 'AUTH_ACCOUNT_NOT_FOUND' };
-const CURRENT_PASSWORD_INVALID = {
-    error: 'Mot de passe actuel incorrect.',
-    code: 'AUTH_CURRENT_PASSWORD_INVALID',
-};
-
-/**
- * Re-checks the password of the authenticated account. A valid token proves the
- * session, not the person holding the device, so both destructive account
- * operations ask again.
- */
-async function verifyCurrentPassword(userId, password) {
-    const user = store.getUserById(userId);
-    if (!user) return { user: null, ok: false };
-    const ok = Boolean(password) && (await auth.verifyPassword(String(password), user.passwordHash));
-    return { user, ok };
-}
-
-app.patch(
-    '/api/account/password',
+app.post(
+    '/api/auth/change-password',
     auth.requireAuth,
     route(async (req, res) => {
         const { currentPassword, newPassword } = req.body || {};
-        const invalid = auth.validatePassword(newPassword);
-        if (invalid) return res.status(400).json(invalid);
+        if (typeof currentPassword !== 'string' || !currentPassword) {
+            return res.status(400).json({ error: 'Mot de passe actuel requis.', code: 'AUTH_CREDENTIALS_REQUIRED' });
+        }
+        if (typeof newPassword !== 'string' || newPassword.length < 8) {
+            return res.status(400).json({ error: 'Le mot de passe doit faire au moins 8 caractères.', code: 'AUTH_PASSWORD_TOO_SHORT' });
+        }
 
-        const { user, ok } = await verifyCurrentPassword(req.userId, currentPassword);
-        if (!user) return res.status(404).json(ACCOUNT_NOT_FOUND);
-        if (!ok) return res.status(401).json(CURRENT_PASSWORD_INVALID);
+        const user = store.getUserById(req.userId);
+        if (!user) return res.status(404).json({ error: 'Compte introuvable.', code: 'AUTH_ACCOUNT_NOT_FOUND' });
 
-        const updated = await store.setPassword(req.userId, await auth.hashPassword(newPassword));
-        // The change revoked every token, including the one that made this call:
-        // hand back a fresh one so the device that did the right thing is not the
-        // one that gets logged out.
-        res.json({ token: auth.signToken(updated) });
+        // 403, not 401: a wrong current password is a failed confirmation, not
+        // an expired session, and the client logs itself out on any 401.
+        if (!(await auth.verifyPassword(currentPassword, user.passwordHash))) {
+            return res.status(403).json({ error: 'Mot de passe incorrect.', code: 'AUTH_INVALID_CREDENTIALS' });
+        }
+
+        const passwordHash = await auth.hashPassword(newPassword);
+        await store.updateUser(user.id, { passwordHash, passwordChangedAt: Date.now() });
+        // Every previously issued token is now stale (see requireAuth); hand
+        // back a fresh one so the session doing the change survives it.
+        res.json({ token: auth.signToken(user), user: store.publicUser(user) });
+    }),
+);
+
+app.delete(
+    '/api/auth/account',
+    auth.requireAuth,
+    route(async (req, res) => {
+        const { password } = req.body || {};
+        if (typeof password !== 'string' || !password) {
+            return res.status(400).json({ error: 'Mot de passe requis.', code: 'AUTH_CREDENTIALS_REQUIRED' });
+        }
+
+        const user = store.getUserById(req.userId);
+        if (!user) return res.status(404).json({ error: 'Compte introuvable.', code: 'AUTH_ACCOUNT_NOT_FOUND' });
+
+        if (!(await auth.verifyPassword(password, user.passwordHash))) {
+            return res.status(403).json({ error: 'Mot de passe incorrect.', code: 'AUTH_INVALID_CREDENTIALS' });
+        }
+
+        // Removes the account, its synced library and its preferences;
+        // requireAuth then rejects any token that still references it.
+        await store.deleteUser(user.id);
+        res.json({ ok: true });
     }),
 );
 
 app.post(
-    '/api/account/logout-all',
+    '/api/auth/logout-all',
     auth.requireAuth,
     route(async (req, res) => {
-        const updated = await store.revokeSessions(req.userId);
-        if (!updated) return res.status(404).json(ACCOUNT_NOT_FOUND);
-        res.json({ token: auth.signToken(updated) });
+        const user = store.getUserById(req.userId);
+        if (!user) return res.status(404).json({ error: 'Compte introuvable.', code: 'AUTH_ACCOUNT_NOT_FOUND' });
+
+        // Same lever as a password change, without the password change: every
+        // token issued so far stops verifying (see auth.signToken). The caller
+        // gets a fresh one, so the device asking to cut the others loose is not
+        // the one that gets cut.
+        const updated = await store.updateUser(user.id, { sessionsRevokedAt: Date.now() });
+        res.json({ token: auth.signToken(updated), user: store.publicUser(updated) });
     }),
 );
 
@@ -280,9 +356,9 @@ app.post(
  * on purpose: the file doubles as a library backup, so a full export can be fed
  * straight back into the app's "Import" without any conversion.
  */
-app.get('/api/account/export', auth.requireAuth, (req, res) => {
+app.get('/api/auth/export', auth.requireAuth, (req, res) => {
     const user = store.getUserById(req.userId);
-    if (!user) return res.status(404).json(ACCOUNT_NOT_FOUND);
+    if (!user) return res.status(404).json({ error: 'Compte introuvable.', code: 'AUTH_ACCOUNT_NOT_FOUND' });
     res.json({
         app: 'neox',
         type: 'account',
@@ -293,19 +369,6 @@ app.get('/api/account/export', auth.requireAuth, (req, res) => {
         entries: store.getLibrary(req.userId),
     });
 });
-
-app.delete(
-    '/api/account',
-    auth.requireAuth,
-    route(async (req, res) => {
-        const { user, ok } = await verifyCurrentPassword(req.userId, req.body?.password);
-        if (!user) return res.status(404).json(ACCOUNT_NOT_FOUND);
-        if (!ok) return res.status(401).json(CURRENT_PASSWORD_INVALID);
-
-        await store.deleteUser(req.userId);
-        res.status(204).end();
-    }),
-);
 
 /* ---------------------------- preferences ----------------------------- */
 
@@ -352,7 +415,6 @@ app.put(
             err.code = 'LIBRARY_INVALID_BODY';
             throw err;
         }
-
         // Optimistic concurrency. A client that sends the revision it last saw is
         // told to re-merge when the server has moved on, instead of overwriting
         // what another device saved in the meantime: a full-replacement PUT is a
@@ -378,7 +440,15 @@ app.post(
     '/api/library/merge',
     auth.requireAuth,
     route(async (req, res) => {
-        const incoming = sanitizeLibrary(req.body?.entries);
+        // Same contract as PUT: a malformed body is an error, not an empty
+        // merge that silently reports the server library back as "merged".
+        if (!Array.isArray(req.body?.entries)) {
+            const err = new Error('Field "entries" must be an array.');
+            err.status = 400;
+            err.code = 'LIBRARY_INVALID_BODY';
+            throw err;
+        }
+        const incoming = sanitizeLibrary(req.body.entries);
         const merged = mergeLibraries(store.getLibrary(req.userId), incoming);
         res.json(await store.setLibrary(req.userId, merged));
     }),
@@ -419,14 +489,19 @@ app.get(
 // 404 for unknown API routes.
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));
 
-// Centralized error handler.
+// Centralized error handler. An error that set its own `status` carries a
+// message written for the client; an unexpected exception (plain 500) must
+// not leak internals ("x.trim is not a function") to the outside — the full
+// error, stack included, goes to the server log instead, keyed by the
+// request id that the response also carries.
 // eslint-disable-next-line no-unused-vars
-app.use((err, _req, res, _next) => {
+app.use((err, req, res, _next) => {
     const status = err.status || 500;
-    if (status >= 500) console.error('API error:', err.message);
+    if (status >= 500) console.error(`API error [${req.id}]:`, err);
     res.status(status).json({
-        error: err.message || 'Internal server error',
+        error: err.status ? err.message || 'Internal server error' : 'Internal server error',
         code: err.code,
+        requestId: req.id,
     });
 });
 

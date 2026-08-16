@@ -17,11 +17,9 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  /** Rotates the password and, with it, every session but this one. */
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   /** Signs every other device out, keeping this one. */
   logoutEverywhere: () => Promise<void>;
-  /** Erases the account, its preferences and its library. Irreversible. */
   deleteAccount: (password: string) => Promise<void>;
 }
 
@@ -72,28 +70,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  // Both of these revoke every token the account has issued, including the one
-  // this device is holding, so they hand back a fresh one: the device that asked
-  // stays signed in, the others are cut off.
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    // The server revokes every previously issued token and returns a fresh
+    // one; keep it so this session survives its own password change.
     const res = await api.changePassword(currentPassword, newPassword);
     setAuthToken(res.token);
   }, []);
 
   const logoutEverywhere = useCallback(async () => {
+    // Same deal as a password change: the call invalidates this device's token
+    // too, so keep the replacement it hands back.
     const res = await api.logoutEverywhere();
     setAuthToken(res.token);
   }, []);
 
-  const deleteAccount = useCallback(
-    async (password: string) => {
-      await api.deleteAccount(password);
-      // Clearing `user` cascades: the library and preference providers wipe
-      // their local copies for the account that no longer exists.
-      logout();
-    },
-    [logout],
-  );
+  const deleteAccount = useCallback(async (password: string) => {
+    await api.deleteAccount(password);
+    // Dropping `user` also lets LibraryContext clear this device's copy.
+    setAuthToken(null);
+    setUser(null);
+  }, []);
 
   const value = useMemo(
     () => ({ user, ready, login, register, logout, changePassword, logoutEverywhere, deleteAccount }),

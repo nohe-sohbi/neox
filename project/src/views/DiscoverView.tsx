@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { SlidersHorizontal, Star } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Shuffle, SlidersHorizontal, Star, X } from 'lucide-react';
 import { api, ApiError, getLocale } from '../lib/api';
 import { STATIC_TTL, queryCache } from '../lib/query';
 import type { Genre, MediaItem, MediaType, Provider } from '../lib/types';
 import { useMyPlatforms } from '../hooks/useMyPlatforms';
+import { useOpenDetail } from '../hooks/useDetailRoute';
 import { MediaGrid } from '../components/media/MediaGrid';
-import { EmptyState, ErrorState, Spinner } from '../components/ui/States';
+import { EmptyState, ErrorState } from '../components/ui/States';
+import { LoadMore } from '../components/ui/LoadMore';
 import { useT } from '../lib/i18n';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
+import { routeMeta } from '../lib/routes';
 
 const MOVIE_SORTS = [
   { id: 'popularity.desc', key: 'sort.popularity' },
@@ -32,31 +36,62 @@ const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: CURRENT_YEAR - 1950 + 1 }, (_, i) => CURRENT_YEAR - i);
 
 export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
-  const { t } = useT();
+  const { t, tn, formatNumber, lang } = useT();
   const platforms = useMyPlatforms();
 
   const [genres, setGenres] = useState<Genre[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [activeGenre, setActiveGenre] = useState<number | undefined>(undefined);
-  const [sort, setSort] = useState('popularity.desc');
-  const [year, setYear] = useState<number | undefined>(undefined);
-  const [minRating, setMinRating] = useState(0);
   const [showPlatforms, setShowPlatforms] = useState(false);
 
   const [items, setItems] = useState<MediaItem[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const sorts = mediaType === 'tv' ? TV_SORTS : MOVIE_SORTS;
 
-  useDocumentMeta({
-    title: mediaType === 'tv' ? t('discover.tv_title') : t('discover.movies_title'),
-    description: mediaType === 'tv' ? t('discover.tv_sub') : t('discover.movies_sub'),
-    path: mediaType === 'tv' ? '/tv' : '/movies',
-  });
+  // Filters live in the URL (?genre=&sort=&year=&rating=), not in local state:
+  // a filtered view can be shared, bookmarked, and comes back intact on
+  // back-navigation. Malformed values just degrade to the defaults. Platforms
+  // stay out of it: they're a personal, cross-view setting (localStorage), and
+  // a shared link shouldn't impose the sender's subscriptions.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawGenre = Number(searchParams.get('genre'));
+  const activeGenre = Number.isInteger(rawGenre) && rawGenre > 0 ? rawGenre : undefined;
+  const sortParam = searchParams.get('sort') || '';
+  const sort = sorts.some((s) => s.id === sortParam) ? sortParam : 'popularity.desc';
+  const rawYear = Number(searchParams.get('year'));
+  const year =
+    Number.isInteger(rawYear) && rawYear >= 1950 && rawYear <= CURRENT_YEAR ? rawYear : undefined;
+  const rawRating = Number(searchParams.get('rating'));
+  const minRating = RATING_OPTIONS.includes(rawRating) ? rawRating : 0;
+
+  // Patches the URL params, dropping cleared keys; `replace` so chip-clicking
+  // doesn't stack a history entry per filter. Unrelated params (e.g. ?watch=)
+  // are preserved.
+  const setFilters = useCallback(
+    (patch: Record<string, string | number | undefined>) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          for (const [k, v] of Object.entries(patch)) {
+            if (v === undefined || v === '') next.delete(k);
+            else next.set(k, String(v));
+          }
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  // From the manifest the build prerendered this route's shell from, so the
+  // head React applies is the one the crawler was already served.
+  useDocumentMeta(routeMeta(mediaType === 'tv' ? 'tv' : 'movies', lang));
 
   // Genres + providers for this media type. These barely change, so they're
   // cached: switching tabs (or coming back) reuses the data instead of refetching.
@@ -95,6 +130,37 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
   }, [mediaType]);
 
   const platformIds = platforms.ids.join(',');
+  const openDetail = useOpenDetail();
+  const [surprising, setSurprising] = useState(false);
+
+  // A dice roll that honors the current filters: pick a random page of the
+  // same discover query, then a random title on it. TMDB caps discover at
+  // 500 pages, and the deep pages of any sort are noise anyway — 20 is scope
+  // enough for a surprise.
+  const surpriseMe = useCallback(async () => {
+    if (surprising) return;
+    setSurprising(true);
+    try {
+      const opts = {
+        genre: activeGenre,
+        sort,
+        year,
+        minRating: minRating || undefined,
+        providers: platformIds ? platformIds.split(',').map(Number) : undefined,
+      };
+      const first = await api.discover(mediaType, { ...opts, page: 1 });
+      const pool = Math.max(1, Math.min(first.totalPages, 20));
+      const page = 1 + Math.floor(Math.random() * pool);
+      const res = page === 1 ? first : await api.discover(mediaType, { ...opts, page });
+      const items = res.results.length ? res.results : first.results;
+      if (items.length === 0) return;
+      openDetail(items[Math.floor(Math.random() * items.length)]);
+    } catch {
+      /* a failed dice roll is no error worth an alert */
+    } finally {
+      setSurprising(false);
+    }
+  }, [surprising, mediaType, activeGenre, sort, year, minRating, platformIds, openDetail]);
 
   const fetchPage = useCallback(
     async (targetPage: number, replace: boolean) => {
@@ -111,6 +177,7 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
           providers: platformIds ? platformIds.split(',').map(Number) : undefined,
         });
         setTotalPages(res.totalPages);
+        setTotalResults(res.totalResults);
         setPage(res.page);
         setItems((prev) => (replace ? res.results : [...prev, ...res.results]));
       } catch (err) {
@@ -128,23 +195,78 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [fetchPage]);
 
+  const hasMore = page < totalPages;
+  const loadMore = useCallback(() => {
+    if (loading || loadingMore || !hasMore) return;
+    void fetchPage(page + 1, false);
+  }, [fetchPage, loading, loadingMore, hasMore, page]);
+
   const sentinelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const node = sentinelRef.current;
     if (!node) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !loading && !loadingMore && page < totalPages) {
-          void fetchPage(page + 1, false);
-        }
+        if (entries[0].isIntersecting) loadMore();
       },
       { rootMargin: '600px' },
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [fetchPage, loading, loadingMore, page, totalPages]);
+  }, [loadMore]);
 
   const platformsActive = platforms.ids.length > 0;
+
+  // What is actually narrowing the results, as removable chips. Four controls
+  // live in three different places on this page (sort row, genre rail, year
+  // select, rating buttons, platform sheet): with a genre scrolled out of
+  // view and a rating set two rows down, an empty grid reads as "nothing
+  // exists" rather than "you asked for a very specific thing".
+  const activeFilters: { id: string; label: string; clear: () => void }[] = [];
+  if (activeGenre !== undefined) {
+    const genre = genres.find((g) => g.id === activeGenre);
+    activeFilters.push({
+      id: 'genre',
+      label: genre ? genre.name : t('discover.genre_filter'),
+      clear: () => setFilters({ genre: undefined }),
+    });
+  }
+  if (year !== undefined) {
+    activeFilters.push({
+      id: 'year',
+      label: String(year),
+      clear: () => setFilters({ year: undefined }),
+    });
+  }
+  if (minRating > 0) {
+    activeFilters.push({
+      id: 'rating',
+      label: `${minRating}+`,
+      clear: () => setFilters({ rating: undefined }),
+    });
+  }
+  if (sort !== 'popularity.desc') {
+    const active = sorts.find((s) => s.id === sort);
+    if (active) {
+      activeFilters.push({
+        id: 'sort',
+        label: t(active.key),
+        clear: () => setFilters({ sort: undefined }),
+      });
+    }
+  }
+  if (platformsActive) {
+    activeFilters.push({
+      id: 'platforms',
+      label: tn('discover.platforms_count', platforms.ids.length),
+      clear: platforms.clear,
+    });
+  }
+
+  const resetAll = () => {
+    setFilters({ genre: undefined, year: undefined, rating: undefined, sort: undefined });
+    platforms.clear();
+  };
 
   return (
     <div className="container mx-auto px-6 pb-16 pt-28">
@@ -154,13 +276,20 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
       <p className="mt-1 text-white/50">
         {mediaType === 'tv' ? t('discover.tv_sub') : t('discover.movies_sub')}
       </p>
+      {/* What the current filters actually yield; totalResults used to be
+          fetched then thrown away. */}
+      {!error && !loading && totalResults > 0 && (
+        <p className="mt-1 text-sm text-white/45">
+          {tn('discover.count', totalResults, { count: formatNumber(totalResults) })}
+        </p>
+      )}
 
       {/* Sort + platform toggle */}
       <div className="mt-6 flex flex-wrap items-center gap-2">
         {sorts.map((s) => (
           <button
             key={s.id}
-            onClick={() => setSort(s.id)}
+            onClick={() => setFilters({ sort: s.id === 'popularity.desc' ? undefined : s.id })}
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
               sort === s.id
                 ? 'bg-white text-ink-950'
@@ -171,8 +300,16 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
           </button>
         ))}
         <button
+          onClick={() => void surpriseMe()}
+          disabled={surprising}
+          className="ml-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm font-medium text-white/70 transition-all hover:bg-white/10 disabled:opacity-60"
+        >
+          <Shuffle className={`h-4 w-4 ${surprising ? 'animate-spin' : ''}`} />
+          {t('discover.surprise')}
+        </button>
+        <button
           onClick={() => setShowPlatforms((s) => !s)}
-          className={`ml-auto inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
             platformsActive
               ? 'bg-white text-ink-950'
               : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
@@ -228,7 +365,7 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
       {genres.length > 0 && (
         <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
           <button
-            onClick={() => setActiveGenre(undefined)}
+            onClick={() => setFilters({ genre: undefined })}
             className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm transition-all ${
               activeGenre === undefined ? 'bg-white/15 text-white' : 'bg-white/5 text-white/60 hover:text-white'
             }`}
@@ -238,7 +375,7 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
           {genres.map((g) => (
             <button
               key={g.id}
-              onClick={() => setActiveGenre(g.id)}
+              onClick={() => setFilters({ genre: g.id })}
               className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm transition-all ${
                 activeGenre === g.id ? 'bg-white/15 text-white' : 'bg-white/5 text-white/60 hover:text-white'
               }`}
@@ -255,7 +392,7 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
           <span>{t('discover.year')}</span>
           <select
             value={year ?? ''}
-            onChange={(e) => setYear(e.target.value ? Number(e.target.value) : undefined)}
+            onChange={(e) => setFilters({ year: e.target.value || undefined })}
             className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/90 outline-none transition-colors hover:bg-white/10 focus:border-white/40"
           >
             <option value="">{t('discover.all_years')}</option>
@@ -275,7 +412,7 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
               return (
                 <button
                   key={r}
-                  onClick={() => setMinRating(r)}
+                  onClick={() => setFilters({ rating: r || undefined })}
                   aria-pressed={on}
                   className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium transition-all ${
                     on
@@ -298,6 +435,30 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
         </div>
       </div>
 
+      {/* Active filters, each removable, plus one control that clears the lot. */}
+      {activeFilters.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-white/50">{t('discover.active_filters')}</span>
+          {activeFilters.map((filter) => (
+            <button
+              key={filter.id}
+              onClick={filter.clear}
+              aria-label={t('discover.remove_filter', { filter: filter.label })}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-sm text-white/90 transition-colors hover:bg-white/20"
+            >
+              {filter.label}
+              <X className="h-3.5 w-3.5 text-white/60" />
+            </button>
+          ))}
+          <button
+            onClick={resetAll}
+            className="text-sm text-white/50 underline-offset-2 transition-colors hover:text-white hover:underline"
+          >
+            {t('discover.reset_all')}
+          </button>
+        </div>
+      )}
+
       <div className="mt-8">
         {error ? (
           <ErrorState message={error} onRetry={() => fetchPage(1, true)} />
@@ -307,13 +468,25 @@ export function DiscoverView({ mediaType }: { mediaType: MediaType }) {
             description={
               platformsActive ? t('discover.empty_platforms') : t('discover.empty_default')
             }
+            action={
+              activeFilters.length > 0 ? (
+                <button onClick={resetAll} className="btn-ghost">
+                  {t('discover.reset_all')}
+                </button>
+              ) : undefined
+            }
           />
         ) : (
           <>
             <MediaGrid items={items} loading={loading} />
-            <div ref={sentinelRef} className="flex justify-center py-10">
-              {loadingMore && <Spinner className="h-6 w-6 text-white/70" />}
-            </div>
+            <LoadMore
+              sentinelRef={sentinelRef}
+              hasMore={hasMore}
+              loading={loadingMore}
+              loaded={items.length}
+              total={totalResults}
+              onLoadMore={loadMore}
+            />
           </>
         )}
       </div>

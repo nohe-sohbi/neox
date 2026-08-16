@@ -41,29 +41,54 @@ disponibilité légale (JustWatch via TMDB).
 
 ## Ce que ça fait
 
-- **Découvrir** : accueil éditorialisé (hero rotatif, rails « À l'affiche », « Tendances séries »,
-  « Acclamés par la critique »), recherche instantanée sur les films et les séries.
+- **Découvrir** : accueil éditorialisé (hero rotatif avec pause, rails « À l'affiche », « Tendances
+  séries », « Acclamés par la critique », rail « Tendances » basculable aujourd'hui / cette
+  semaine), recherche instantanée sur les films, les séries et les personnes (acteurs,
+  réalisateurs), restreignable aux films ou aux séries — le compteur et la pagination décrivent
+  alors le même ensemble, parce que la restriction est servie par l'endpoint TMDB correspondant et
+  non filtrée après coup —, chargée page après page en scroll infini ou d'un bouton « Charger
+  plus », et un « Surprends-moi » qui pioche un titre au hasard dans les filtres actifs d'Explorer.
+- **Savoir qui a fait quoi** : chaque fiche crédite sa réalisation, son scénario (sa création pour
+  une série) en liens vers les profils, affiche la classification d'âge de ta région — celle de ton
+  pays ou rien, jamais celle d'un autre —, et rattache un film à sa saga en listant les autres
+  volets dans l'ordre chronologique.
 - **Savoir où regarder** : la section « Où regarder (légalement) » de chaque fiche liste le
   streaming, la location et l'achat pour ta région, avec un filtre « Mes plateformes » qui ne garde
   que tes services.
 - **Explorer finement** : genre, année de sortie, note minimale (6+/7+/8+/9+), tri par popularité,
-  note, date ou box-office, en scroll infini.
+  note, date ou box-office, en scroll infini avec compteur de résultats. Les filtres vivent dans
+  l'URL : une vue filtrée se partage, se met en favori et se retrouve au retour. Ceux qui sont
+  actifs sont récapitulés en pastilles retirables une à une, avec un « Tout réinitialiser » — les
+  contrôles sont éparpillés sur trois rangées, et une grille vide doit se lire « tu as demandé
+  quelque chose de très précis », pas « ça n'existe pas ».
 - **Naviguer au clavier** : palette `Ctrl K` globale pour chercher un titre, sauter vers une page ou
   reprendre une recherche récente, sans quitter le clavier.
-- **Suivre ses séries** : navigateur par saison dans la fiche, liste des épisodes avec vignette,
-  code `SxEx`, date, durée et note, chargée à la demande.
-- **Tenir sa liste** : statut À voir / Vu, note personnelle de 1 à 10, tri, filtres, et un panneau
-  de statistiques calculé localement (progression, répartition films/séries, note moyenne,
-  histogramme des notes, décennies de prédilection).
+- **Suivre ses séries** : navigateur par saison dans la fiche (navigable au clavier), liste des
+  épisodes avec vignette, code `SxEx`, date, durée et note, chargée à la demande — et une case par
+  épisode : la cocher inscrit la série en « En cours » et les onglets affichent la progression
+  (3/8), synchronisée avec le reste de la liste. Un bouton coche (ou décoche) la saison entière,
+  la progression globale de la série est affichée, et l'accueil ouvre un rail « Reprendre ma
+  série » qui donne, pour chaque série en cours, le prochain épisode non vu — le premier trou dans
+  l'ordre de diffusion, pas celui qui suit le dernier coché — avec de quoi le cocher sur place.
+- **Tenir sa liste** : statut À voir / En cours / Vu, note personnelle de 1 à 10, commentaire libre
+  écrit sur la fiche et enregistré tout seul, tri, filtres par statut et par type, recherche texte
+  insensible aux accents portant sur les titres *et* les commentaires, et un panneau de
+  statistiques calculé localement (progression, répartition films/séries, note moyenne, note TMDB
+  moyenne et ton écart avec elle, temps de visionnage estimé — annoncé avec le nombre de titres
+  sur lequel il repose —, histogramme des notes, décennies de prédilection). Export JSON
+  réimportable, ou CSV pour un tableur.
+- **Partager une fiche** : chaque fiche titre ou personne porte un bouton Partager — feuille de
+  partage système quand elle existe, copie du lien canonique sinon.
 - **Retrouver son NEOX partout** : compte optionnel (inscription, connexion) qui synchronise la
   bibliothèque *et* les préférences entre appareils : plateformes de streaming, région et langue du
   catalogue, tri et filtre par défaut de la liste. Sans compte, tout reste en local, avec export et
   import JSON.
-- **Rester maître de son compte** : un panneau « Mon compte » pour changer son mot de passe,
-  déconnecter les autres appareils, exporter l'intégralité de ses données en un fichier, et
-  supprimer son compte pour de bon.
-- **Installer l'app** : PWA avec shell hors-ligne et images en cache, interface traduite en
-  français, anglais, espagnol, allemand et italien.
+- **Rester maître de son compte** : le panneau « Mon compte » change le mot de passe, déconnecte
+  les autres appareils encore connectés, exporte l'intégralité des données en un fichier
+  réimportable, et supprime le compte pour de bon.
+- **Installer l'app** : PWA avec shell hors-ligne et images en cache — un bandeau annonce quand
+  l'app sert depuis le cache —, interface traduite en français, anglais, espagnol, allemand et
+  italien, la langue suivant celle du navigateur au premier lancement.
 
 ## Sous le capot
 
@@ -80,15 +105,25 @@ Ce qui n'est pas visible à l'écran mais tient l'app debout :
 - **Cache HTTP.** Les endpoints de lecture envoient `Cache-Control` et des ETags forts, les routes
   privées sont en `no-store`.
 - **Auth self-contained.** bcrypt + JWT + store JSON atomique, aucun SaaS tiers. L'API refuse de
-  démarrer en production sans `JWT_SECRET`. Chaque jeton porte la génération du compte : changer son
-  mot de passe ou demander une déconnexion globale incrémente ce compteur et invalide d'un coup tous
-  les jetons émis avant, sans table de sessions à maintenir. La suppression d'un compte efface le
-  compte, ses préférences et sa bibliothèque, et ses jetons cessent de passer à la requête suivante.
+  démarrer en production sans `JWT_SECRET`. Changer son mot de passe révoque chaque jeton déjà
+  émis (le jeton porte l'horodatage du dernier changement), et le jeton d'un compte supprimé meurt
+  immédiatement au lieu de survivre trente jours. « Déconnecter les autres appareils » utilise le
+  même levier avec un horodatage distinct : couper ses sessions n'est pas un changement de mot de
+  passe et ne doit pas s'enregistrer comme tel, donc un jeton doit satisfaire les deux marqueurs.
 - **Sync sans écrasement.** La bibliothèque porte un numéro de révision : un `PUT` contre une
   révision périmée est refusé en `409` avec l'état du serveur, que le client fusionne avant de
   repousser. Sans ça, deux onglets ouverts suffisent à ce que le plus lent efface ce que l'autre
-  vient d'enregistrer. En cas de conflit, l'union gagne : perdre une suppression est moins grave que
-  perdre une collection.
+  vient d'enregistrer. En cas de conflit, l'union gagne : perdre une suppression est moins grave
+  que perdre une collection.
+- **Entrées bornées et typées.** Le tri d'Explorer passe par une allowlist, la pagination est
+  plafonnée au maximum TMDB, les identifiants de plateformes doivent être numériques et une
+  région ou langue malformée est ignorée : aucune chaîne arbitraire ne mine de clé de cache ni
+  n'atteint l'amont. Une exception inattendue répond un message générique, le détail restant dans
+  le log serveur.
+- **Le scroll infini ne suffit pas.** Il n'y a rien à activer au clavier et rien qui annonce que
+  vingt titres viennent d'apparaître. Explorer et Recherche gardent la sentinelle, mais lui
+  adjoignent un vrai bouton « Charger plus » et une région `aria-live` qui énonce le compte après
+  chaque page (« 33 titres affichés sur 33 »), puis la fin de liste.
 - **Accessibilité.** Les quatre overlays partagent un hook `useModal` (piège de focus, restauration,
   `Escape`, verrou de scroll, `role="dialog"`), les actions passent par une région `aria-live`, il y
   a un skip-link. Contrastes mesurés, pas estimés : tout le texte passe le 4.5:1 de WCAG AA sur le
@@ -96,26 +131,46 @@ Ce qui n'est pas visible à l'écran mais tient l'app debout :
   au lieu de tout annuler : un bouton qui ne réagit plus du tout se lit comme cassé, pas comme calme.
 - **Typographie auto-hébergée.** Bricolage Grotesque pour les titres, Instrument Sans pour
   l'interface, en variable woff2 servi par le bundle. Aucune requête vers un CDN de polices, ce qui
-  serait incohérent pour une app qui ne charge même pas de script d'analytics par défaut.
-- **Perf client.** Cache mémoire SWR avec dédup des requêtes en vol, `srcset` dérivé côté client des
-  URLs TMDB, `ErrorBoundary` global au lieu d'un écran blanc.
+  serait incohérent pour une app qui ne charge même pas de script d'analytics par défaut. Les deux
+  sous-ensembles latins sont préchargés depuis le shell : leurs noms étant hashés par le build,
+  c'est lui qui pose les balises.
+- **Perf client.** Cache mémoire SWR avec dédup des requêtes en vol — accueil, fiches, profils et
+  saisons compris : rouvrir une fiche dans la fenêtre de fraîcheur ne refait aucune requête —,
+  `srcset` dérivé côté client des URLs TMDB, `ErrorBoundary` global au lieu d'un écran blanc.
+- **Observabilité.** Chaque réponse porte un `X-Request-Id` (entrant écho s'il est sain, généré
+  sinon), repris dans les corps d'erreur pour corréler un rapport de bug à une ligne de log. En
+  production, une ligne JSON par requête — chemin sans query string, les termes de recherche
+  restant hors télémétrie — et `/api/health` annonce la version.
 - **L'interface n'a pas de couleur d'accent.** Elle emprunte celle du titre affiché : la teinte
   dominante de l'affiche est extraite dans le navigateur, pondérée par la saturation puis rendue
   comme de la lumière, et c'est elle qui colore le hero, la carte survolée et la fiche ouverte. Là où
   aucun titre n'est en contexte, comme la barre de navigation, l'état actif reste un blanc neutre.
   Coût : zéro travail serveur, `image.tmdb.org` répondant `access-control-allow-origin: *`, et un
   échantillon `w92` de quelques kilo-octets mis en cache un an.
-- **SEO.** Le `<head>` suit la route et la fiche ouverte (`title`, `description`, Open Graph,
-  Twitter Card, canonique), avec des données structurées schema.org : `WebSite` + `SearchAction` sur
-  l'accueil, `Movie` ou `TVSeries` sur une fiche, `Person` sur un profil. `aggregateRating` n'est
-  émis que si un vrai nombre de votes le porte, parce que Google rejette une note sans compteur.
-  Les surfaces sans valeur de recherche (`/search`, `/library`) sont servies en `noindex` plutôt que
-  bloquées dans `robots.txt` : une URL interdite au crawl ne fait jamais lire son `noindex`.
+- **SEO : un shell prérendu par route.** Un SPA n'émet qu'un `index.html`, donc toutes les URLs
+  reçoivent le `<head>` de l'accueil — même titre, même canonique. Ici le build en génère un par
+  route depuis un manifeste unique (`src/lib/routes.ts`), qui pilote aussi le `sitemap.xml` et
+  ce que les vues réappliquent après hydratation : le document vivant ne contredit jamais le shell
+  qui l'a servi. Chaque page arrive donc avec son `title`, sa `description`, sa canonique, ses
+  balises Open Graph / Twitter et, sur l'accueil, un `@graph` `WebSite` + `Organization`. Le corps
+  porte un bloc `noscript` avec le titre, la description et les liens de section : ce que lit un
+  moteur qui n'exécute pas JS. Une fois l'app démarrée, le `<head>` suit la route et la fiche
+  ouverte, avec `Movie` / `TVSeries` sur une fiche et `Person` sur un profil — `aggregateRating`
+  n'étant émis que si un vrai nombre de votes le porte, parce que Google rejette une note sans
+  compteur. Les surfaces sans valeur de recherche (`/search`, `/library`) sont servies en `noindex`
+  plutôt que bloquées dans `robots.txt` : une URL interdite au crawl ne fait jamais lire son
+  `noindex`. Même raison pour `/api`, qui répond `X-Robots-Tag: noindex` : Googlebot appelle ces
+  endpoints pendant le rendu, les bloquer lui ferait rendre une application vide.
+- **Une URL par page.** `/movies/` est redirigée en 301 vers `/movies`, et une adresse inconnue
+  répond un vrai 404 portant la vue « page introuvable » — pas une redirection silencieuse vers
+  l'accueil, qui ferait de chaque lien mort un doublon de la page d'accueil. Les fiches sont
+  atteignables : les cartes sont de vraies ancres vers `/?watch=type-id`, la forme que la fiche
+  déclare canonique.
 - **Analytics optionnelle et sans cookie.** Aucun script n'est chargé tant que
   `VITE_UMAMI_WEBSITE_ID` n'est pas défini. Quand elle est active, une instance
-  [Umami](https://umami.is) auto-hébergée compte les pages et dix actions produit (`Open Detail`,
+  [Umami](https://umami.is) auto-hébergée compte les pages et onze actions produit (`Open Detail`,
   `Trailer Play`, `Providers Click`, `Palette Open`, `Rating Set`, `Library Add`, `Library Import`,
-  `Library Export`, `Signup`, `Login`). Aucune propriété d'événement ne porte de donnée personnelle :
+  `Library Export`, `Share`, `Signup`, `Login`). Aucune propriété d'événement ne porte de donnée personnelle :
   pas d'e-mail, pas de terme de recherche, seulement des compteurs et des types de média.
   `VITE_UMAMI_DOMAINS` limite le tracker au domaine de production, donc une session locale ne
   pollue pas les statistiques.
@@ -131,17 +186,17 @@ neox/
 │   ├── single-flight.js coalescing des requêtes amont concurrentes
 │   ├── circuit-breaker.js disjoncteur sur la santé de TMDB
 │   ├── http-cache.js   middlewares Cache-Control, ETag/304, no-store
-│   ├── auth.js         bcrypt + JWT (générations de jetons), middleware requireAuth
+│   ├── auth.js         bcrypt + JWT, middleware requireAuth
 │   ├── store.js        store JSON persistant, atomique, zéro dépendance
 │   ├── library.js      validation et merge des bibliothèques
 │   └── preferences.js  validation des préférences de compte
 └── project/            Frontend React + TypeScript + Vite + Tailwind
     └── src/
-        ├── lib/        client API typé, query (SWR + dédup), i18n, library-io, preferences, seo, structured-data, film-color, img
+        ├── lib/        client API typé, query (SWR + dédup), i18n, library-io, preferences, routes (manifeste SEO), seo, structured-data, film-color, img
         ├── context/    AuthContext, PreferencesContext, LibraryContext
         ├── hooks/      useQuery, useDebounce, useMyPlatforms, useModal, useDocumentMeta, useFilmColor
         ├── components/ layout, media, home, auth, ui, command
-        └── views/      Home, Discover, Search, Library
+        └── views/      Home, Discover, Search, Library, NotFound
 ```
 
 Bibliothèque et préférences sont localStorage-first, puis réconciliées avec le compte à la
@@ -176,7 +231,7 @@ même domaine en `/api`. Le navigateur ne fait aucun appel cross-origin, le back
 port publiquement, et il ne reste qu'un port à placer derrière ton terminateur TLS.
 
 Pour un déploiement sur ton domaine, renseigne aussi `VITE_SITE_URL` : elle pilote les URLs
-canoniques et Open Graph, et réécrit `robots.txt` + `sitemap.xml` au build.
+canoniques et Open Graph, et réécrit `robots.txt`, `sitemap.xml` et les shells prérendus au build.
 
 > Vite inline ses variables au build, pas au démarrage du conteneur. Après avoir changé un `VITE_*`,
 > reconstruis l'image (`docker compose up --build`).
@@ -199,11 +254,11 @@ même-origine (`/api`), ce que fait l'image Docker.
 
 | Méthode | Route | Description |
 |---|---|---|
-| GET | `/api/health` | État du service, config TMDB, métriques cache et disjoncteur |
+| GET | `/api/health` | État du service, version, config TMDB, métriques cache et disjoncteur |
 | GET | `/api/home` | Payload accueil (hero + rails) |
-| GET | `/api/search?q=&page=` | Recherche multi (films + séries) |
+| GET | `/api/search?q=&page=&type=` | Recherche multi (films + séries, personnes dans `people`) ; `type=movie\|tv` restreint via `/search/movie` ou `/search/tv` |
 | GET | `/api/trending/:type?window=week\|day` | Tendances (`all`/`movie`/`tv`) |
-| GET | `/api/discover/:type?genre=&sort=&year=&minRating=&page=` | Exploration filtrée |
+| GET | `/api/discover/:type?genre=&sort=&year=&minRating=&providers=&page=` | Exploration filtrée |
 | GET | `/api/genres/:type` | Genres (`movie`/`tv`) |
 | GET | `/api/providers/:type?region=` | Plateformes de streaming d'une région |
 | GET | `/api/person/:id` | Profil et filmographie d'une personne |
@@ -213,10 +268,10 @@ même-origine (`/api`), ce que fait l'image Docker.
 | POST | `/api/auth/register` | Création de compte, renvoie `{ token, user }` |
 | POST | `/api/auth/login` | Connexion, renvoie `{ token, user }` |
 | GET | `/api/auth/me` 🔒 | Profil du token courant |
-| PATCH | `/api/account/password` 🔒 | Change le mot de passe, révoque les autres sessions |
-| POST | `/api/account/logout-all` 🔒 | Déconnecte tous les autres appareils |
-| GET | `/api/account/export` 🔒 | Compte + préférences + bibliothèque en un document |
-| DELETE | `/api/account` 🔒 | Supprime le compte et ses données (mot de passe requis) |
+| POST | `/api/auth/change-password` 🔒 | Change le mot de passe, révoque les anciens jetons |
+| DELETE | `/api/auth/account` 🔒 | Supprime le compte, ses préférences et sa bibliothèque (confirmation par mot de passe) |
+| POST | `/api/auth/logout-all` 🔒 | Déconnecte tous les autres appareils, renvoie un jeton frais |
+| GET | `/api/auth/export` 🔒 | Compte + préférences + bibliothèque en un document réimportable |
 | GET | `/api/preferences` 🔒 | Préférences du compte (`null` si jamais enregistrées) |
 | PUT | `/api/preferences` 🔒 | Met à jour les préférences (patch partiel) |
 | GET | `/api/library` 🔒 | Bibliothèque du compte, avec sa révision |
@@ -228,11 +283,24 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 
 ## Qualité
 
-- **210 tests** : 96 côté `backend/` (auth, gestion de compte et sync via supertest, révocation de
-  jetons, conflits de révision, validation des préférences, garde du secret JWT, cache HTTP, cache
-  LRU et snapshot/hydrate, single-flight, params discover, saisons) et 114 côté `project/`
-  (bibliothèque, préférences, export/import, i18n, SEO, données structurées, extraction de teinte,
-  cache SWR, vu récemment, srcset).
+- **337 tests** : 143 côté `backend/` (auth, gestion de compte et sync via supertest, garde du
+  secret JWT, révocation de jetons — mot de passe et déconnexion globale —, conflits de révision de
+  bibliothèque, validation des préférences, export de compte, durcissement des entrées, corrélation
+  de requêtes, épisodes vus, notes et durées de la bibliothèque, crew, classification régionale et
+  saga d'une fiche, recherche typée, cache HTTP, cache LRU et snapshot/hydrate, single-flight,
+  params discover, saisons, directives crawler, et le chemin réseau du client TMDB — retry, 429,
+  snapshot sans secret — contre un serveur fixture injecté via `TMDB_BASE_URL`) et 194 côté
+  `project/` (bibliothèque, préférences et leur réconciliation à la connexion, export/import JSON
+  et CSV, épisodes vus, prochain épisode non vu et progression
+  de série, temps de visionnage, recherche de titres et de notes, partage, détection de langue,
+  i18n avec test de parité des cinq dictionnaires, manifeste de routes et shells prérendus, SEO,
+  données structurées, extraction de teinte, cache SWR, vu récemment, srcset).
+- **Bout en bout** : `e2e/` pilote l'app buildée dans un vrai Chromium (Playwright) contre l'API
+  réelle branchée sur un TMDB factice local — 59 vérifications couvrant fiches (crew, saga,
+  classification), partage, épisodes et saisons entières, reprise de série, notes personnelles
+  jusqu'à leur synchronisation dans le compte, bibliothèque, exports, comptes, filtres d'Explorer,
+  recherche typée et paginée, hors-ligne et détection de langue. `npm install` dans `e2e/` puis
+  `bash e2e/run.sh`.
 - **Vérifs** : `npm run lint`, `npm run typecheck`, `npm run build`.
 - **CI** : GitHub Actions lance lint, typecheck, tests et build sur chaque PR
   (`.github/workflows/ci.yml`).
@@ -244,14 +312,11 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 - L'API refuse de démarrer en `NODE_ENV=production` sans `JWT_SECRET` : un secret de repli connu de
   tous vaut une absence d'authentification.
 - Mots de passe hachés bcrypt, jetons JWT signés, `helmet`, rate-limit global et limiteur strict sur
-  `/api/auth` et `/api/account`, corps de requête bornés.
-- Les jetons sont révocables malgré leur nature stateless : un compteur de génération par compte,
-  incrémenté au changement de mot de passe et à la déconnexion globale, invalide instantanément tous
-  les jetons plus anciens. Un jeton d'un compte supprimé ne passe plus.
-- Changer son mot de passe et supprimer son compte redemandent le mot de passe courant : un jeton
-  valide prouve la session, pas la personne devant l'appareil.
-- Les routes privées (`/api/library`, `/api/preferences`, `/api/account`, `/api/auth/me`) sont en
-  `no-store`, jamais mises en cache par un navigateur ou un CDN.
+  `/api/auth`, corps de requête bornés et typés (un e-mail non-string répond 400, jamais 500).
+- La clé TMDB n'entre jamais dans les clés de cache : le snapshot disque n'en contient aucune
+  trace, et une rotation de clé ne vide pas le cache.
+- Les routes privées (`/api/library`, `/api/preferences`, `/api/auth/*`) sont en `no-store`, jamais
+  mises en cache par un navigateur ou un CDN.
 
 ## Stack
 

@@ -1,20 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Globe } from 'lucide-react';
 import { getLocale, setLocale } from '../../lib/api';
+import { OFFERED_LOCALES } from '../../lib/locales';
 import { usePreferences } from '../../context/PreferencesContext';
 import { useT } from '../../lib/i18n';
-
-const LOCALES = [
-  { region: 'FR', language: 'fr-FR', label: 'France', flag: '🇫🇷' },
-  { region: 'BE', language: 'fr-BE', label: 'Belgique', flag: '🇧🇪' },
-  { region: 'CA', language: 'fr-CA', label: 'Canada', flag: '🇨🇦' },
-  { region: 'CH', language: 'fr-CH', label: 'Suisse', flag: '🇨🇭' },
-  { region: 'US', language: 'en-US', label: 'United States', flag: '🇺🇸' },
-  { region: 'GB', language: 'en-GB', label: 'United Kingdom', flag: '🇬🇧' },
-  { region: 'ES', language: 'es-ES', label: 'España', flag: '🇪🇸' },
-  { region: 'DE', language: 'de-DE', label: 'Deutschland', flag: '🇩🇪' },
-  { region: 'IT', language: 'it-IT', label: 'Italia', flag: '🇮🇹' },
-];
 
 export function LocaleMenu() {
   const [open, setOpen] = useState(false);
@@ -37,8 +26,8 @@ export function LocaleMenu() {
       return;
     }
     setLocale({ region, language });
-    // Awaited, not debounced: the reload below would kill an in-flight push, and
-    // the whole point is that the choice follows the account to the next device.
+    // Awaited, not debounced: the reload below would kill an in-flight push,
+    // and the point is that the choice follows the account to the next device.
     await updateNow({ region, language });
     // Hard reload guarantees every view refetches with the new locale.
     window.location.reload();
@@ -59,7 +48,7 @@ export function LocaleMenu() {
             {t('locale.title')}
           </p>
           <div className="max-h-72 overflow-y-auto">
-            {LOCALES.map((l) => {
+            {OFFERED_LOCALES.map((l) => {
               const active = l.region === current.region && l.language === current.language;
               return (
                 <button

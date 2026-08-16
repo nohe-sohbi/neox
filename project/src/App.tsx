@@ -66,7 +66,7 @@ function App() {
       {/* Touch-device primary navigation (the top navbar links are md-only) */}
       <MobileNav />
 
-      {/* Global overlays: deep-link driven detail, person, auth, account, ⌘K */}
+      {/* Global overlays: deep-link driven detail, person, auth, and ⌘K palette */}
       <DetailModal />
       <PersonModal />
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />

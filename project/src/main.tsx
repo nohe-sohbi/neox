@@ -5,6 +5,7 @@ import { registerSW } from 'virtual:pwa-register';
 import App from './App.tsx';
 import { AuthProvider } from './context/AuthContext';
 import { LibraryProvider } from './context/LibraryContext';
+import { PreferencesProvider } from './context/PreferencesContext';
 import { ToastProvider } from './context/ToastContext';
 import { activeLang } from './lib/i18n';
 import { localeTag } from './lib/i18n/core';
@@ -37,9 +38,13 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <ToastProvider>
         <AuthProvider>
-          <LibraryProvider>
-            <App />
-          </LibraryProvider>
+          {/* Preferences sit between auth and library: both react to the user
+              switching, and the library view reads its default sort from here. */}
+          <PreferencesProvider>
+            <LibraryProvider>
+              <App />
+            </LibraryProvider>
+          </PreferencesProvider>
         </AuthProvider>
       </ToastProvider>
     </BrowserRouter>

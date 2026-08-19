@@ -37,6 +37,11 @@ function signToken(user) {
     // requireAuth can reject every token that predates a change exactly: the
     // `iat` claim only counts seconds, which is too coarse for that.
     if (user.passwordChangedAt) payload.pwc = user.passwordChangedAt;
+    // Same mechanism for an explicit "sign my other devices out", which is not a
+    // password change and must not be recorded as one. Two independent stamps
+    // rather than one shared field: each answers a different question, and a
+    // token has to match both.
+    if (user.sessionsRevokedAt) payload.srv = user.sessionsRevokedAt;
     return jwt.sign(payload, SECRET, { expiresIn: TOKEN_TTL });
 }
 
@@ -63,7 +68,10 @@ function requireAuth(req, res, next) {
         // password is the user's "log every other session out" lever, which
         // stateless JWTs can't offer otherwise.
         const user = store.getUserById(payload.sub);
-        const stale = user && user.passwordChangedAt && payload.pwc !== user.passwordChangedAt;
+        const stale =
+            user &&
+            ((user.passwordChangedAt && payload.pwc !== user.passwordChangedAt) ||
+                (user.sessionsRevokedAt && payload.srv !== user.sessionsRevokedAt));
         if (!user || stale) {
             return res
                 .status(401)

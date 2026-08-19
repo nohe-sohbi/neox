@@ -1,11 +1,13 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bookmark, Cloud, Download, FileSpreadsheet, Loader2, Search, Trash2, Upload } from 'lucide-react';
-import type { LibraryEntry, LibraryStatus, MediaItem, MediaType } from '../lib/types';
+import type { LibraryEntry, MediaItem, MediaType } from '../lib/types';
 import { matchesQuery } from '../lib/library-utils';
 import { track } from '../lib/analytics';
 import { useAuth } from '../context/AuthContext';
 import { useLibrary } from '../context/LibraryContext';
+import { usePreferences } from '../context/PreferencesContext';
+import type { LibraryFilter } from '../lib/preferences';
 import {
   SORT_MODES,
   backupFilename,
@@ -24,9 +26,7 @@ import { useT } from '../lib/i18n';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { routeMeta } from '../lib/routes';
 
-type Filter = 'all' | LibraryStatus;
-
-const FILTERS: { id: Filter; key: string }[] = [
+const FILTERS: { id: LibraryFilter; key: string }[] = [
   { id: 'all', key: 'filter.all' },
   { id: 'want', key: 'filter.want' },
   { id: 'watching', key: 'filter.watching' },
@@ -67,10 +67,16 @@ export function LibraryView({ onOpenAuth }: { onOpenAuth: () => void }) {
   const { user } = useAuth();
   const toast = useToast();
   const { entries, clear, syncing, importEntries } = useLibrary();
-  const [filter, setFilter] = useState<Filter>('all');
+  // Status filter and sort order are preferences, not view state: the way you
+  // read your own list is a habit, and it should survive a reload and follow
+  // the account. The type filter and the search box stay local on purpose —
+  // they narrow a single visit, they are not a way of reading the list.
+  const { preferences, update } = usePreferences();
+  const { libraryFilter: filter, librarySort: sort } = preferences;
+  const setFilter = (next: LibraryFilter) => update({ libraryFilter: next });
+  const setSort = (next: SortMode) => update({ librarySort: next });
   const [kind, setKind] = useState<'all' | MediaType>('all');
   const [search, setSearch] = useState('');
-  const [sort, setSort] = useState<SortMode>('added_desc');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const counts = {

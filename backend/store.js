@@ -1,10 +1,10 @@
 /**
  * Tiny persistent JSON store: zero external dependencies.
  *
- * Good enough for a single-instance deployment: users + their libraries live in
- * one file, written atomically (tmp + rename) through a serialized queue so
- * concurrent requests can't corrupt it. Swap for Postgres/Redis when you scale
- * horizontally (see ROADMAP).
+ * Good enough for a single-instance deployment: users, their libraries and their
+ * preferences live in one file, written atomically (tmp + rename) through a
+ * serialized queue so concurrent requests can't corrupt it. Swap for
+ * Postgres/Redis when you scale horizontally (see ROADMAP).
  */
 const crypto = require('crypto');
 const fs = require('fs');
@@ -13,18 +13,28 @@ const path = require('path');
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const FILE = path.join(DATA_DIR, 'store.json');
 
-let state = { users: {}, libraries: {} };
+const emptyState = () => ({ users: {}, libraries: {}, libraryRevs: {}, preferences: {} });
+
+let state = emptyState();
 let writeQueue = Promise.resolve();
 
 function load() {
     try {
         if (fs.existsSync(FILE)) {
             const parsed = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-            state = { users: parsed.users || {}, libraries: parsed.libraries || {} };
+            // Every collection is defaulted individually: a store written by an
+            // older version simply has no `preferences` / `libraryRevs` key, and
+            // must keep working instead of needing a migration step.
+            state = {
+                users: parsed.users || {},
+                libraries: parsed.libraries || {},
+                libraryRevs: parsed.libraryRevs || {},
+                preferences: parsed.preferences || {},
+            };
         }
     } catch (err) {
         console.error('Could not read data store, starting fresh:', err.message);
-        state = { users: {}, libraries: {} };
+        state = emptyState();
     }
 }
 
@@ -106,11 +116,17 @@ async function updateUser(id, patch) {
     return user;
 }
 
-/** Removes the account and its library. Returns whether anything was deleted. */
+/**
+ * Removes the account and everything attached to it: library, its revision
+ * counter and preferences. No tombstone, no orphans. Returns whether anything
+ * was deleted.
+ */
 async function deleteUser(id) {
     if (!state.users[id]) return false;
     delete state.users[id];
     delete state.libraries[id];
+    delete state.libraryRevs[id];
+    delete state.preferences[id];
     await persist();
     return true;
 }
@@ -126,10 +142,32 @@ function getLibrary(userId) {
     return state.libraries[userId] || [];
 }
 
+/**
+ * Monotonic counter bumped on every write, used for optimistic concurrency:
+ * a client that PUTs against a stale revision is told to re-merge instead of
+ * overwriting what another device just saved.
+ */
+function getLibraryRev(userId) {
+    return state.libraryRevs[userId] || 0;
+}
+
 async function setLibrary(userId, entries) {
     state.libraries[userId] = entries;
+    state.libraryRevs[userId] = getLibraryRev(userId) + 1;
     await persist();
-    return entries;
+    return { entries, rev: state.libraryRevs[userId] };
+}
+
+/* ----------------------------- preferences ---------------------------- */
+
+function getPreferences(userId) {
+    return state.preferences[userId] || null;
+}
+
+async function setPreferences(userId, preferences) {
+    state.preferences[userId] = preferences;
+    await persist();
+    return preferences;
 }
 
 module.exports = {
@@ -140,5 +178,8 @@ module.exports = {
     deleteUser,
     publicUser,
     getLibrary,
+    getLibraryRev,
     setLibrary,
+    getPreferences,
+    setPreferences,
 };

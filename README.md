@@ -79,9 +79,13 @@ disponibilité légale (JustWatch via TMDB).
   réimportable, ou CSV pour un tableur.
 - **Partager une fiche** : chaque fiche titre ou personne porte un bouton Partager — feuille de
   partage système quand elle existe, copie du lien canonique sinon.
-- **Retrouver sa liste partout** : compte optionnel (inscription, connexion, changement de mot de
-  passe, suppression du compte) qui synchronise la bibliothèque entre appareils. Sans compte, tout
-  reste en local, avec export et import JSON.
+- **Retrouver son NEOX partout** : compte optionnel (inscription, connexion) qui synchronise la
+  bibliothèque *et* les préférences entre appareils : plateformes de streaming, région et langue du
+  catalogue, tri et filtre par défaut de la liste. Sans compte, tout reste en local, avec export et
+  import JSON.
+- **Rester maître de son compte** : le panneau « Mon compte » change le mot de passe, déconnecte
+  les autres appareils encore connectés, exporte l'intégralité des données en un fichier
+  réimportable, et supprime le compte pour de bon.
 - **Installer l'app** : PWA avec shell hors-ligne et images en cache — un bandeau annonce quand
   l'app sert depuis le cache —, interface traduite en français, anglais, espagnol, allemand et
   italien, la langue suivant celle du navigateur au premier lancement.
@@ -103,7 +107,14 @@ Ce qui n'est pas visible à l'écran mais tient l'app debout :
 - **Auth self-contained.** bcrypt + JWT + store JSON atomique, aucun SaaS tiers. L'API refuse de
   démarrer en production sans `JWT_SECRET`. Changer son mot de passe révoque chaque jeton déjà
   émis (le jeton porte l'horodatage du dernier changement), et le jeton d'un compte supprimé meurt
-  immédiatement au lieu de survivre trente jours.
+  immédiatement au lieu de survivre trente jours. « Déconnecter les autres appareils » utilise le
+  même levier avec un horodatage distinct : couper ses sessions n'est pas un changement de mot de
+  passe et ne doit pas s'enregistrer comme tel, donc un jeton doit satisfaire les deux marqueurs.
+- **Sync sans écrasement.** La bibliothèque porte un numéro de révision : un `PUT` contre une
+  révision périmée est refusé en `409` avec l'état du serveur, que le client fusionne avant de
+  repousser. Sans ça, deux onglets ouverts suffisent à ce que le plus lent efface ce que l'autre
+  vient d'enregistrer. En cas de conflit, l'union gagne : perdre une suppression est moins grave
+  que perdre une collection.
 - **Entrées bornées et typées.** Le tri d'Explorer passe par une allowlist, la pagination est
   plafonnée au maximum TMDB, les identifiants de plateformes doivent être numériques et une
   région ou langue malformée est ignorée : aucune chaîne arbitraire ne mine de clé de cache ni
@@ -177,17 +188,20 @@ neox/
 │   ├── http-cache.js   middlewares Cache-Control, ETag/304, no-store
 │   ├── auth.js         bcrypt + JWT, middleware requireAuth
 │   ├── store.js        store JSON persistant, atomique, zéro dépendance
-│   └── library.js      validation et merge des bibliothèques
+│   ├── library.js      validation et merge des bibliothèques
+│   └── preferences.js  validation des préférences de compte
 └── project/            Frontend React + TypeScript + Vite + Tailwind
     └── src/
-        ├── lib/        client API typé, query (SWR + dédup), i18n, library-io, routes (manifeste SEO), seo, structured-data, film-color, img
-        ├── context/    AuthContext, LibraryContext
+        ├── lib/        client API typé, query (SWR + dédup), i18n, library-io, preferences, routes (manifeste SEO), seo, structured-data, film-color, img
+        ├── context/    AuthContext, PreferencesContext, LibraryContext
         ├── hooks/      useQuery, useDebounce, useMyPlatforms, useModal, useDocumentMeta, useFilmColor
         ├── components/ layout, media, home, auth, ui, command
         └── views/      Home, Discover, Search, Library, NotFound
 ```
 
-La bibliothèque est localStorage-first, puis fusionnée au compte à la connexion.
+Bibliothèque et préférences sont localStorage-first, puis réconciliées avec le compte à la
+connexion : la bibliothèque par fusion, les préférences en gardant le côté modifié le plus
+récemment. Sans compte, rien ne change, tout vit dans le navigateur.
 
 ## Démarrage
 
@@ -255,9 +269,13 @@ même-origine (`/api`), ce que fait l'image Docker.
 | POST | `/api/auth/login` | Connexion, renvoie `{ token, user }` |
 | GET | `/api/auth/me` 🔒 | Profil du token courant |
 | POST | `/api/auth/change-password` 🔒 | Change le mot de passe, révoque les anciens jetons |
-| DELETE | `/api/auth/account` 🔒 | Supprime le compte et sa bibliothèque (confirmation par mot de passe) |
-| GET | `/api/library` 🔒 | Bibliothèque du compte |
-| PUT | `/api/library` 🔒 | Remplace la bibliothèque |
+| DELETE | `/api/auth/account` 🔒 | Supprime le compte, ses préférences et sa bibliothèque (confirmation par mot de passe) |
+| POST | `/api/auth/logout-all` 🔒 | Déconnecte tous les autres appareils, renvoie un jeton frais |
+| GET | `/api/auth/export` 🔒 | Compte + préférences + bibliothèque en un document réimportable |
+| GET | `/api/preferences` 🔒 | Préférences du compte (`null` si jamais enregistrées) |
+| PUT | `/api/preferences` 🔒 | Met à jour les préférences (patch partiel) |
+| GET | `/api/library` 🔒 | Bibliothèque du compte, avec sa révision |
+| PUT | `/api/library` 🔒 | Remplace la bibliothèque (`409` si `rev` est périmée) |
 | POST | `/api/library/merge` 🔒 | Fusionne local et serveur |
 
 🔒 requiert l'en-tête `Authorization: Bearer <token>`.
@@ -265,13 +283,15 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
 
 ## Qualité
 
-- **299 tests** : 116 côté `backend/` (auth, gestion de compte et sync via supertest, garde du
-  secret JWT, révocation de jetons, durcissement des entrées, corrélation de requêtes, épisodes
-  vus, notes et durées de la bibliothèque, crew, classification régionale et saga d'une fiche,
-  recherche typée, cache HTTP, cache LRU et snapshot/hydrate, single-flight, params discover,
-  saisons, directives crawler, et le chemin réseau du client TMDB — retry, 429, snapshot sans
-  secret — contre un serveur fixture injecté via `TMDB_BASE_URL`) et 183 côté `project/`
-  (bibliothèque, export/import JSON et CSV, épisodes vus, prochain épisode non vu et progression
+- **337 tests** : 143 côté `backend/` (auth, gestion de compte et sync via supertest, garde du
+  secret JWT, révocation de jetons — mot de passe et déconnexion globale —, conflits de révision de
+  bibliothèque, validation des préférences, export de compte, durcissement des entrées, corrélation
+  de requêtes, épisodes vus, notes et durées de la bibliothèque, crew, classification régionale et
+  saga d'une fiche, recherche typée, cache HTTP, cache LRU et snapshot/hydrate, single-flight,
+  params discover, saisons, directives crawler, et le chemin réseau du client TMDB — retry, 429,
+  snapshot sans secret — contre un serveur fixture injecté via `TMDB_BASE_URL`) et 194 côté
+  `project/` (bibliothèque, préférences et leur réconciliation à la connexion, export/import JSON
+  et CSV, épisodes vus, prochain épisode non vu et progression
   de série, temps de visionnage, recherche de titres et de notes, partage, détection de langue,
   i18n avec test de parité des cinq dictionnaires, manifeste de routes et shells prérendus, SEO,
   données structurées, extraction de teinte, cache SWR, vu récemment, srcset).
@@ -295,8 +315,8 @@ Les endpoints TMDB acceptent `?region=` et `?lang=` pour localiser résultats et
   `/api/auth`, corps de requête bornés et typés (un e-mail non-string répond 400, jamais 500).
 - La clé TMDB n'entre jamais dans les clés de cache : le snapshot disque n'en contient aucune
   trace, et une rotation de clé ne vide pas le cache.
-- Les routes privées (`/api/library`, `/api/auth/me`) sont en `no-store`, jamais mises en cache par
-  un navigateur ou un CDN.
+- Les routes privées (`/api/library`, `/api/preferences`, `/api/auth/*`) sont en `no-store`, jamais
+  mises en cache par un navigateur ou un CDN.
 
 ## Stack
 

@@ -16,6 +16,7 @@ import type {
 } from './types';
 import { createTranslator, langFromLocale } from './i18n/core';
 import { DEFAULT_LOCALE, detectLocale } from './locales';
+import type { Preferences } from './preferences';
 
 // `??`, not `||`: an explicitly empty VITE_API_URL means "same origin", the
 // production image serves the API under /api behind the same host, so requests
@@ -74,11 +75,18 @@ function withLocale(path: string): string {
 export class ApiError extends Error {
   status: number;
   code?: string;
-  constructor(message: string, status: number, code?: string) {
+  /**
+   * The parsed error body, when it carries more than a message. A library
+   * conflict (409) ships the server's entries and revision so the caller can
+   * re-merge without a second round-trip.
+   */
+  details?: unknown;
+  constructor(message: string, status: number, code?: string, details?: unknown) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
+    this.details = details;
   }
 }
 
@@ -139,6 +147,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       data?.error || tApi('api.server', { status: response.status }),
       response.status,
       data?.code,
+      body,
     );
   }
 
@@ -147,6 +156,23 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 /** Search scope: everything (titles + people), films only, or shows only. */
 export type SearchType = 'all' | MediaType;
+
+/** A library payload and the revision it was read at. */
+export interface LibrarySync {
+  entries: LibraryEntry[];
+  rev: number;
+}
+
+/** Everything an account holds, in one downloadable document. */
+export interface AccountExport {
+  app: 'neox';
+  type: 'account';
+  version: number;
+  exportedAt: number;
+  account: User;
+  preferences: Preferences | null;
+  entries: LibraryEntry[];
+}
 
 export interface DiscoverOpts {
   genre?: number;
@@ -234,17 +260,37 @@ export const api = {
       body: JSON.stringify({ password }),
     }),
 
-  // ── Library sync ──
-  getLibrary: () => request<{ entries: LibraryEntry[] }>('/api/library'),
+  // Cuts every other session loose. Returns a fresh token, since the call also
+  // invalidates the one that made it.
+  logoutEverywhere: () => request<AuthResponse>('/api/auth/logout-all', { method: 'POST' }),
 
-  putLibrary: (entries: LibraryEntry[]) =>
-    request<{ entries: LibraryEntry[] }>('/api/library', {
+  exportAccount: () => request<AccountExport>('/api/auth/export'),
+
+  // ── Preferences sync ──
+  getPreferences: () => request<{ preferences: Preferences | null }>('/api/preferences'),
+
+  putPreferences: (preferences: Partial<Preferences>) =>
+    request<{ preferences: Preferences }>('/api/preferences', {
       method: 'PUT',
-      body: JSON.stringify({ entries }),
+      body: JSON.stringify({ preferences }),
+    }),
+
+  // ── Library sync ──
+  getLibrary: () => request<LibrarySync>('/api/library'),
+
+  /**
+   * `rev` is the revision this client last saw. The server rejects the write
+   * with a 409 (carrying its own entries and revision) when another device has
+   * saved since, instead of letting a full replacement erase it.
+   */
+  putLibrary: (entries: LibraryEntry[], rev?: number) =>
+    request<LibrarySync>('/api/library', {
+      method: 'PUT',
+      body: JSON.stringify(rev === undefined ? { entries } : { entries, rev }),
     }),
 
   mergeLibrary: (entries: LibraryEntry[]) =>
-    request<{ entries: LibraryEntry[] }>('/api/library/merge', {
+    request<LibrarySync>('/api/library/merge', {
       method: 'POST',
       body: JSON.stringify({ entries }),
     }),

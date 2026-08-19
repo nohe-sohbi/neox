@@ -38,9 +38,12 @@ export function serializeLibrary(entries: LibraryEntry[]): string {
   return JSON.stringify(backup, null, 2);
 }
 
-/** Suggested filename for a download, e.g. `neox-library-2026-06-20.json`. */
-export function backupFilename(now = new Date()): string {
-  return `neox-library-${now.toISOString().slice(0, 10)}.json`;
+/**
+ * Suggested filename for a download, e.g. `neox-library-2026-06-20.json`.
+ * `kind` distinguishes the watchlist-only backup from a full account export.
+ */
+export function backupFilename(now = new Date(), kind: 'library' | 'account' = 'library'): string {
+  return `neox-${kind}-${now.toISOString().slice(0, 10)}.json`;
 }
 
 /* ------------------------------- CSV export ------------------------------ */

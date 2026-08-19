@@ -96,6 +96,33 @@ describe('requireAuth', () => {
     expect(callRequireAuth(fresh)).toMatchObject({ passed: true, userId: user.id });
   });
 
+  it('rejects a token issued before the sessions were revoked', async () => {
+    const user = await store.createUser({ email: 'revoke@neox.test', passwordHash: 'x' });
+    const old = auth.signToken(user); // no `srv` claim yet
+    const updated = await store.updateUser(user.id, { sessionsRevokedAt: Date.now() });
+
+    expect(callRequireAuth(old)).toMatchObject({
+      passed: false,
+      status: 401,
+      body: { code: 'AUTH_SESSION_INVALID' },
+    });
+    // The token minted right after carries the matching stamp and survives, so
+    // "sign my other devices out" doesn't sign this one out too.
+    expect(callRequireAuth(auth.signToken(updated))).toMatchObject({ passed: true, userId: user.id });
+  });
+
+  it('keeps the two revocation stamps independent', async () => {
+    const user = await store.createUser({ email: 'both@neox.test', passwordHash: 'x' });
+    await store.updateUser(user.id, { sessionsRevokedAt: Date.now() });
+    const afterRevoke = auth.signToken(store.getUserById(user.id));
+    const updated = await store.updateUser(user.id, { passwordChangedAt: Date.now() });
+
+    // A password change invalidates a token that already matched the revocation
+    // stamp: matching one is not enough, a token has to match both.
+    expect(callRequireAuth(afterRevoke)).toMatchObject({ passed: false, status: 401 });
+    expect(callRequireAuth(auth.signToken(updated))).toMatchObject({ passed: true, userId: user.id });
+  });
+
   it('rejects a token signed with a different secret', () => {
     const forged = jwt.sign({ sub: 'u1', email: 'demo@neox.test' }, 'not-the-server-secret');
 

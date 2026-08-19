@@ -18,6 +18,8 @@ interface AuthContextValue {
   register: (email: string, password: string) => Promise<void>;
   logout: () => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  /** Signs every other device out, keeping this one. */
+  logoutEverywhere: () => Promise<void>;
   deleteAccount: (password: string) => Promise<void>;
 }
 
@@ -75,6 +77,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthToken(res.token);
   }, []);
 
+  const logoutEverywhere = useCallback(async () => {
+    // Same deal as a password change: the call invalidates this device's token
+    // too, so keep the replacement it hands back.
+    const res = await api.logoutEverywhere();
+    setAuthToken(res.token);
+  }, []);
+
   const deleteAccount = useCallback(async (password: string) => {
     await api.deleteAccount(password);
     // Dropping `user` also lets LibraryContext clear this device's copy.
@@ -83,8 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, ready, login, register, logout, changePassword, deleteAccount }),
-    [user, ready, login, register, logout, changePassword, deleteAccount],
+    () => ({ user, ready, login, register, logout, changePassword, logoutEverywhere, deleteAccount }),
+    [user, ready, login, register, logout, changePassword, logoutEverywhere, deleteAccount],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -24,7 +24,14 @@ insensible aux accents sur les titres et les commentaires, export JSON réimport
 sans compte (commentaire et durée compris), panneau de statistiques calculé localement (dont la
 note TMDB moyenne, l'écart avec tes notes et le temps de visionnage estimé, annoncé avec sa base).
 Comptes optionnels (bcrypt + JWT, store JSON) avec fusion localStorage vers compte à la connexion,
-changement de mot de passe (qui révoque les jetons émis) et suppression de compte.
+et sync par révision : un `PUT` contre une révision périmée est refusé plutôt que d'écraser ce
+qu'un autre appareil vient d'enregistrer.
+
+**Compte.** Les préférences suivent le compte, pas l'appareil : plateformes de streaming, région et
+langue du catalogue, tri et filtre par défaut de la liste, réconciliés à la connexion en gardant le
+côté modifié le plus récemment. Panneau « Mon compte » : changement de mot de passe (qui révoque
+les jetons émis), déconnexion de tous les autres appareils, export intégral des données en un
+fichier réimportable, suppression définitive du compte et de tout ce qui y est rattaché.
 
 **Interface.** Aucune couleur d'accent déclarée : la teinte vient de l'affiche du titre affiché,
 extraite dans le navigateur et rendue comme de la lumière. Design system Tailwind sur-mesure en
@@ -50,7 +57,7 @@ build depuis `VITE_SITE_URL`.
 
 **Packaging.** Image frontend multi-stage (`vite build` puis nginx), API proxyfiée en même-origine
 sous `/api`, conteneurs non-root avec `HEALTHCHECK`, `JWT_SECRET` obligatoire en production,
-licence MIT, 299 tests unitaires et d'intégration, un scénario Playwright de bout en bout (`e2e/`,
+licence MIT, 337 tests unitaires et d'intégration, un scénario Playwright de bout en bout (`e2e/`,
 59 vérifications contre un TMDB factice) et CI GitHub Actions sur chaque PR.
 
 ## Reste
@@ -67,6 +74,16 @@ licence MIT, 299 tests unitaires et d'intégration, un scénario Playwright de b
 - [x] **Déployé sur https://neox.sohbi.dev**, derrière Traefik avec un certificat Let's Encrypt.
       La stack compose tourne telle quelle : nginx sert le bundle et proxifie `/api` vers le
       backend, qui n'expose aucun port publiquement. Chaque `git push` sur `main` redéploie.
+
+### Produit, pour aller plus loin sur la partie connectée
+
+- [ ] **Listes personnalisées**, privées d'abord, puis partageables en lecture seule — la première
+      surface de NEOX qui mérite d'être indexée, là où `/library` est en `noindex` par nature.
+- [ ] **Journal de visionnage** (`watchedAt` par entrée) et rétrospective annuelle dérivée des
+      statistiques déjà calculées.
+- [ ] **Suppressions qui se propagent.** La fusion de bibliothèques est une union sans pierres
+      tombales : un titre retiré sur un appareil revient s'il est encore présent sur un autre. Le
+      jour où ça gêne, il faudra garder une trace des entrées supprimées, avec sa propre purge.
 
 ### Nécessite une infra externe, volontairement non codé en dur
 

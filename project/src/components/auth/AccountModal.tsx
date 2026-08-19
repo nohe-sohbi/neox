@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { KeyRound, Loader2, Trash2, X } from 'lucide-react';
-import { ApiError } from '../../lib/api';
+import { Download, KeyRound, Loader2, LogOut, Trash2, X } from 'lucide-react';
+import { ApiError, api } from '../../lib/api';
+import { backupFilename } from '../../lib/library-io';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useModal } from '../../hooks/useModal';
@@ -14,20 +15,21 @@ interface AccountModalProps {
 }
 
 /**
- * Account management: change the password, or delete the account entirely.
- * Both actions re-confirm with a password, and both surface backend error
- * codes through the same localized map as the sign-in modal.
+ * Account management: change the password, take the data elsewhere, cut the
+ * other sessions loose, or delete the account entirely. Every destructive
+ * action re-confirms with a password, and they all surface backend error codes
+ * through the same localized map as the sign-in modal.
  */
 export function AccountModal({ open, onClose }: AccountModalProps) {
   const { t } = useT();
-  const { user, changePassword, deleteAccount } = useAuth();
+  const { user, changePassword, logoutEverywhere, deleteAccount } = useAuth();
   const toast = useToast();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [deletePassword, setDeletePassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<'change' | 'delete' | null>(null);
+  const [busy, setBusy] = useState<'change' | 'export' | 'sessions' | 'delete' | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -37,6 +39,14 @@ export function AccountModal({ open, onClose }: AccountModalProps) {
       setDeletePassword('');
     }
   }, [open]);
+
+  // Losing the account with the panel open (deletion, or a session that expired
+  // mid-visit) must close it, not render nothing: the modal's scroll lock and
+  // focus trap are released by `onClose`, so a silent early return would leave
+  // the page stuck behind an invisible dialog.
+  useEffect(() => {
+    if (open && !user) onClose();
+  }, [open, user, onClose]);
 
   const dialogRef = useModal<HTMLDivElement>(open, onClose);
 
@@ -60,6 +70,39 @@ export function AccountModal({ open, onClose }: AccountModalProps) {
       setCurrentPassword('');
       setNewPassword('');
       toast.success(t('toast.password_changed'));
+    } catch (err) {
+      showError(err);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleExport = async () => {
+    setError(null);
+    setBusy('export');
+    try {
+      const data = await api.exportAccount();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = backupFilename(new Date(), 'account');
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(t('toast.exported'));
+    } catch (err) {
+      showError(err);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleLogoutEverywhere = async () => {
+    setError(null);
+    setBusy('sessions');
+    try {
+      await logoutEverywhere();
+      toast.success(t('toast.sessions_revoked'));
     } catch (err) {
       showError(err);
     } finally {
@@ -94,7 +137,7 @@ export function AccountModal({ open, onClose }: AccountModalProps) {
         aria-modal="true"
         aria-label={t('account.title')}
         tabIndex={-1}
-        className="card-surface w-full max-w-md animate-scale-in p-7 outline-none"
+        className="card-surface max-h-[90vh] w-full max-w-md animate-scale-in overflow-y-auto p-7 outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-1 flex items-start justify-between">
@@ -139,6 +182,54 @@ export function AccountModal({ open, onClose }: AccountModalProps) {
             )}
           </button>
         </form>
+
+        <div className="mt-7 space-y-3 border-t border-white/10 pt-6">
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-white/50">
+              {t('account.data_title')}
+            </h3>
+            <p className="mt-1 text-sm text-white/50">{t('account.data_desc')}</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={busy !== null}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10 disabled:opacity-60"
+          >
+            {busy === 'export' ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                <Download className="h-5 w-5" />
+                {t('account.export_all')}
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="mt-7 space-y-3 border-t border-white/10 pt-6">
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-white/50">
+              {t('account.sessions_title')}
+            </h3>
+            <p className="mt-1 text-sm text-white/50">{t('account.sessions_desc')}</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogoutEverywhere}
+            disabled={busy !== null}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10 disabled:opacity-60"
+          >
+            {busy === 'sessions' ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                <LogOut className="h-5 w-5" />
+                {t('account.logout_all')}
+              </>
+            )}
+          </button>
+        </div>
 
         <form
           onSubmit={handleDelete}
